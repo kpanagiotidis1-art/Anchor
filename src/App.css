@@ -1,0 +1,320 @@
+/* ── Base ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f5f5f3;
+  color: #1a1a1a;
+  min-height: 100vh;
+}
+
+/* ── Screen wrapper ── */
+.screen {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f5f3;
+  color: #1a1a1a;
+}
+
+/* ── App title ── */
+.app-title {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.5px !important;
+  margin-bottom: 28px !important;
+  text-align: center !important;
+  color: #1a1a1a !important;
+}
+
+/* ── Sections list ── */
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  width: 100%;
+}
+
+/* ── Section card ── */
+.section-card {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07) !important;
+  width: 100%;
+}
+
+/* ── Section header ── */
+.section-header {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+}
+
+.section-title {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1 !important;
+  text-align: left !important;
+}
+
+.add-btn {
+  background: none !important;
+  border: 1px solid #ccc !important;
+  border-radius: 6px !important;
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+  color: #555 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.add-btn:hover {
+  background: #1a1a1a !important;
+  color: white !important;
+  border-color: #1a1a1a !important;
+}
+
+/* ── Task list ── */
+.task-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  padding: 0 4px !important;
+}
+
+/* ── Task item ── */
+.task-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.task-checkbox {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  cursor: pointer !important;
+  accent-color: #1a1a1a !important;
+}
+
+.task-label {
+  font-size: 0.95rem !important;
+  color: #1a1a1a !important;
+  line-height: 1.4 !important;
+  flex: 1 !important;
+  text-align: left !important;
+}
+
+.task-completed {
+  text-decoration: line-through !important;
+  color: #aaa !important;
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: 32px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid #e0e0e0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+
+.progress {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: #444 !important;
+}
+
+/* ── Reset button ── */
+.reset-btn {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid #ccc !important;
+  background: none !important;
+  font-size: 0.85rem !important;
+  color: #555 !important;
+  cursor: pointer !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+
+.reset-btn:hover {
+  background: #1a1a1a !important;
+  color: white !important;
+  border-color: #1a1a1a !important;
+}
+
+/* ── Add Task screen ── */
+.add-task-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 20px 0 16px;
+  text-align: left;
+  color: #1a1a1a;
+}
+
+.screen input[type="text"] {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+.screen input[type="text"]:focus {
+  border-color: #1a1a1a;
+}
+
+.screen > button:first-child {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: #555;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+/* ── Error ── */
+.error {
+  color: #e05252;
+  font-size: 0.85rem;
+  margin: 6px 0 0;
+}
+
+/* ── Frequency picker ── */
+.frequency-picker {
+  margin: 20px 0 16px;
+}
+
+.frequency-picker label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.frequency-options {
+  display: flex;
+  gap: 8px;
+}
+
+.frequency-btn {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #555;
+  transition: background 0.15s, color 0.15s;
+}
+
+.frequency-btn.active {
+  background: #1a1a1a;
+  color: white;
+  border-color: #1a1a1a;
+}
+
+/* ── Save button ── */
+.save-task-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px;
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+/* ── Existing tasks list ── */
+.existing-tasks {
+  margin-top: 32px;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.existing-tasks h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.existing-task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.existing-task-row span {
+  font-size: 0.9rem;
+  color: #333;
+  text-align: left;
+}
+
+.task-done {
+  text-decoration: line-through;
+  color: #bbb;
+}
+
+.no-tasks {
+  font-size: 0.85rem;
+  color: #bbb;
+  text-align: left;
+}
+
+.remove-btn {
+  font-size: 0.8rem;
+  color: #e05252;
+  background: none;
+  border: 1px solid #e05252;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.remove-btn:hover {
+  background: #e05252;
+  color: white;
+}
