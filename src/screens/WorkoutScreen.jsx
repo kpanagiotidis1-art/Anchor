@@ -104,52 +104,59 @@ function AddSetForm({ onAdd }) {
     }}>
       {/* Reps and weight side by side with clear labels */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-  <div style={{ flex: 1 }}>
-    <p style={{
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      color: "#888",
-      marginBottom: "5px",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-    }}>
-      Weight kg
-      <span style={{ fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>
-        optional
-      </span>
-    </p>
-    <input
-      type="number"
-      min="0"
-      step="0.5"
-      placeholder="20"
-      value={weight}
-      onChange={e => setWeight(e.target.value)}
-      onKeyDown={handleKeyDown}
-      style={inputStyle}
-    />
-  </div>
-  <div style={{ flex: 1 }}>
-    <p style={{
-      fontSize: "0.75rem",
-      fontWeight: 600,
-      color: "#888",
-      marginBottom: "5px",
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-    }}>
-      Reps *
-    </p>
-    <input
-      type="number"
-      min="1"
-      placeholder="10"
-      value={reps}
-      onChange={e => { setReps(e.target.value); setError(""); }}
-      onKeyDown={handleKeyDown}
-      style={inputStyle}
-    />
-  </div>
+<div style={{ flex: 1 }}>
+  <p style={{
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "#888",
+    marginBottom: "5px",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    height: "16px", // ← fixed height so both labels are the same
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  }}>
+    Weight kg
+    <span style={{ fontWeight: 400, color: "#bbb", textTransform: "none", letterSpacing: 0 }}>
+      (opt)
+    </span>
+  </p>
+  <input
+    type="number"
+    min="0"
+    step="0.5"
+    placeholder="20"
+    value={weight}
+    onChange={e => setWeight(e.target.value)}
+    onKeyDown={handleKeyDown}
+    style={inputStyle}
+  />
+</div>
+<div style={{ flex: 1 }}>
+  <p style={{
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "#888",
+    marginBottom: "5px",
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    height: "16px", // ← same fixed height
+    display: "flex",
+    alignItems: "center",
+  }}>
+    Reps *
+  </p>
+  <input
+    type="number"
+    min="1"
+    placeholder="10"
+    value={reps}
+    onChange={e => { setReps(e.target.value); setError(""); }}
+    onKeyDown={handleKeyDown}
+    style={inputStyle}
+  />
+</div>
 </div>
 
       {error && (
@@ -230,7 +237,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
             }}>
                 {h}
             </span>
-            ))}
+            ))} 
         </div>
       )}
 
