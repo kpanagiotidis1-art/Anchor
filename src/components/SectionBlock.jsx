@@ -8,13 +8,14 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, viewe
       padding: "16px 20px",
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
       width: "100%",
+      boxSizing: "border-box",
     }}>
       <div style={{
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: "12px",
+        marginBottom: "14px",
       }}>
         <span style={{ fontSize: "1rem", fontWeight: 600, color: "#333" }}>
           {title}
@@ -23,13 +24,13 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, viewe
           onClick={onTitleTap}
           style={{
             background: "none",
-            border: "1px solid #ccc",
-            borderRadius: "6px",
-            width: "24px",
-            height: "24px",
-            fontSize: "1rem",
+            border: "1px solid #ddd",
+            borderRadius: "8px",
+            width: "32px",
+            height: "32px",
+            fontSize: "1.1rem",
             cursor: "pointer",
-            color: "#555",
+            color: "#888",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -41,15 +42,16 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, viewe
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {tasks.map(task => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            onToggle={onToggle}
-            viewedDate={viewedDate}
-          />
-        ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {tasks.length === 0 ? (
+          <p style={{ fontSize: "0.85rem", color: "#ccc" }}>
+            No tasks yet — tap + to add one.
+          </p>
+        ) : (
+          tasks.map(task => (
+            <TaskItem key={task.id} task={task} onToggle={onToggle} viewedDate={viewedDate} />
+          ))
+        )}
       </div>
     </div>
   );

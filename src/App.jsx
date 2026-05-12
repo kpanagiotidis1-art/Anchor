@@ -104,27 +104,36 @@ export default function App() {
   const [viewedDate, setViewedDate] = useState(todayString());
   const [activeScreen, setActiveScreen] = useState("today");
 
-  const touchStartX = useRef(null);
-  const SWIPE_THRESHOLD = 50;
+const touchStartX = useRef(null);
+const touchStartY = useRef(null);
+const SWIPE_THRESHOLD = 60;
+const VERTICAL_LOCK = 10; // if user scrolls vertically first, ignore swipe
 
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
-  }
+function handleTouchStart(e) {
+  touchStartX.current = e.touches[0].clientX;
+  touchStartY.current = e.touches[0].clientY;
+}
 
-  function handleTouchEnd(e) {
-    if (touchStartX.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
-    const currentIndex = SCREENS.indexOf(activeScreen);
-    if (deltaX < 0) {
-      const next = SCREENS[currentIndex + 1];
-      if (next) setActiveScreen(next);
-    } else {
-      const prev = SCREENS[currentIndex - 1];
-      if (prev) setActiveScreen(prev);
-    }
+function handleTouchEnd(e) {
+  if (touchStartX.current === null) return;
+  const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+  const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+  touchStartX.current = null;
+  touchStartY.current = null;
+
+  // ignore if mostly vertical
+  if (Math.abs(deltaY) > Math.abs(deltaX) - VERTICAL_LOCK) return;
+  if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+
+  const currentIndex = SCREENS.indexOf(activeScreen);
+  if (deltaX < 0) {
+    const next = SCREENS[currentIndex + 1];
+    if (next) setActiveScreen(next);
+  } else {
+    const prev = SCREENS[currentIndex - 1];
+    if (prev) setActiveScreen(prev);
   }
+}
 
   useEffect(() => {
     localStorage.setItem("anchor-tasks", JSON.stringify(tasks));

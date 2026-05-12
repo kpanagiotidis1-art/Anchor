@@ -28,12 +28,12 @@ function SetRow({ setNumber, set, sessionActive, onDelete }) {
       <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>
         {setNumber}
       </span>
-      <span style={{ fontSize: "0.9rem", color: "#333" }}>
+        <span style={{ fontSize: "0.9rem", color: "#555" }}>
+        {set.weight !== "" && set.weight != null ? `${set.weight} kg` : "BW"}
+        </span>
+        <span style={{ fontSize: "0.9rem", color: "#333" }}>
         {set.reps} reps
-      </span>
-      <span style={{ fontSize: "0.9rem", color: "#555" }}>
-        {set.weight !== "" && set.weight != null ? `${set.weight} kg` : "Bodyweight"}
-      </span>
+        </span>
       {sessionActive ? (
         <button
           onClick={onDelete}
@@ -84,11 +84,11 @@ function AddSetForm({ onAdd }) {
   }
 
   const inputStyle = {
-    padding: "10px 12px",
+    padding: "12px 14px",
     border: "1px solid #e0e0e0",
     borderRadius: "8px",
     fontSize: "1rem",
-    background: "#fafafa",
+    background: "#fff",
     color: "#1a1a1a",
     outline: "none",
     boxSizing: "border-box",
@@ -98,50 +98,75 @@ function AddSetForm({ onAdd }) {
   return (
     <div style={{
       background: "#f0f0f0",
-      borderRadius: "8px",
-      padding: "12px",
+      borderRadius: "10px",
+      padding: "14px",
       marginTop: "10px",
     }}>
-      <div style={{ display: "flex", gap: "10px", marginBottom: "8px" }}>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "4px" }}>Reps *</p>
-          <input
-            type="number"
-            min="1"
-            placeholder="e.g. 10"
-            value={reps}
-            onChange={e => { setReps(e.target.value); setError(""); }}
-            onKeyDown={handleKeyDown}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "4px" }}>Weight kg (optional)</p>
-          <input
-            type="number"
-            min="0"
-            step="0.5"
-            placeholder="e.g. 20"
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            onKeyDown={handleKeyDown}
-            style={inputStyle}
-          />
-        </div>
-      </div>
+      {/* Reps and weight side by side with clear labels */}
+<div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+  <div style={{ flex: 1 }}>
+    <p style={{
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      color: "#888",
+      marginBottom: "5px",
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+    }}>
+      Weight kg
+      <span style={{ fontWeight: 400, color: "#bbb", marginLeft: "4px" }}>
+        optional
+      </span>
+    </p>
+    <input
+      type="number"
+      min="0"
+      step="0.5"
+      placeholder="20"
+      value={weight}
+      onChange={e => setWeight(e.target.value)}
+      onKeyDown={handleKeyDown}
+      style={inputStyle}
+    />
+  </div>
+  <div style={{ flex: 1 }}>
+    <p style={{
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      color: "#888",
+      marginBottom: "5px",
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+    }}>
+      Reps *
+    </p>
+    <input
+      type="number"
+      min="1"
+      placeholder="10"
+      value={reps}
+      onChange={e => { setReps(e.target.value); setError(""); }}
+      onKeyDown={handleKeyDown}
+      style={inputStyle}
+    />
+  </div>
+</div>
+
       {error && (
         <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>
       )}
+
       <button
         onClick={handleAdd}
         style={{
           width: "100%",
-          padding: "10px",
+          padding: "12px",
           background: "#1a1a1a",
           color: "#fff",
           border: "none",
           borderRadius: "8px",
           fontSize: "0.95rem",
+          fontWeight: 600,
           cursor: "pointer",
         }}
       >
@@ -196,16 +221,16 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
           gap: "8px",
           padding: "2px 0 4px",
         }}>
-          {["Set", "Reps", "Weight", ""].map((h, i) => (
+            {["Set", "Weight", "Reps", ""].map((h, i) => (
             <span key={i} style={{
-              fontSize: "0.7rem",
-              color: "#bbb",
-              fontWeight: 600,
-              textTransform: "uppercase",
+                fontSize: "0.7rem",
+                color: "#bbb",
+                fontWeight: 600,
+                textTransform: "uppercase",
             }}>
-              {h}
+                {h}
             </span>
-          ))}
+            ))}
         </div>
       )}
 
@@ -328,6 +353,8 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
       boxSizing: "border-box",
       outline: isEditing ? "2px solid #d0e8ff" : "none",
     }}>
+
+      {/* Session header — no End button here anymore */}
       <div style={{
         display: "flex",
         justifyContent: "space-between",
@@ -358,47 +385,30 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
           )}
         </div>
 
-        <div style={{ display: "flex", gap: "8px" }}>
-          {sessionActive && (
-            <button
-              onClick={() => onEnd(session.id)}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "6px",
-                border: "1px solid #e05252",
-                background: "none",
-                color: "#e05252",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                minHeight: "36px",
-              }}
-            >
-              End
-            </button>
-          )}
-          {!sessionActive && (
-            <button
-              onClick={() => {
-                setIsEditing(prev => !prev);
-                setShowExerciseForm(false);
-              }}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "6px",
-                border: isEditing ? "1px solid #1a8cff" : "1px solid #ccc",
-                background: isEditing ? "#1a8cff" : "none",
-                color: isEditing ? "#fff" : "#555",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                minHeight: "36px",
-              }}
-            >
-              {isEditing ? "Done" : "Edit"}
-            </button>
-          )}
-        </div>
+        {/* Only show Edit/Done for completed sessions */}
+        {!sessionActive && (
+          <button
+            onClick={() => {
+              setIsEditing(prev => !prev);
+              setShowExerciseForm(false);
+            }}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "6px",
+              border: isEditing ? "1px solid #1a8cff" : "1px solid #ccc",
+              background: isEditing ? "#1a8cff" : "none",
+              color: isEditing ? "#fff" : "#555",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              minHeight: "36px",
+            }}
+          >
+            {isEditing ? "Done" : "Edit"}
+          </button>
+        )}
       </div>
 
+      {/* Remove workout — only when editing */}
       {isEditing && (
         <button
           onClick={() => onDeleteWorkout(session.id)}
@@ -418,6 +428,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
         </button>
       )}
 
+      {/* Exercises */}
       {exercises.length === 0 ? (
         <p style={{ fontSize: "0.88rem", color: "#ccc", marginBottom: "10px" }}>
           No exercises yet.
@@ -435,6 +446,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
         ))
       )}
 
+      {/* Add exercise */}
       {isEditable && (
         showExerciseForm ? (
           <AddExerciseForm onAdd={exercise => {
@@ -459,6 +471,27 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
             + Add exercise
           </button>
         )
+      )}
+
+      {/* End Workout button — at the bottom, only when active */}
+      {sessionActive && (
+        <button
+          onClick={() => onEnd(session.id)}
+          style={{
+            width: "100%",
+            padding: "13px",
+            marginTop: "16px",
+            borderRadius: "8px",
+            border: "none",
+            background: "#1a1a1a",
+            color: "#fff",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          End Workout
+        </button>
       )}
     </div>
   );
