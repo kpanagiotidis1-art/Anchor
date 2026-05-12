@@ -56,6 +56,46 @@ const defaultTasks = {
   ],
 };
 
+// ── Anchor built-in templates ──
+const ANCHOR_TEMPLATES = [
+  {
+    id: "anchor-push",
+    name: "Push Day",
+    anchor: true,
+    exercises: ["Bench Press", "Incline DB Press", "Shoulder Press", "Lateral Raises", "Tricep Pushdown"],
+  },
+  {
+    id: "anchor-pull",
+    name: "Pull Day",
+    anchor: true,
+    exercises: ["Deadlift", "Bent Over Row", "Lat Pulldown", "Face Pulls", "Bicep Curls"],
+  },
+  {
+    id: "anchor-legs",
+    name: "Leg Day",
+    anchor: true,
+    exercises: ["Squat", "Romanian Deadlift", "Leg Press", "Leg Curl", "Calf Raises"],
+  },
+  {
+    id: "anchor-upper",
+    name: "Upper Body",
+    anchor: true,
+    exercises: ["Bench Press", "Bent Over Row", "Shoulder Press", "Lat Pulldown", "Bicep Curls", "Tricep Pushdown"],
+  },
+  {
+    id: "anchor-full",
+    name: "Full Body",
+    anchor: true,
+    exercises: ["Squat", "Bench Press", "Deadlift", "Shoulder Press", "Bent Over Row"],
+  },
+  {
+    id: "anchor-cardio",
+    name: "Cardio & Core",
+    anchor: true,
+    exercises: ["Treadmill Run", "Plank", "Sit Ups", "Mountain Climbers", "Jump Rope"],
+  },
+];
+
 function migrateTasks(tasks) {
   const migrated = {};
   for (const section in tasks) {
@@ -81,6 +121,9 @@ function migrateWorkouts(workouts) {
         ...ex,
         sets: ex.sets || [],
       })),
+      notes: session.notes || "",
+      endTime: session.endTime || null,
+      duration: session.duration || null,
     }));
   }
   return migrated;
@@ -99,41 +142,50 @@ export default function App() {
     return migrateWorkouts(parsed);
   });
 
+  const [exerciseHistory, setExerciseHistory] = useState(() => {
+    const saved = localStorage.getItem("anchor-exercise-history");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // User-created templates only — anchor templates are hardcoded
+  const [userTemplates, setUserTemplates] = useState(() => {
+    const saved = localStorage.getItem("anchor-templates");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [screen, setScreen] = useState("home");
   const [activeSection, setActiveSection] = useState(null);
   const [viewedDate, setViewedDate] = useState(todayString());
   const [activeScreen, setActiveScreen] = useState("today");
+  const [summarySession, setSummarySession] = useState(null);
 
-const touchStartX = useRef(null);
-const touchStartY = useRef(null);
-const SWIPE_THRESHOLD = 60;
-const VERTICAL_LOCK = 10; // if user scrolls vertically first, ignore swipe
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+  const SWIPE_THRESHOLD = 60;
+  const VERTICAL_LOCK = 10;
 
-function handleTouchStart(e) {
-  touchStartX.current = e.touches[0].clientX;
-  touchStartY.current = e.touches[0].clientY;
-}
-
-function handleTouchEnd(e) {
-  if (touchStartX.current === null) return;
-  const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-  const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-  touchStartX.current = null;
-  touchStartY.current = null;
-
-  // ignore if mostly vertical
-  if (Math.abs(deltaY) > Math.abs(deltaX) - VERTICAL_LOCK) return;
-  if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
-
-  const currentIndex = SCREENS.indexOf(activeScreen);
-  if (deltaX < 0) {
-    const next = SCREENS[currentIndex + 1];
-    if (next) setActiveScreen(next);
-  } else {
-    const prev = SCREENS[currentIndex - 1];
-    if (prev) setActiveScreen(prev);
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   }
-}
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(deltaY) > Math.abs(deltaX) - VERTICAL_LOCK) return;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
+    const currentIndex = SCREENS.indexOf(activeScreen);
+    if (deltaX < 0) {
+      const next = SCREENS[currentIndex + 1];
+      if (next) setActiveScreen(next);
+    } else {
+      const prev = SCREENS[currentIndex - 1];
+      if (prev) setActiveScreen(prev);
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem("anchor-tasks", JSON.stringify(tasks));
@@ -143,16 +195,54 @@ function handleTouchEnd(e) {
     localStorage.setItem("anchor-workouts", JSON.stringify(workouts));
   }, [workouts]);
 
+  useEffect(() => {
+    localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory));
+  }, [exerciseHistory]);
+
+  useEffect(() => {
+    localStorage.setItem("anchor-templates", JSON.stringify(userTemplates));
+  }, [userTemplates]);
+
+  // ── Template handlers ──
+
+  function createTemplate(name, exercises) {
+    const newTemplate = {
+      id: `template-${Date.now()}`,
+      name,
+      anchor: false,
+      exercises,
+    };
+    setUserTemplates(prev => [...prev, newTemplate]);
+  }
+
+  function updateTemplate(templateId, name, exercises) {
+    setUserTemplates(prev =>
+      prev.map(t => t.id === templateId ? { ...t, name, exercises } : t)
+    );
+  }
+
+  function deleteTemplate(templateId) {
+    setUserTemplates(prev => prev.filter(t => t.id !== templateId));
+  }
+
   // ── Workout handlers ──
 
-  function startWorkout() {
+  function startWorkout(templateExercises = []) {
     const now = new Date();
     const timeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
     const newSession = {
       id: `workout-${Date.now()}`,
       startTime: timeLabel,
+      startTimestamp: now.getTime(),
+      endTime: null,
+      duration: null,
       status: "active",
-      exercises: [],
+      notes: "",
+      exercises: templateExercises.map(name => ({
+        id: `exercise-${Date.now()}-${Math.random()}`,
+        name,
+        sets: [],
+      })),
     };
     setWorkouts(prev => ({
       ...prev,
@@ -161,10 +251,50 @@ function handleTouchEnd(e) {
   }
 
   function endWorkout(sessionId) {
+    const now = new Date();
+    const endTimeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+
+    setWorkouts(prev => {
+      const sessions = prev[viewedDate] || [];
+      const session = sessions.find(s => s.id === sessionId);
+      const startTs = session?.startTimestamp || now.getTime();
+      const durationMins = Math.round((now.getTime() - startTs) / 60000);
+
+      if (session) {
+        setExerciseHistory(prevHistory => {
+          const updated = { ...prevHistory };
+          (session.exercises || []).forEach(ex => {
+            if (!updated[ex.name]) updated[ex.name] = [];
+            updated[ex.name] = [
+              { date: viewedDate, sets: ex.sets || [] },
+              ...updated[ex.name].slice(0, 19),
+            ];
+          });
+          return updated;
+        });
+      }
+
+      const updatedSessions = sessions.map(s =>
+        s.id === sessionId ? {
+          ...s,
+          status: "completed",
+          endTime: endTimeLabel,
+          duration: durationMins,
+        } : s
+      );
+
+      const completedSession = updatedSessions.find(s => s.id === sessionId);
+      setSummarySession(completedSession);
+
+      return { ...prev, [viewedDate]: updatedSessions };
+    });
+  }
+
+  function updateWorkoutNotes(sessionId, notes) {
     setWorkouts(prev => ({
       ...prev,
       [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId ? { ...session, status: "completed" } : session
+        session.id === sessionId ? { ...session, notes } : session
       ),
     }));
   }
@@ -349,6 +479,15 @@ function handleTouchEnd(e) {
           onDeleteSet={deleteSet}
           onDeleteExercise={deleteExercise}
           onDeleteWorkout={deleteWorkout}
+          onUpdateNotes={updateWorkoutNotes}
+          exerciseHistory={exerciseHistory}
+          summarySession={summarySession}
+          onDismissSummary={() => setSummarySession(null)}
+          anchorTemplates={ANCHOR_TEMPLATES}
+          userTemplates={userTemplates}
+          onCreateTemplate={createTemplate}
+          onUpdateTemplate={updateTemplate}
+          onDeleteTemplate={deleteTemplate}
         />
       )}
 
@@ -382,7 +521,9 @@ function handleTouchEnd(e) {
               color: activeScreen === tab.key ? "#1a1a1a" : "#aaa",
               cursor: "pointer",
               padding: "12px 24px",
-              borderBottom: activeScreen === tab.key ? "2px solid #1a1a1a" : "2px solid transparent",
+              borderBottom: activeScreen === tab.key
+                ? "2px solid #1a1a1a"
+                : "2px solid transparent",
             }}
           >
             {tab.label}
