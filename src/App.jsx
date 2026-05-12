@@ -392,6 +392,20 @@ export default function App() {
     }));
   }
 
+  function renameExercise(sessionId, exerciseId, newName) {
+    setWorkouts(prev => ({
+      ...prev,
+      [viewedDate]: prev[viewedDate].map(s =>
+        s.id === sessionId ? {
+          ...s,
+          exercises: (s.exercises || []).map(ex =>
+            ex.id === exerciseId ? { ...ex, name: newName } : ex
+          ),
+        } : s
+      ),
+    }));
+  }
+
   function deleteWorkout(sessionId) {
     setWorkouts(prev => ({
       ...prev,
@@ -449,8 +463,12 @@ export default function App() {
     });
   }
 
-  function navigateDay(direction) {
-    setViewedDate(prev => offsetDate(prev, direction));
+  function navigateDay(direction, exactDate) {
+    if (exactDate !== undefined) {
+      setViewedDate(exactDate);
+    } else {
+      setViewedDate(prev => offsetDate(prev, direction));
+    }
   }
 
   function goToAddTask(section) {
@@ -530,6 +548,7 @@ export default function App() {
           onAddSet={addSet}
           onDeleteSet={deleteSet}
           onDeleteExercise={deleteExercise}
+          onRenameExercise={renameExercise}
           onDeleteWorkout={deleteWorkout}
           onUpdateNotes={updateWorkoutNotes}
           exerciseHistory={exerciseHistory}

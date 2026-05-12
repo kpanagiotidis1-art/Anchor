@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SectionBlock from "../components/SectionBlock";
+import CalendarPicker from "../components/CalendarPicker";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -176,6 +177,7 @@ export default function HomeScreen({
   onOpenReview,
 }) {
   const [showStats, setShowStats] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const isToday = viewedDate === todayString();
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(viewedDate)).length;
@@ -201,6 +203,14 @@ export default function HomeScreen({
           weekStats={weekStats}
           onClose={() => setShowStats(false)}
           onOpenReview={onOpenReview}
+        />
+      )}
+
+      {showCalendar && (
+        <CalendarPicker
+          viewedDate={viewedDate}
+          onSelectDate={date => { onNavigateDay(0, date); }}
+          onClose={() => setShowCalendar(false)}
         />
       )}
 
@@ -291,34 +301,26 @@ export default function HomeScreen({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "12px",
+          gap: "8px",
           marginBottom: "28px",
+          position: "relative",
         }}>
           <button
             onClick={() => onNavigateDay(-1)}
             style={{
-              background: "none",
-              border: "1px solid #ccc",
-              borderRadius: "6px",
-              width: "36px",
-              height: "36px",
-              cursor: "pointer",
-              color: "#555",
-              fontSize: "1.1rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              flexShrink: 0,
+              background: "none", border: "1px solid #ccc", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              fontSize: "1.1rem", display: "flex", alignItems: "center",
+              justifyContent: "center", padding: 0, flexShrink: 0,
             }}
           >‹</button>
 
-          <div style={{ textAlign: "center", width: "160px" }}>
-            <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
+          <div style={{ textAlign: "center", width: "150px" }}>
+            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a", whiteSpace: "nowrap" }}>
               {formatDate(viewedDate)}
             </p>
             <p style={{
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               color: isToday ? "#aaa" : "transparent",
               marginTop: "2px",
             }}>Today</p>
@@ -327,21 +329,30 @@ export default function HomeScreen({
           <button
             onClick={() => onNavigateDay(1)}
             style={{
-              background: "none",
-              border: "1px solid #ccc",
-              borderRadius: "6px",
-              width: "36px",
-              height: "36px",
-              cursor: "pointer",
-              color: "#555",
-              fontSize: "1.1rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 0,
-              flexShrink: 0,
+              background: "none", border: "1px solid #ccc", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              fontSize: "1.1rem", display: "flex", alignItems: "center",
+              justifyContent: "center", padding: 0, flexShrink: 0,
             }}
           >›</button>
+
+          {/* Calendar icon — absolute so it doesn't affect centering */}
+          <button
+            onClick={() => setShowCalendar(true)}
+            style={{
+              position: "absolute", right: 0,
+              background: "none", border: "1px solid #ccc", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "#888",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="3" width="14" height="12" rx="2" stroke="#888" strokeWidth="1.5"/>
+              <path d="M1 7h14" stroke="#888" strokeWidth="1.5"/>
+              <path d="M5 1v4M11 1v4" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         {/* Sections */}

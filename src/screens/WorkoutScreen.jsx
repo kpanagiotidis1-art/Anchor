@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import CalendarPicker from "../components/CalendarPicker";
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -597,6 +598,23 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
     background: "#fff", color: "#1a1a1a", boxSizing: "border-box",
   };
 
+  // Inline exercise name editing
+  const [editingExIdx, setEditingExIdx] = useState(null);
+  const [editingExName, setEditingExName] = useState("");
+
+  function startEditExercise(idx) {
+    setEditingExIdx(idx);
+    setEditingExName(exercises[idx]);
+  }
+
+  function saveEditExercise(idx) {
+    if (editingExName.trim()) {
+      setExercises(prev => prev.map((ex, i) => i === idx ? editingExName.trim() : ex));
+    }
+    setEditingExIdx(null);
+    setEditingExName("");
+  }
+
   if (view === "create" || view === "edit") {
     return (
       <div style={{
@@ -630,14 +648,38 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
             }}>
               {exercises.map((ex, idx) => (
                 <div key={idx} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "10px 16px",
+                  display: "flex", alignItems: "center",
+                  padding: "8px 16px",
                   borderBottom: idx < exercises.length - 1 ? "1px solid #f5f5f5" : "none",
+                  gap: "8px",
                 }}>
-                  <span style={{ fontSize: "0.92rem", color: "#1a1a1a" }}>{ex}</span>
+                  {editingExIdx === idx ? (
+                    <input
+                      autoFocus
+                      value={editingExName}
+                      onChange={e => setEditingExName(e.target.value)}
+                      onBlur={() => saveEditExercise(idx)}
+                      onKeyDown={e => { if (e.key === "Enter") saveEditExercise(idx); if (e.key === "Escape") setEditingExIdx(null); }}
+                      style={{
+                        flex: 1, padding: "6px 10px", border: "1px solid #1a1a1a",
+                        borderRadius: "6px", fontSize: "0.92rem", outline: "none",
+                        background: "#f9f9f9", color: "#1a1a1a", boxSizing: "border-box",
+                      }}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => startEditExercise(idx)}
+                      style={{
+                        flex: 1, background: "none", border: "none", padding: "4px 0",
+                        textAlign: "left", cursor: "pointer", fontSize: "0.92rem", color: "#1a1a1a",
+                      }}
+                    >
+                      {ex}
+                    </button>
+                  )}
                   <button onClick={() => removeExerciseFromList(idx)} style={{
                     background: "none", border: "none", color: "#ccc",
-                    fontSize: "1.1rem", cursor: "pointer", padding: "4px",
+                    fontSize: "1.1rem", cursor: "pointer", padding: "4px", flexShrink: 0,
                   }}>×</button>
                 </div>
               ))}
@@ -823,10 +865,12 @@ function AddSetForm({ onAdd }) {
 }
 
 // ── Exercise Card ──
-function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, exerciseHistory }) {
+function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, exerciseHistory }) {
   const [showSetForm, setShowSetForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRestTimer, setShowRestTimer] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(exercise.name);
   const sets = exercise.sets || [];
   const history = exerciseHistory?.[exercise.name] || [];
   const lastSession = history[0];
@@ -834,7 +878,14 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
   function handleAddSet(set) {
     onAddSet(exercise.id, set);
     setShowSetForm(false);
-    setShowRestTimer(true); // auto-show rest timer after logging a set
+    setShowRestTimer(true);
+  }
+
+  function saveRename() {
+    if (nameInput.trim() && nameInput.trim() !== exercise.name) {
+      onRenameExercise(exercise.id, nameInput.trim());
+    }
+    setEditingName(false);
   }
 
   return (
@@ -849,24 +900,47 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 
       <div style={{ background: "#f9f9f9", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-          <button
-            onClick={() => setShowHistory(true)}
-            style={{
-              background: "none", border: "none", padding: 0,
-              cursor: "pointer", textAlign: "left", flex: 1,
-            }}
-          >
-            <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
-              {exercise.name}
-            </span>
-            {history.length > 0 && (
-              <span style={{ fontSize: "0.7rem", color: "#aaa", marginLeft: "6px", fontWeight: 400 }}>
-                history ›
-              </span>
-            )}
-          </button>
 
-          {sessionActive && (
+          {/* Name — tappable for history when not active, editable when active */}
+          {sessionActive && editingName ? (
+            <input
+              autoFocus
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onBlur={saveRename}
+              onKeyDown={e => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setEditingName(false); }}
+              style={{
+                flex: 1, padding: "4px 8px", border: "1px solid #1a1a1a",
+                borderRadius: "6px", fontSize: "0.95rem", fontWeight: 600,
+                outline: "none", background: "#fff", color: "#1a1a1a",
+                boxSizing: "border-box",
+              }}
+            />
+          ) : (
+            <button
+              onClick={() => sessionActive ? setEditingName(true) : setShowHistory(true)}
+              style={{
+                background: "none", border: "none", padding: 0,
+                cursor: "pointer", textAlign: "left", flex: 1,
+              }}
+            >
+              <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
+                {exercise.name}
+              </span>
+              {!sessionActive && history.length > 0 && (
+                <span style={{ fontSize: "0.7rem", color: "#aaa", marginLeft: "6px", fontWeight: 400 }}>
+                  history ›
+                </span>
+              )}
+              {sessionActive && (
+                <span style={{ fontSize: "0.7rem", color: "#ccc", marginLeft: "6px", fontWeight: 400 }}>
+                  tap to rename
+                </span>
+              )}
+            </button>
+          )}
+
+          {sessionActive && !editingName && (
             <button onClick={() => onDeleteExercise(exercise.id)} style={{
               background: "none", border: "none", color: "#bbb",
               fontSize: "0.82rem", cursor: "pointer", padding: "4px 8px", minHeight: "36px",
@@ -982,7 +1056,7 @@ function WorkoutNotes({ sessionId, notes, onUpdateNotes }) {
 }
 
 // ── Session Card ──
-function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory }) {
+function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory }) {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -1049,6 +1123,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
             onAddSet={(exerciseId, set) => onAddSet(session.id, exerciseId, set)}
             onDeleteSet={(exerciseId, setId) => onDeleteSet(session.id, exerciseId, setId)}
             onDeleteExercise={exerciseId => onDeleteExercise(session.id, exerciseId)}
+            onRenameExercise={(exerciseId, newName) => onRenameExercise(session.id, exerciseId, newName)}
           />
         ))
       )}
@@ -1087,11 +1162,12 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
 export default function WorkoutScreen({
   viewedDate, onNavigateDay, sessions,
   onStartWorkout, onEndWorkout, onAddExercise, onAddSet,
-  onDeleteSet, onDeleteExercise, onDeleteWorkout, onUpdateNotes,
+  onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes,
   exerciseHistory, summarySession, onDismissSummary,
   anchorTemplates, userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
 }) {
   const [workoutView, setWorkoutView] = useState("main");
+  const [showCalendar, setShowCalendar] = useState(false);
   const isToday = viewedDate === todayString();
   const safeSessions = sessions || [];
   const hasActiveSession = safeSessions.some(s => s.status === "active");
@@ -1129,13 +1205,21 @@ export default function WorkoutScreen({
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "40px 0 100px", boxSizing: "border-box",
     }}>
+      {showCalendar && (
+        <CalendarPicker
+          viewedDate={viewedDate}
+          onSelectDate={date => onNavigateDay(0, date)}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
+
       <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
 
-        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "8px", textAlign: "center" }}>
+        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "20px", textAlign: "center" }}>
           Workout
         </h1>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "28px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "28px", position: "relative" }}>
           <button onClick={() => onNavigateDay(-1)} style={{
             background: "none", border: "1px solid #ccc", borderRadius: "6px",
             width: "36px", height: "36px", cursor: "pointer", color: "#555",
@@ -1143,9 +1227,9 @@ export default function WorkoutScreen({
             justifyContent: "center", padding: 0, flexShrink: 0,
           }}>‹</button>
 
-          <div style={{ textAlign: "center", width: "160px" }}>
-            <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>{formatDate(viewedDate)}</p>
-            <p style={{ fontSize: "0.75rem", color: isToday ? "#aaa" : "transparent", marginTop: "2px" }}>Today</p>
+          <div style={{ textAlign: "center", width: "150px" }}>
+            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a", whiteSpace: "nowrap" }}>{formatDate(viewedDate)}</p>
+            <p style={{ fontSize: "0.72rem", color: isToday ? "#aaa" : "transparent", marginTop: "2px" }}>Today</p>
           </div>
 
           <button onClick={() => onNavigateDay(1)} style={{
@@ -1154,6 +1238,24 @@ export default function WorkoutScreen({
             fontSize: "1.1rem", display: "flex", alignItems: "center",
             justifyContent: "center", padding: 0, flexShrink: 0,
           }}>›</button>
+
+          {/* Calendar icon — absolute so it doesn't affect centering */}
+          <button
+            onClick={() => setShowCalendar(true)}
+            style={{
+              position: "absolute", right: 0,
+              background: "none", border: "1px solid #ccc", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "#888",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="3" width="14" height="12" rx="2" stroke="#888" strokeWidth="1.5"/>
+              <path d="M1 7h14" stroke="#888" strokeWidth="1.5"/>
+              <path d="M5 1v4M11 1v4" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
 
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -1172,6 +1274,7 @@ export default function WorkoutScreen({
               onAddSet={onAddSet}
               onDeleteSet={onDeleteSet}
               onDeleteExercise={onDeleteExercise}
+              onRenameExercise={onRenameExercise}
               onDeleteWorkout={onDeleteWorkout}
               onUpdateNotes={onUpdateNotes}
               exerciseHistory={exerciseHistory}
