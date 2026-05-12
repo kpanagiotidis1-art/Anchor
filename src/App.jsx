@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import HomeScreen from "./screens/HomeScreen";
 import AddTaskScreen from "./screens/AddTaskScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
+import WeeklyReviewScreen from "./screens/WeeklyReviewScreen";
 
 const SCREENS = ["today", "workout"];
 
@@ -28,6 +29,37 @@ function getDayOfWeek(dateStr) {
   return new Date(year, month - 1, day).getDay();
 }
 
+// Returns ISO week key e.g. "2026-W19"
+export function getWeekKey(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  const dow = d.getDay();
+  const diff = (dow === 0 ? -6 : 1 - dow);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  const y = monday.getFullYear();
+  const jan4 = new Date(y, 0, 4);
+  const weekNum = Math.ceil(((monday - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+  return `${y}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+// Returns the Mon–Sun date strings for the week containing dateStr
+export function getWeekDates(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  const dow = d.getDay();
+  const diffToMon = dow === 0 ? -6 : 1 - dow;
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(year, month - 1, day + diffToMon + i);
+    const y2 = dd.getFullYear();
+    const m2 = String(dd.getMonth() + 1).padStart(2, "0");
+    const d2 = String(dd.getDate()).padStart(2, "0");
+    dates.push(`${y2}-${m2}-${d2}`);
+  }
+  return dates; // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+}
+
 function getVisibleTasks(tasks, dateStr) {
   const dow = getDayOfWeek(dateStr);
   const filtered = {};
@@ -40,6 +72,92 @@ function getVisibleTasks(tasks, dateStr) {
     });
   }
   return filtered;
+}
+
+function getStreakData(tasks, workouts) {
+  const today = todayString();
+
+  function isActiveDay(dateStr) {
+    const hasCompletedTask = Object.values(tasks).some(section =>
+      section.some(task => task.completedDates.includes(dateStr))
+    );
+    const hasWorkout = (workouts[dateStr] || []).length > 0;
+    return hasCompletedTask || hasWorkout;
+  }
+
+  let current = 0;
+  let cursor = today;
+  while (isActiveDay(cursor)) {
+    current++;
+    cursor = offsetDate(cursor, -1);
+  }
+
+  const allDates = new Set();
+  Object.values(tasks).forEach(section =>
+    section.forEach(task => task.completedDates.forEach(d => allDates.add(d)))
+  );
+  Object.keys(workouts).forEach(d => {
+    if ((workouts[d] || []).length > 0) allDates.add(d);
+  });
+
+  const sorted = Array.from(allDates).sort();
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i === 0 || offsetDate(sorted[i - 1], 1) === sorted[i]) {
+      run++;
+    } else {
+      run = 1;
+    }
+    if (run > longest) longest = run;
+  }
+  longest = Math.max(longest, current);
+
+  return { current, longest };
+}
+
+function getWeeklyDots(tasks, workouts) {
+  const today = todayString();
+  const weekDates = getWeekDates(today);
+  return weekDates.map(dateStr => {
+    const hasTask = Object.values(tasks).some(section =>
+      section.some(task => task.completedDates.includes(dateStr))
+    );
+    const hasWorkout = (workouts[dateStr] || []).length > 0;
+    return { dateStr, active: hasTask || hasWorkout };
+  });
+}
+
+export function getWeekStats(tasks, workouts, weekDates) {
+  const today = todayString();
+
+  const activeDays = weekDates.filter(dateStr => {
+    const hasTask = Object.values(tasks).some(s => s.some(t => t.completedDates.includes(dateStr)));
+    const hasWorkout = (workouts[dateStr] || []).length > 0;
+    return hasTask || hasWorkout;
+  }).length;
+
+  const totalWorkouts = weekDates.reduce((acc, d) => acc + (workouts[d] || []).length, 0);
+
+  let totalPossible = 0;
+  let totalCompleted = 0;
+  weekDates.forEach(dateStr => {
+    if (dateStr > today) return;
+    const allTasks = Object.values(tasks).flat();
+    const dow = getDayOfWeek(dateStr);
+    const visible = allTasks.filter(task => {
+      if (task.frequency === "daily") return true;
+      if (task.frequency === "weekly") return (task.days || []).includes(dow);
+      if (task.frequency === "one-time") return task.date === dateStr;
+      return false;
+    });
+    totalPossible += visible.length;
+    totalCompleted += visible.filter(t => t.completedDates.includes(dateStr)).length;
+  });
+
+  const taskPct = totalPossible === 0 ? null : Math.round((totalCompleted / totalPossible) * 100);
+
+  return { activeDays, totalWorkouts, taskPct, totalCompleted, totalPossible };
 }
 
 const defaultTasks = {
@@ -56,44 +174,13 @@ const defaultTasks = {
   ],
 };
 
-// ── Anchor built-in templates ──
 const ANCHOR_TEMPLATES = [
-  {
-    id: "anchor-push",
-    name: "Push Day",
-    anchor: true,
-    exercises: ["Bench Press", "Incline DB Press", "Shoulder Press", "Lateral Raises", "Tricep Pushdown"],
-  },
-  {
-    id: "anchor-pull",
-    name: "Pull Day",
-    anchor: true,
-    exercises: ["Deadlift", "Bent Over Row", "Lat Pulldown", "Face Pulls", "Bicep Curls"],
-  },
-  {
-    id: "anchor-legs",
-    name: "Leg Day",
-    anchor: true,
-    exercises: ["Squat", "Romanian Deadlift", "Leg Press", "Leg Curl", "Calf Raises"],
-  },
-  {
-    id: "anchor-upper",
-    name: "Upper Body",
-    anchor: true,
-    exercises: ["Bench Press", "Bent Over Row", "Shoulder Press", "Lat Pulldown", "Bicep Curls", "Tricep Pushdown"],
-  },
-  {
-    id: "anchor-full",
-    name: "Full Body",
-    anchor: true,
-    exercises: ["Squat", "Bench Press", "Deadlift", "Shoulder Press", "Bent Over Row"],
-  },
-  {
-    id: "anchor-cardio",
-    name: "Cardio & Core",
-    anchor: true,
-    exercises: ["Treadmill Run", "Plank", "Sit Ups", "Mountain Climbers", "Jump Rope"],
-  },
+  { id: "anchor-push", name: "Push Day", anchor: true, exercises: ["Bench Press", "Incline DB Press", "Shoulder Press", "Lateral Raises", "Tricep Pushdown"] },
+  { id: "anchor-pull", name: "Pull Day", anchor: true, exercises: ["Deadlift", "Bent Over Row", "Lat Pulldown", "Face Pulls", "Bicep Curls"] },
+  { id: "anchor-legs", name: "Leg Day", anchor: true, exercises: ["Squat", "Romanian Deadlift", "Leg Press", "Leg Curl", "Calf Raises"] },
+  { id: "anchor-upper", name: "Upper Body", anchor: true, exercises: ["Bench Press", "Bent Over Row", "Shoulder Press", "Lat Pulldown", "Bicep Curls", "Tricep Pushdown"] },
+  { id: "anchor-full", name: "Full Body", anchor: true, exercises: ["Squat", "Bench Press", "Deadlift", "Shoulder Press", "Bent Over Row"] },
+  { id: "anchor-cardio", name: "Cardio & Core", anchor: true, exercises: ["Treadmill Run", "Plank", "Sit Ups", "Mountain Climbers", "Jump Rope"] },
 ];
 
 function migrateTasks(tasks) {
@@ -117,10 +204,7 @@ function migrateWorkouts(workouts) {
   for (const date in workouts) {
     migrated[date] = (workouts[date] || []).map(session => ({
       ...session,
-      exercises: (session.exercises || []).map(ex => ({
-        ...ex,
-        sets: ex.sets || [],
-      })),
+      exercises: (session.exercises || []).map(ex => ({ ...ex, sets: ex.sets || [] })),
       notes: session.notes || "",
       endTime: session.endTime || null,
       duration: session.duration || null,
@@ -147,13 +231,17 @@ export default function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // User-created templates only — anchor templates are hardcoded
   const [userTemplates, setUserTemplates] = useState(() => {
     const saved = localStorage.getItem("anchor-templates");
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [screen, setScreen] = useState("home");
+  const [weeklyReviewNotes, setWeeklyReviewNotes] = useState(() => {
+    const saved = localStorage.getItem("anchor-weekly-review");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [screen, setScreen] = useState("home"); // "home" | "add" | "review"
   const [activeSection, setActiveSection] = useState(null);
   const [viewedDate, setViewedDate] = useState(todayString());
   const [activeScreen, setActiveScreen] = useState("today");
@@ -187,45 +275,28 @@ export default function App() {
     }
   }
 
-  useEffect(() => {
-    localStorage.setItem("anchor-tasks", JSON.stringify(tasks));
-  }, [tasks]);
+  useEffect(() => { localStorage.setItem("anchor-tasks", JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { localStorage.setItem("anchor-workouts", JSON.stringify(workouts)); }, [workouts]);
+  useEffect(() => { localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory)); }, [exerciseHistory]);
+  useEffect(() => { localStorage.setItem("anchor-templates", JSON.stringify(userTemplates)); }, [userTemplates]);
+  useEffect(() => { localStorage.setItem("anchor-weekly-review", JSON.stringify(weeklyReviewNotes)); }, [weeklyReviewNotes]);
 
-  useEffect(() => {
-    localStorage.setItem("anchor-workouts", JSON.stringify(workouts));
-  }, [workouts]);
-
-  useEffect(() => {
-    localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory));
-  }, [exerciseHistory]);
-
-  useEffect(() => {
-    localStorage.setItem("anchor-templates", JSON.stringify(userTemplates));
-  }, [userTemplates]);
-
-  // ── Template handlers ──
+  function saveWeeklyReview(weekKey, reflection, goals) {
+    setWeeklyReviewNotes(prev => ({
+      ...prev,
+      [weekKey]: { reflection, goals, savedAt: todayString() },
+    }));
+  }
 
   function createTemplate(name, exercises) {
-    const newTemplate = {
-      id: `template-${Date.now()}`,
-      name,
-      anchor: false,
-      exercises,
-    };
-    setUserTemplates(prev => [...prev, newTemplate]);
+    setUserTemplates(prev => [...prev, { id: `template-${Date.now()}`, name, anchor: false, exercises }]);
   }
-
   function updateTemplate(templateId, name, exercises) {
-    setUserTemplates(prev =>
-      prev.map(t => t.id === templateId ? { ...t, name, exercises } : t)
-    );
+    setUserTemplates(prev => prev.map(t => t.id === templateId ? { ...t, name, exercises } : t));
   }
-
   function deleteTemplate(templateId) {
     setUserTemplates(prev => prev.filter(t => t.id !== templateId));
   }
-
-  // ── Workout handlers ──
 
   function startWorkout(templateExercises = []) {
     const now = new Date();
@@ -234,58 +305,36 @@ export default function App() {
       id: `workout-${Date.now()}`,
       startTime: timeLabel,
       startTimestamp: now.getTime(),
-      endTime: null,
-      duration: null,
-      status: "active",
-      notes: "",
+      endTime: null, duration: null, status: "active", notes: "",
       exercises: templateExercises.map(name => ({
-        id: `exercise-${Date.now()}-${Math.random()}`,
-        name,
-        sets: [],
+        id: `exercise-${Date.now()}-${Math.random()}`, name, sets: [],
       })),
     };
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: [...(prev[viewedDate] || []), newSession],
-    }));
+    setWorkouts(prev => ({ ...prev, [viewedDate]: [...(prev[viewedDate] || []), newSession] }));
   }
 
   function endWorkout(sessionId) {
     const now = new Date();
     const endTimeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
-
     setWorkouts(prev => {
       const sessions = prev[viewedDate] || [];
       const session = sessions.find(s => s.id === sessionId);
       const startTs = session?.startTimestamp || now.getTime();
       const durationMins = Math.round((now.getTime() - startTs) / 60000);
-
       if (session) {
         setExerciseHistory(prevHistory => {
           const updated = { ...prevHistory };
           (session.exercises || []).forEach(ex => {
             if (!updated[ex.name]) updated[ex.name] = [];
-            updated[ex.name] = [
-              { date: viewedDate, sets: ex.sets || [] },
-              ...updated[ex.name].slice(0, 19),
-            ];
+            updated[ex.name] = [{ date: viewedDate, sets: ex.sets || [] }, ...updated[ex.name].slice(0, 19)];
           });
           return updated;
         });
       }
-
       const updatedSessions = sessions.map(s =>
-        s.id === sessionId ? {
-          ...s,
-          status: "completed",
-          endTime: endTimeLabel,
-          duration: durationMins,
-        } : s
+        s.id === sessionId ? { ...s, status: "completed", endTime: endTimeLabel, duration: durationMins } : s
       );
-
-      const completedSession = updatedSessions.find(s => s.id === sessionId);
-      setSummarySession(completedSession);
-
+      setSummarySession(updatedSessions.find(s => s.id === sessionId));
       return { ...prev, [viewedDate]: updatedSessions };
     });
   }
@@ -293,19 +342,15 @@ export default function App() {
   function updateWorkoutNotes(sessionId, notes) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId ? { ...session, notes } : session
-      ),
+      [viewedDate]: prev[viewedDate].map(s => s.id === sessionId ? { ...s, notes } : s),
     }));
   }
 
   function addExercise(sessionId, exercise) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId
-          ? { ...session, exercises: [...(session.exercises || []), exercise] }
-          : session
+      [viewedDate]: prev[viewedDate].map(s =>
+        s.id === sessionId ? { ...s, exercises: [...(s.exercises || []), exercise] } : s
       ),
     }));
   }
@@ -313,15 +358,13 @@ export default function App() {
   function addSet(sessionId, exerciseId, set) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId ? {
-          ...session,
-          exercises: (session.exercises || []).map(ex =>
-            ex.id === exerciseId
-              ? { ...ex, sets: [...(ex.sets || []), set] }
-              : ex
+      [viewedDate]: prev[viewedDate].map(s =>
+        s.id === sessionId ? {
+          ...s,
+          exercises: (s.exercises || []).map(ex =>
+            ex.id === exerciseId ? { ...ex, sets: [...(ex.sets || []), set] } : ex
           ),
-        } : session
+        } : s
       ),
     }));
   }
@@ -329,15 +372,13 @@ export default function App() {
   function deleteSet(sessionId, exerciseId, setId) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId ? {
-          ...session,
-          exercises: (session.exercises || []).map(ex =>
-            ex.id === exerciseId
-              ? { ...ex, sets: (ex.sets || []).filter(s => s.id !== setId) }
-              : ex
+      [viewedDate]: prev[viewedDate].map(s =>
+        s.id === sessionId ? {
+          ...s,
+          exercises: (s.exercises || []).map(ex =>
+            ex.id === exerciseId ? { ...ex, sets: (ex.sets || []).filter(set => set.id !== setId) } : ex
           ),
-        } : session
+        } : s
       ),
     }));
   }
@@ -345,10 +386,8 @@ export default function App() {
   function deleteExercise(sessionId, exerciseId) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: prev[viewedDate].map(session =>
-        session.id === sessionId
-          ? { ...session, exercises: (session.exercises || []).filter(ex => ex.id !== exerciseId) }
-          : session
+      [viewedDate]: prev[viewedDate].map(s =>
+        s.id === sessionId ? { ...s, exercises: (s.exercises || []).filter(ex => ex.id !== exerciseId) } : s
       ),
     }));
   }
@@ -356,11 +395,9 @@ export default function App() {
   function deleteWorkout(sessionId) {
     setWorkouts(prev => ({
       ...prev,
-      [viewedDate]: (prev[viewedDate] || []).filter(session => session.id !== sessionId),
+      [viewedDate]: (prev[viewedDate] || []).filter(s => s.id !== sessionId),
     }));
   }
-
-  // ── Task handlers ──
 
   function toggleTask(section, taskId) {
     setTasks(prev => ({
@@ -380,34 +417,22 @@ export default function App() {
 
   function addTask(section, taskName, frequency, days, date) {
     const newTask = {
-      id: Date.now(),
-      name: taskName,
-      section,
-      frequency,
-      completedDates: [],
+      id: Date.now(), name: taskName, section, frequency, completedDates: [],
       ...(frequency === "weekly" && { days }),
       ...(frequency === "one-time" && { date }),
     };
-    setTasks(prev => ({
-      ...prev,
-      [section]: [...prev[section], newTask],
-    }));
+    setTasks(prev => ({ ...prev, [section]: [...prev[section], newTask] }));
     setScreen("home");
   }
 
   function deleteTask(section, taskId) {
-    setTasks(prev => ({
-      ...prev,
-      [section]: prev[section].filter(task => task.id !== taskId),
-    }));
+    setTasks(prev => ({ ...prev, [section]: prev[section].filter(t => t.id !== taskId) }));
   }
 
   function updateTask(section, taskId, updates) {
     setTasks(prev => ({
       ...prev,
-      [section]: prev[section].map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      ),
+      [section]: prev[section].map(t => t.id === taskId ? { ...t, ...updates } : t),
     }));
   }
 
@@ -433,8 +458,16 @@ export default function App() {
     setScreen("add");
   }
 
+  // ── Computed ──
   const visibleTasks = getVisibleTasks(tasks, viewedDate);
+  const { current: currentStreak, longest: longestStreak } = getStreakData(tasks, workouts);
+  const weeklyDots = getWeeklyDots(tasks, workouts);
+  const today = todayString();
+  const currentWeekDates = getWeekDates(today);
+  const currentWeekKey = getWeekKey(today);
+  const weekStats = getWeekStats(tasks, workouts, currentWeekDates);
 
+  // ── Routing ──
   if (screen === "add") {
     return (
       <AddTaskScreen
@@ -446,6 +479,20 @@ export default function App() {
         onDelete={deleteTask}
         onUpdate={updateTask}
         viewedDate={viewedDate}
+      />
+    );
+  }
+
+  if (screen === "review") {
+    return (
+      <WeeklyReviewScreen
+        weekKey={currentWeekKey}
+        weekDates={currentWeekDates}
+        weekStats={weekStats}
+        weeklyDots={weeklyDots}
+        savedNotes={weeklyReviewNotes[currentWeekKey] || {}}
+        onSave={(reflection, goals) => saveWeeklyReview(currentWeekKey, reflection, goals)}
+        onBack={() => setScreen("home")}
       />
     );
   }
@@ -464,6 +511,11 @@ export default function App() {
           onResetDay={resetDay}
           viewedDate={viewedDate}
           onNavigateDay={navigateDay}
+          currentStreak={currentStreak}
+          longestStreak={longestStreak}
+          weeklyDots={weeklyDots}
+          weekStats={weekStats}
+          onOpenReview={() => setScreen("review")}
         />
       )}
 
@@ -491,12 +543,9 @@ export default function App() {
         />
       )}
 
-      {/* Tab bar */}
       <div style={{
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 0, left: 0, right: 0,
         height: "64px",
         background: "#ffffff",
         borderTop: "1px solid #e0e0e0",
@@ -521,9 +570,7 @@ export default function App() {
               color: activeScreen === tab.key ? "#1a1a1a" : "#aaa",
               cursor: "pointer",
               padding: "12px 24px",
-              borderBottom: activeScreen === tab.key
-                ? "2px solid #1a1a1a"
-                : "2px solid transparent",
+              borderBottom: activeScreen === tab.key ? "2px solid #1a1a1a" : "2px solid transparent",
             }}
           >
             {tab.label}

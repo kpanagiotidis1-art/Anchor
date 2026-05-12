@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -15,6 +15,359 @@ function todayString() {
   return `${y}-${m}-${dd}`;
 }
 
+// ── Rest Timer ──
+function RestTimer({ onDismiss }) {
+  const DURATIONS = [60, 90, 120];
+  const [selected, setSelected] = useState(90);
+  const [timeLeft, setTimeLeft] = useState(null); // null = not started
+  const [running, setRunning] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (running && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            setRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [running]);
+
+  function start(duration) {
+    clearInterval(intervalRef.current);
+    setSelected(duration);
+    setTimeLeft(duration);
+    setRunning(true);
+  }
+
+  function reset() {
+    clearInterval(intervalRef.current);
+    setRunning(false);
+    setTimeLeft(null);
+  }
+
+  const isFinished = timeLeft === 0;
+  const isActive = timeLeft !== null;
+  const progress = isActive ? timeLeft / selected : 1;
+
+  const minutes = isActive ? Math.floor(timeLeft / 60) : null;
+  const seconds = isActive ? timeLeft % 60 : null;
+  const timeDisplay = isActive
+    ? `${minutes}:${String(seconds).padStart(2, "0")}`
+    : null;
+
+  // Circle ring math
+  const radius = 28;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDash = circumference * progress;
+
+  return (
+    <div style={{
+      background: "#f9f9f9",
+      borderRadius: "12px",
+      padding: "14px 16px",
+      marginTop: "10px",
+      display: "flex",
+      alignItems: "center",
+      gap: "14px",
+    }}>
+      {/* Ring + time */}
+      <div style={{ position: "relative", width: "68px", height: "68px", flexShrink: 0 }}>
+        <svg width="68" height="68" style={{ transform: "rotate(-90deg)" }}>
+          {/* Track */}
+          <circle
+            cx="34" cy="34" r={radius}
+            fill="none"
+            stroke="#e0e0e0"
+            strokeWidth="4"
+          />
+          {/* Progress */}
+          <circle
+            cx="34" cy="34" r={radius}
+            fill="none"
+            stroke={isFinished ? "#4caf50" : "#1a1a1a"}
+            strokeWidth="4"
+            strokeDasharray={`${strokeDash} ${circumference}`}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dasharray 0.5s linear, stroke 0.3s" }}
+          />
+        </svg>
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          {isFinished ? (
+            <span style={{ fontSize: "1.2rem" }}>✓</span>
+          ) : isActive ? (
+            <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1a1a1a" }}>
+              {timeDisplay}
+            </span>
+          ) : (
+            <span style={{ fontSize: "0.72rem", color: "#aaa", textAlign: "center", lineHeight: 1.2 }}>
+              Rest
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{ flex: 1 }}>
+        {isFinished ? (
+          <div>
+            <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "#4caf50", marginBottom: "8px" }}>
+              Rest complete!
+            </p>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                onClick={() => start(selected)}
+                style={{
+                  flex: 1, padding: "7px", borderRadius: "7px",
+                  border: "1px solid #ccc", background: "none",
+                  fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                }}
+              >Again</button>
+              <button
+                onClick={onDismiss}
+                style={{
+                  flex: 1, padding: "7px", borderRadius: "7px",
+                  border: "none", background: "#1a1a1a",
+                  fontSize: "0.8rem", color: "#fff", cursor: "pointer",
+                }}
+              >Done</button>
+            </div>
+          </div>
+        ) : isActive ? (
+          <div>
+            <p style={{ fontSize: "0.78rem", color: "#aaa", marginBottom: "8px" }}>
+              Resting · {selected}s
+            </p>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                onClick={reset}
+                style={{
+                  flex: 1, padding: "7px", borderRadius: "7px",
+                  border: "1px solid #ccc", background: "none",
+                  fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                }}
+              >Cancel</button>
+              <button
+                onClick={onDismiss}
+                style={{
+                  flex: 1, padding: "7px", borderRadius: "7px",
+                  border: "none", background: "#1a1a1a",
+                  fontSize: "0.8rem", color: "#fff", cursor: "pointer",
+                }}
+              >Skip</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: "0.78rem", color: "#aaa", marginBottom: "8px" }}>
+              Start rest timer
+            </p>
+            <div style={{ display: "flex", gap: "6px" }}>
+              {DURATIONS.map(d => (
+                <button
+                  key={d}
+                  onClick={() => start(d)}
+                  style={{
+                    flex: 1, padding: "7px", borderRadius: "7px",
+                    border: "1px solid #ccc", background: "none",
+                    fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                  }}
+                >{d}s</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Dismiss X — only when idle */}
+      {!isActive && (
+        <button
+          onClick={onDismiss}
+          style={{
+            background: "none", border: "none", color: "#ccc",
+            fontSize: "1.2rem", cursor: "pointer", padding: "4px",
+            alignSelf: "flex-start", flexShrink: 0,
+          }}
+        >×</button>
+      )}
+    </div>
+  );
+}
+
+// ── Exercise History Modal ──
+function ExerciseHistoryModal({ name, history, onClose }) {
+  const sessions = history || [];
+
+  // Calculate PR — best set by weight × reps score
+  let pr = null;
+  sessions.forEach(session => {
+    (session.sets || []).forEach(set => {
+      if (!pr) { pr = set; return; }
+      const setScore = (set.weight || 0) * set.reps;
+      const prScore = (pr.weight || 0) * pr.reps;
+      if (setScore > prScore) pr = set;
+    });
+  });
+
+  const lastSession = sessions[0];
+
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 100,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+    }}>
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.4)",
+        }}
+      />
+      <div style={{
+        position: "relative",
+        background: "#f5f5f3",
+        borderRadius: "20px 20px 0 0",
+        padding: "24px 20px 48px",
+        maxHeight: "82vh",
+        overflowY: "auto",
+        zIndex: 101,
+      }}>
+        <div style={{
+          width: "36px", height: "4px", background: "#ddd",
+          borderRadius: "99px", margin: "0 auto 20px",
+        }} />
+        <div style={{
+          display: "flex", justifyContent: "space-between",
+          alignItems: "center", marginBottom: "20px",
+        }}>
+          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1a1a1a" }}>
+            {name}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none", border: "none",
+              fontSize: "1.4rem", color: "#aaa",
+              cursor: "pointer", padding: "4px", lineHeight: 1,
+            }}
+          >×</button>
+        </div>
+
+        {sessions.length === 0 ? (
+          <p style={{ fontSize: "0.9rem", color: "#bbb", textAlign: "center", padding: "20px 0" }}>
+            No history yet. Complete a workout to see data here.
+          </p>
+        ) : (
+          <>
+            {pr && (
+              <div style={{
+                background: "#1a1a1a", borderRadius: "12px", padding: "16px 20px",
+                marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <div>
+                  <p style={{ fontSize: "0.72rem", color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+                    Personal Record
+                  </p>
+                  <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "#fff" }}>
+                    {pr.weight ? `${pr.weight} kg` : "Bodyweight"} × {pr.reps}
+                  </p>
+                </div>
+                <p style={{ fontSize: "1.8rem" }}>🏆</p>
+              </div>
+            )}
+
+            {lastSession && (
+              <div style={{
+                background: "#fff", borderRadius: "12px", padding: "16px 20px",
+                marginBottom: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+              }}>
+                <p style={{
+                  fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+                  textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
+                }}>
+                  Last Session — {formatDate(lastSession.date)}
+                </p>
+                {(lastSession.sets || []).length === 0 ? (
+                  <p style={{ fontSize: "0.85rem", color: "#ccc" }}>No sets logged.</p>
+                ) : (
+                  <div>
+                    <div style={{
+                      display: "grid", gridTemplateColumns: "32px 1fr 1fr",
+                      gap: "8px", padding: "2px 0 6px",
+                    }}>
+                      {["Set", "Weight", "Reps"].map((h, i) => (
+                        <span key={i} style={{ fontSize: "0.7rem", color: "#bbb", fontWeight: 600, textTransform: "uppercase" }}>{h}</span>
+                      ))}
+                    </div>
+                    {lastSession.sets.map((set, idx) => (
+                      <div key={idx} style={{
+                        display: "grid", gridTemplateColumns: "32px 1fr 1fr",
+                        gap: "8px", padding: "7px 0",
+                        borderBottom: idx < lastSession.sets.length - 1 ? "1px solid #f5f5f5" : "none",
+                      }}>
+                        <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>{idx + 1}</span>
+                        <span style={{ fontSize: "0.9rem", color: "#555" }}>{set.weight ? `${set.weight} kg` : "BW"}</span>
+                        <span style={{ fontSize: "0.9rem", color: "#333" }}>{set.reps} reps</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {sessions.length > 1 && (
+              <div style={{
+                background: "#fff", borderRadius: "12px", padding: "16px 20px",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+              }}>
+                <p style={{
+                  fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+                  textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px",
+                }}>History</p>
+                {sessions.slice(1).map((session, sIdx) => (
+                  <div key={sIdx} style={{ marginBottom: sIdx < sessions.length - 2 ? "16px" : 0 }}>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#888", marginBottom: "6px" }}>
+                      {formatDate(session.date)}
+                    </p>
+                    {(session.sets || []).map((set, idx) => (
+                      <div key={idx} style={{ display: "flex", gap: "12px", padding: "4px 0" }}>
+                        <span style={{ fontSize: "0.78rem", color: "#bbb", width: "32px", textAlign: "center" }}>{idx + 1}</span>
+                        <span style={{ fontSize: "0.85rem", color: "#555" }}>
+                          {set.weight ? `${set.weight} kg` : "BW"} × {set.reps} reps
+                        </span>
+                      </div>
+                    ))}
+                    {sIdx < sessions.length - 2 && (
+                      <div style={{ borderBottom: "1px solid #f5f5f5", marginTop: "12px" }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Workout Summary ──
 function WorkoutSummary({ session, onDismiss }) {
   const exercises = session.exercises || [];
@@ -27,14 +380,9 @@ function WorkoutSummary({ session, onDismiss }) {
 
   return (
     <div style={{
-      width: "100%",
-      minHeight: "100vh",
-      background: "#f5f5f3",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      padding: "60px 20px 100px",
-      boxSizing: "border-box",
+      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "60px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
@@ -50,10 +398,8 @@ function WorkoutSummary({ session, onDismiss }) {
         </div>
 
         <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "12px",
-          marginBottom: "28px",
+          display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+          gap: "12px", marginBottom: "28px",
         }}>
           {[
             { label: "Exercises", value: exercises.length },
@@ -61,52 +407,33 @@ function WorkoutSummary({ session, onDismiss }) {
             { label: "Volume", value: totalVolume > 0 ? `${totalVolume}kg` : "—" },
           ].map(stat => (
             <div key={stat.label} style={{
-              background: "#fff",
-              borderRadius: "12px",
-              padding: "16px 12px",
-              textAlign: "center",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+              background: "#fff", borderRadius: "12px", padding: "16px 12px",
+              textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
             }}>
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a" }}>
-                {stat.value}
-              </p>
-              <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "2px" }}>
-                {stat.label}
-              </p>
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a" }}>{stat.value}</p>
+              <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "2px" }}>{stat.label}</p>
             </div>
           ))}
         </div>
 
         <div style={{
-          background: "#fff",
-          borderRadius: "12px",
-          padding: "16px 20px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-          marginBottom: "20px",
+          background: "#fff", borderRadius: "12px", padding: "16px 20px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
         }}>
           <p style={{
             fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
             textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px",
-          }}>
-            Exercises
-          </p>
+          }}>Exercises</p>
           {exercises.length === 0 ? (
             <p style={{ fontSize: "0.88rem", color: "#ccc" }}>No exercises logged.</p>
           ) : (
             exercises.map(ex => (
               <div key={ex.id} style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 0",
-                borderBottom: "1px solid #f5f5f5",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "8px 0", borderBottom: "1px solid #f5f5f5",
               }}>
-                <span style={{ fontSize: "0.92rem", color: "#1a1a1a", fontWeight: 500 }}>
-                  {ex.name}
-                </span>
-                <span style={{ fontSize: "0.82rem", color: "#aaa" }}>
-                  {(ex.sets || []).length} sets
-                </span>
+                <span style={{ fontSize: "0.92rem", color: "#1a1a1a", fontWeight: 500 }}>{ex.name}</span>
+                <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{(ex.sets || []).length} sets</span>
               </div>
             ))
           )}
@@ -114,21 +441,14 @@ function WorkoutSummary({ session, onDismiss }) {
 
         {session.notes ? (
           <div style={{
-            background: "#fff",
-            borderRadius: "12px",
-            padding: "16px 20px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-            marginBottom: "20px",
+            background: "#fff", borderRadius: "12px", padding: "16px 20px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
           }}>
             <p style={{
               fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
               textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px",
-            }}>
-              Notes
-            </p>
-            <p style={{ fontSize: "0.9rem", color: "#444", lineHeight: 1.5 }}>
-              {session.notes}
-            </p>
+            }}>Notes</p>
+            <p style={{ fontSize: "0.9rem", color: "#444", lineHeight: 1.5 }}>{session.notes}</p>
           </div>
         ) : null}
 
@@ -139,60 +459,41 @@ function WorkoutSummary({ session, onDismiss }) {
             color: "#fff", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
           }}
-        >
-          Done
-        </button>
+        >Done</button>
       </div>
     </div>
   );
 }
 
-// ── Template Picker (shown when starting a workout) ──
+// ── Template Picker ──
 function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
   return (
     <div style={{
-      width: "100%",
-      minHeight: "100vh",
-      background: "#f5f5f3",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      padding: "40px 20px 100px",
-      boxSizing: "border-box",
+      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "40px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
-
         <h1 style={{
           fontSize: "1.6rem", fontWeight: 700, color: "#1a1a1a",
           marginBottom: "6px", textAlign: "center",
-        }}>
-          Start Workout
-        </h1>
-        <p style={{
-          fontSize: "0.88rem", color: "#aaa", textAlign: "center", marginBottom: "32px",
-        }}>
+        }}>Start Workout</h1>
+        <p style={{ fontSize: "0.88rem", color: "#aaa", textAlign: "center", marginBottom: "32px" }}>
           Choose a template or start empty
         </p>
 
-        {/* Anchor Workouts */}
         <p style={{
           fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
           textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
-        }}>
-          Anchor Workouts
-        </p>
+        }}>Anchor Workouts</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
           {anchorTemplates.map(template => (
             <button
               key={template.id}
               onClick={() => onSelect(template.exercises)}
               style={{
-                background: "#fff",
-                border: "1px solid #e0e0e0",
-                borderRadius: "12px",
-                padding: "14px 18px",
-                textAlign: "left",
-                cursor: "pointer",
+                background: "#fff", border: "1px solid #e0e0e0", borderRadius: "12px",
+                padding: "14px 18px", textAlign: "left", cursor: "pointer",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
               }}
             >
@@ -206,27 +507,20 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
           ))}
         </div>
 
-        {/* My Templates */}
         {userTemplates.length > 0 && (
           <>
             <p style={{
               fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
               textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
-            }}>
-              My Templates
-            </p>
+            }}>My Templates</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
               {userTemplates.map(template => (
                 <button
                   key={template.id}
                   onClick={() => onSelect(template.exercises)}
                   style={{
-                    background: "#fff",
-                    border: "1px solid #e0e0e0",
-                    borderRadius: "12px",
-                    padding: "14px 18px",
-                    textAlign: "left",
-                    cursor: "pointer",
+                    background: "#fff", border: "1px solid #e0e0e0", borderRadius: "12px",
+                    padding: "14px 18px", textAlign: "left", cursor: "pointer",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                   }}
                 >
@@ -242,7 +536,6 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
           </>
         )}
 
-        {/* Start empty */}
         <button
           onClick={onSkip}
           style={{
@@ -250,9 +543,7 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
             color: "#fff", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
           }}
-        >
-          Start Empty
-        </button>
+        >Start Empty</button>
       </div>
     </div>
   );
@@ -260,7 +551,7 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
 
 // ── Template Manager ──
 function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate, onBack }) {
-  const [view, setView] = useState("list"); // "list" | "create" | "edit"
+  const [view, setView] = useState("list");
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [name, setName] = useState("");
   const [exercises, setExercises] = useState([]);
@@ -268,20 +559,12 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   const [error, setError] = useState("");
 
   function openCreate() {
-    setName("");
-    setExercises([]);
-    setNewExercise("");
-    setError("");
-    setView("create");
+    setName(""); setExercises([]); setNewExercise(""); setError(""); setView("create");
   }
 
   function openEdit(template) {
-    setEditingTemplate(template);
-    setName(template.name);
-    setExercises([...template.exercises]);
-    setNewExercise("");
-    setError("");
-    setView("edit");
+    setEditingTemplate(template); setName(template.name);
+    setExercises([...template.exercises]); setNewExercise(""); setError(""); setView("edit");
   }
 
   function addExerciseToList() {
@@ -309,18 +592,11 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   }
 
   const inputStyle = {
-    width: "100%",
-    padding: "12px 14px",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    fontSize: "0.95rem",
-    outline: "none",
-    background: "#fff",
-    color: "#1a1a1a",
-    boxSizing: "border-box",
+    width: "100%", padding: "12px 14px", border: "1px solid #ddd",
+    borderRadius: "8px", fontSize: "0.95rem", outline: "none",
+    background: "#fff", color: "#1a1a1a", boxSizing: "border-box",
   };
 
-  // ── Create / Edit form ──
   if (view === "create" || view === "edit") {
     return (
       <div style={{
@@ -329,65 +605,40 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
         padding: "40px 20px 100px", boxSizing: "border-box",
       }}>
         <div style={{ width: "100%", maxWidth: "480px" }}>
-          <button
-            onClick={() => setView("list")}
-            style={{
-              background: "none", border: "none", fontSize: "0.9rem",
-              color: "#555", cursor: "pointer", padding: 0,
-              textAlign: "left", marginBottom: "24px",
-            }}
-          >
-            ← Back
-          </button>
+          <button onClick={() => setView("list")} style={{
+            background: "none", border: "none", fontSize: "0.9rem",
+            color: "#555", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
+          }}>← Back</button>
 
           <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "24px" }}>
             {view === "create" ? "New Template" : "Edit Template"}
           </h2>
 
-          {/* Template name */}
-          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>
-            Template Name
-          </p>
+          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>Template Name</p>
           <input
-            type="text"
-            placeholder="e.g. Push Day"
-            value={name}
+            type="text" placeholder="e.g. Push Day" value={name}
             onChange={e => { setName(e.target.value); setError(""); }}
-            style={{ ...inputStyle, marginBottom: "20px" }}
-            autoFocus
+            style={{ ...inputStyle, marginBottom: "20px" }} autoFocus
           />
 
-          {/* Exercises */}
-          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>
-            Exercises
-          </p>
+          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>Exercises</p>
 
           {exercises.length > 0 && (
             <div style={{
-              background: "#fff",
-              borderRadius: "10px",
-              padding: "4px 0",
-              marginBottom: "10px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              background: "#fff", borderRadius: "10px", padding: "4px 0",
+              marginBottom: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}>
               {exercises.map((ex, idx) => (
                 <div key={idx} style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
                   padding: "10px 16px",
                   borderBottom: idx < exercises.length - 1 ? "1px solid #f5f5f5" : "none",
                 }}>
                   <span style={{ fontSize: "0.92rem", color: "#1a1a1a" }}>{ex}</span>
-                  <button
-                    onClick={() => removeExerciseFromList(idx)}
-                    style={{
-                      background: "none", border: "none", color: "#ccc",
-                      fontSize: "1.1rem", cursor: "pointer", padding: "4px",
-                    }}
-                  >
-                    ×
-                  </button>
+                  <button onClick={() => removeExerciseFromList(idx)} style={{
+                    background: "none", border: "none", color: "#ccc",
+                    fontSize: "1.1rem", cursor: "pointer", padding: "4px",
+                  }}>×</button>
                 </div>
               ))}
             </div>
@@ -395,33 +646,19 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
 
           <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
             <input
-              type="text"
-              placeholder="Add exercise..."
-              value={newExercise}
+              type="text" placeholder="Add exercise..." value={newExercise}
               onChange={e => setNewExercise(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") addExerciseToList(); }}
               style={{ ...inputStyle, flex: 1 }}
             />
-            <button
-              onClick={addExerciseToList}
-              style={{
-                padding: "12px 16px",
-                background: "#f0f0f0",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "1.2rem",
-                cursor: "pointer",
-                color: "#555",
-                flexShrink: 0,
-              }}
-            >
-              +
-            </button>
+            <button onClick={addExerciseToList} style={{
+              padding: "12px 16px", background: "#f0f0f0", border: "none",
+              borderRadius: "8px", fontSize: "1.2rem", cursor: "pointer",
+              color: "#555", flexShrink: 0,
+            }}>+</button>
           </div>
 
-          {error && (
-            <p style={{ color: "#e05252", fontSize: "0.85rem", marginBottom: "12px" }}>{error}</p>
-          )}
+          {error && <p style={{ color: "#e05252", fontSize: "0.85rem", marginBottom: "12px" }}>{error}</p>}
 
           <button
             onClick={view === "create" ? handleSaveCreate : handleSaveEdit}
@@ -430,15 +667,12 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
               color: "#fff", border: "none", borderRadius: "10px",
               fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
             }}
-          >
-            Save Template
-          </button>
+          >Save Template</button>
         </div>
       </div>
     );
   }
 
-  // ── Template list ──
   return (
     <div style={{
       width: "100%", minHeight: "100vh", background: "#f5f5f3",
@@ -446,16 +680,10 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
       padding: "40px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: "none", border: "none", fontSize: "0.9rem",
-            color: "#555", cursor: "pointer", padding: 0,
-            textAlign: "left", marginBottom: "24px",
-          }}
-        >
-          ← Back
-        </button>
+        <button onClick={onBack} style={{
+          background: "none", border: "none", fontSize: "0.9rem",
+          color: "#555", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
+        }}>← Back</button>
 
         <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "28px" }}>
           My Templates
@@ -469,13 +697,9 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
             {userTemplates.map(template => (
               <div key={template.id} style={{
-                background: "#fff",
-                borderRadius: "12px",
-                padding: "14px 18px",
+                background: "#fff", borderRadius: "12px", padding: "14px 18px",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a", marginBottom: "3px" }}>
@@ -486,42 +710,25 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "8px", marginLeft: "12px", flexShrink: 0 }}>
-                  <button
-                    onClick={() => openEdit(template)}
-                    style={{
-                      padding: "6px 12px", borderRadius: "6px",
-                      border: "1px solid #ccc", background: "none",
-                      color: "#555", fontSize: "0.82rem", cursor: "pointer",
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDeleteTemplate(template.id)}
-                    style={{
-                      padding: "6px 12px", borderRadius: "6px",
-                      border: "1px solid #e05252", background: "none",
-                      color: "#e05252", fontSize: "0.82rem", cursor: "pointer",
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <button onClick={() => openEdit(template)} style={{
+                    padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc",
+                    background: "none", color: "#555", fontSize: "0.82rem", cursor: "pointer",
+                  }}>Edit</button>
+                  <button onClick={() => onDeleteTemplate(template.id)} style={{
+                    padding: "6px 12px", borderRadius: "6px", border: "1px solid #e05252",
+                    background: "none", color: "#e05252", fontSize: "0.82rem", cursor: "pointer",
+                  }}>Delete</button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        <button
-          onClick={openCreate}
-          style={{
-            width: "100%", padding: "14px", background: "#1a1a1a",
-            color: "#fff", border: "none", borderRadius: "10px",
-            fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-          }}
-        >
-          + Create Template
-        </button>
+        <button onClick={openCreate} style={{
+          width: "100%", padding: "14px", background: "#1a1a1a",
+          color: "#fff", border: "none", borderRadius: "10px",
+          fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+        }}>+ Create Template</button>
       </div>
     </div>
   );
@@ -531,11 +738,8 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
 function SetRow({ setNumber, set, sessionActive, onDelete }) {
   return (
     <div style={{
-      display: "grid",
-      gridTemplateColumns: "32px 1fr 1fr 36px",
-      gap: "8px",
-      alignItems: "center",
-      padding: "8px 0",
+      display: "grid", gridTemplateColumns: "32px 1fr 1fr 36px",
+      gap: "8px", alignItems: "center", padding: "8px 0",
       borderBottom: "1px solid #f5f5f5",
     }}>
       <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>{setNumber}</span>
@@ -544,15 +748,12 @@ function SetRow({ setNumber, set, sessionActive, onDelete }) {
       </span>
       <span style={{ fontSize: "0.9rem", color: "#333" }}>{set.reps} reps</span>
       {sessionActive ? (
-        <button
-          onClick={onDelete}
-          style={{
-            background: "none", border: "none", color: "#ccc",
-            fontSize: "1.2rem", cursor: "pointer", padding: "4px",
-            lineHeight: 1, minWidth: "36px", minHeight: "36px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >×</button>
+        <button onClick={onDelete} style={{
+          background: "none", border: "none", color: "#ccc", fontSize: "1.2rem",
+          cursor: "pointer", padding: "4px", lineHeight: 1,
+          minWidth: "36px", minHeight: "36px",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>×</button>
       ) : <span />}
     </div>
   );
@@ -574,9 +775,7 @@ function AddSetForm({ onAdd }) {
       reps: Number(reps),
       weight: weight.trim() !== "" ? Number(weight) : "",
     });
-    setReps("");
-    setWeight("");
-    setError("");
+    setReps(""); setWeight(""); setError("");
   }
 
   function handleKeyDown(e) {
@@ -584,15 +783,9 @@ function AddSetForm({ onAdd }) {
   }
 
   const inputStyle = {
-    padding: "12px 14px",
-    border: "1px solid #e0e0e0",
-    borderRadius: "8px",
-    fontSize: "1rem",
-    background: "#fff",
-    color: "#1a1a1a",
-    outline: "none",
-    boxSizing: "border-box",
-    width: "100%",
+    padding: "12px 14px", border: "1px solid #e0e0e0", borderRadius: "8px",
+    fontSize: "1rem", background: "#fff", color: "#1a1a1a",
+    outline: "none", boxSizing: "border-box", width: "100%",
   };
 
   return (
@@ -600,44 +793,31 @@ function AddSetForm({ onAdd }) {
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
         <div style={{ flex: 1 }}>
           <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "#888",
-            marginBottom: "5px", textTransform: "uppercase",
-            letterSpacing: "0.04em", height: "16px",
-            display: "flex", alignItems: "center",
+            fontSize: "0.75rem", fontWeight: 600, color: "#888", marginBottom: "5px",
+            textTransform: "uppercase", letterSpacing: "0.04em",
+            height: "16px", display: "flex", alignItems: "center",
           }}>Weight kg</p>
-          <input
-            type="number" min="0" step="0.5" placeholder="20"
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            onKeyDown={handleKeyDown}
-            style={inputStyle}
-          />
+          <input type="number" min="0" step="0.5" placeholder="20"
+            value={weight} onChange={e => setWeight(e.target.value)}
+            onKeyDown={handleKeyDown} style={inputStyle} />
         </div>
         <div style={{ flex: 1 }}>
           <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "#888",
-            marginBottom: "5px", textTransform: "uppercase",
-            letterSpacing: "0.04em", height: "16px",
-            display: "flex", alignItems: "center",
+            fontSize: "0.75rem", fontWeight: 600, color: "#888", marginBottom: "5px",
+            textTransform: "uppercase", letterSpacing: "0.04em",
+            height: "16px", display: "flex", alignItems: "center",
           }}>Reps *</p>
-          <input
-            type="number" min="1" placeholder="10"
-            value={reps}
-            onChange={e => { setReps(e.target.value); setError(""); }}
-            onKeyDown={handleKeyDown}
-            style={inputStyle}
-          />
+          <input type="number" min="1" placeholder="10"
+            value={reps} onChange={e => { setReps(e.target.value); setError(""); }}
+            onKeyDown={handleKeyDown} style={inputStyle} />
         </div>
       </div>
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
-      <button
-        onClick={handleAdd}
-        style={{
-          width: "100%", padding: "12px", background: "#1a1a1a",
-          color: "#fff", border: "none", borderRadius: "8px",
-          fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-        }}
-      >+ Add Set</button>
+      <button onClick={handleAdd} style={{
+        width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "0.95rem",
+        fontWeight: 600, cursor: "pointer",
+      }}>+ Add Set</button>
     </div>
   );
 }
@@ -645,68 +825,102 @@ function AddSetForm({ onAdd }) {
 // ── Exercise Card ──
 function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, exerciseHistory }) {
   const [showSetForm, setShowSetForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showRestTimer, setShowRestTimer] = useState(false);
   const sets = exercise.sets || [];
-  const history = exerciseHistory?.[exercise.name];
-  const lastSession = history?.[0];
+  const history = exerciseHistory?.[exercise.name] || [];
+  const lastSession = history[0];
+
+  function handleAddSet(set) {
+    onAddSet(exercise.id, set);
+    setShowSetForm(false);
+    setShowRestTimer(true); // auto-show rest timer after logging a set
+  }
 
   return (
-    <div style={{ background: "#f9f9f9", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-        <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>{exercise.name}</span>
-        {sessionActive && (
+    <>
+      {showHistory && (
+        <ExerciseHistoryModal
+          name={exercise.name}
+          history={history}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      <div style={{ background: "#f9f9f9", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
           <button
-            onClick={() => onDeleteExercise(exercise.id)}
+            onClick={() => setShowHistory(true)}
             style={{
+              background: "none", border: "none", padding: 0,
+              cursor: "pointer", textAlign: "left", flex: 1,
+            }}
+          >
+            <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
+              {exercise.name}
+            </span>
+            {history.length > 0 && (
+              <span style={{ fontSize: "0.7rem", color: "#aaa", marginLeft: "6px", fontWeight: 400 }}>
+                history ›
+              </span>
+            )}
+          </button>
+
+          {sessionActive && (
+            <button onClick={() => onDeleteExercise(exercise.id)} style={{
               background: "none", border: "none", color: "#bbb",
               fontSize: "0.82rem", cursor: "pointer", padding: "4px 8px", minHeight: "36px",
-            }}
-          >Remove</button>
-        )}
-      </div>
-
-      {lastSession && sessionActive && (
-        <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "10px", fontStyle: "italic" }}>
-          Last: {lastSession.sets.map(s => `${s.weight ? `${s.weight}kg` : "BW"} × ${s.reps}`).join("  ·  ")}
-        </p>
-      )}
-
-      {sets.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1fr 36px", gap: "8px", padding: "2px 0 4px" }}>
-          {["Set", "Weight", "Reps", ""].map((h, i) => (
-            <span key={i} style={{ fontSize: "0.7rem", color: "#bbb", fontWeight: 600, textTransform: "uppercase" }}>{h}</span>
-          ))}
+            }}>Remove</button>
+          )}
         </div>
-      )}
 
-      {sets.length === 0 ? (
-        <p style={{ fontSize: "0.85rem", color: "#ccc", marginBottom: "8px" }}>No sets yet.</p>
-      ) : (
-        sets.map((set, idx) => (
-          <SetRow
-            key={set.id}
-            setNumber={idx + 1}
-            set={set}
-            sessionActive={sessionActive}
-            onDelete={() => onDeleteSet(exercise.id, set.id)}
-          />
-        ))
-      )}
+        {lastSession && sessionActive && (
+          <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "10px", fontStyle: "italic" }}>
+            Last: {lastSession.sets.map(s => `${s.weight ? `${s.weight}kg` : "BW"} × ${s.reps}`).join("  ·  ")}
+          </p>
+        )}
 
-      {sessionActive && (
-        showSetForm ? (
-          <AddSetForm onAdd={set => { onAddSet(exercise.id, set); setShowSetForm(false); }} />
+        {sets.length > 0 && (
+          <div style={{
+            display: "grid", gridTemplateColumns: "32px 1fr 1fr 36px",
+            gap: "8px", padding: "2px 0 4px",
+          }}>
+            {["Set", "Weight", "Reps", ""].map((h, i) => (
+              <span key={i} style={{ fontSize: "0.7rem", color: "#bbb", fontWeight: 600, textTransform: "uppercase" }}>{h}</span>
+            ))}
+          </div>
+        )}
+
+        {sets.length === 0 ? (
+          <p style={{ fontSize: "0.85rem", color: "#ccc", marginBottom: "8px" }}>No sets yet.</p>
         ) : (
-          <button
-            onClick={() => setShowSetForm(true)}
-            style={{
+          sets.map((set, idx) => (
+            <SetRow
+              key={set.id} setNumber={idx + 1} set={set}
+              sessionActive={sessionActive}
+              onDelete={() => onDeleteSet(exercise.id, set.id)}
+            />
+          ))
+        )}
+
+        {/* Rest timer — shown after adding a set */}
+        {sessionActive && showRestTimer && (
+          <RestTimer onDismiss={() => setShowRestTimer(false)} />
+        )}
+
+        {sessionActive && (
+          showSetForm ? (
+            <AddSetForm onAdd={handleAddSet} />
+          ) : (
+            <button onClick={() => { setShowSetForm(true); setShowRestTimer(false); }} style={{
               marginTop: "10px", background: "none", border: "1px dashed #ddd",
               borderRadius: "8px", width: "100%", padding: "10px",
               color: "#bbb", fontSize: "0.88rem", cursor: "pointer",
-            }}
-          >+ Add set</button>
-        )
-      )}
-    </div>
+            }}>+ Add set</button>
+          )
+        )}
+      </div>
+    </>
   );
 }
 
@@ -718,15 +932,13 @@ function AddExerciseForm({ onAdd }) {
   function handleAdd() {
     if (!name.trim()) { setError("Exercise name is required."); return; }
     onAdd({ id: `exercise-${Date.now()}`, name: name.trim(), sets: [] });
-    setName("");
-    setError("");
+    setName(""); setError("");
   }
 
   return (
     <div style={{ marginTop: "12px" }}>
       <input
-        placeholder="Exercise name e.g. Bench Press"
-        value={name}
+        placeholder="Exercise name e.g. Bench Press" value={name}
         onChange={e => { setName(e.target.value); setError(""); }}
         onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         style={{
@@ -737,14 +949,10 @@ function AddExerciseForm({ onAdd }) {
         autoFocus
       />
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
-      <button
-        onClick={handleAdd}
-        style={{
-          width: "100%", padding: "12px", background: "#1a1a1a",
-          color: "#fff", border: "none", borderRadius: "8px",
-          fontSize: "0.95rem", cursor: "pointer",
-        }}
-      >Add Exercise</button>
+      <button onClick={handleAdd} style={{
+        width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "0.95rem", cursor: "pointer",
+      }}>Add Exercise</button>
     </div>
   );
 }
@@ -822,14 +1030,11 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
       </div>
 
       {isEditing && (
-        <button
-          onClick={() => onDeleteWorkout(session.id)}
-          style={{
-            width: "100%", padding: "10px", marginBottom: "14px",
-            borderRadius: "8px", border: "1px solid #e05252",
-            background: "none", color: "#e05252", fontSize: "0.88rem", cursor: "pointer",
-          }}
-        >Remove workout</button>
+        <button onClick={() => onDeleteWorkout(session.id)} style={{
+          width: "100%", padding: "10px", marginBottom: "14px",
+          borderRadius: "8px", border: "1px solid #e05252",
+          background: "none", color: "#e05252", fontSize: "0.88rem", cursor: "pointer",
+        }}>Remove workout</button>
       )}
 
       {exercises.length === 0 ? (
@@ -852,14 +1057,11 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
         showExerciseForm ? (
           <AddExerciseForm onAdd={exercise => { onAddExercise(session.id, exercise); setShowExerciseForm(false); }} />
         ) : (
-          <button
-            onClick={() => setShowExerciseForm(true)}
-            style={{
-              background: "none", border: "1px dashed #ccc", borderRadius: "8px",
-              width: "100%", padding: "10px", color: "#aaa",
-              fontSize: "0.88rem", cursor: "pointer", marginTop: "6px",
-            }}
-          >+ Add exercise</button>
+          <button onClick={() => setShowExerciseForm(true)} style={{
+            background: "none", border: "1px dashed #ccc", borderRadius: "8px",
+            width: "100%", padding: "10px", color: "#aaa",
+            fontSize: "0.88rem", cursor: "pointer", marginTop: "6px",
+          }}>+ Add exercise</button>
         )
       )}
 
@@ -871,14 +1073,11 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
       )}
 
       {sessionActive && (
-        <button
-          onClick={() => onEnd(session.id)}
-          style={{
-            width: "100%", padding: "13px", marginTop: "16px",
-            borderRadius: "8px", border: "none", background: "#1a1a1a",
-            color: "#fff", fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-          }}
-        >End Workout</button>
+        <button onClick={() => onEnd(session.id)} style={{
+          width: "100%", padding: "13px", marginTop: "16px",
+          borderRadius: "8px", border: "none", background: "#1a1a1a",
+          color: "#fff", fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+        }}>End Workout</button>
       )}
     </div>
   );
@@ -892,7 +1091,7 @@ export default function WorkoutScreen({
   exerciseHistory, summarySession, onDismissSummary,
   anchorTemplates, userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
 }) {
-  const [workoutView, setWorkoutView] = useState("main"); // "main" | "picker" | "templates"
+  const [workoutView, setWorkoutView] = useState("main");
   const isToday = viewedDate === todayString();
   const safeSessions = sessions || [];
   const hasActiveSession = safeSessions.some(s => s.status === "active");
@@ -906,14 +1105,8 @@ export default function WorkoutScreen({
       <TemplatePicker
         anchorTemplates={anchorTemplates}
         userTemplates={userTemplates}
-        onSelect={exercises => {
-          onStartWorkout(exercises);
-          setWorkoutView("main");
-        }}
-        onSkip={() => {
-          onStartWorkout([]);
-          setWorkoutView("main");
-        }}
+        onSelect={exercises => { onStartWorkout(exercises); setWorkoutView("main"); }}
+        onSkip={() => { onStartWorkout([]); setWorkoutView("main"); }}
       />
     );
   }
@@ -942,39 +1135,27 @@ export default function WorkoutScreen({
           Workout
         </h1>
 
-        {/* Date navigation */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", marginBottom: "28px" }}>
-          <button
-            onClick={() => onNavigateDay(-1)}
-            style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
-              fontSize: "1.1rem", display: "flex", alignItems: "center",
-              justifyContent: "center", padding: 0, flexShrink: 0,
-            }}
-          >‹</button>
+          <button onClick={() => onNavigateDay(-1)} style={{
+            background: "none", border: "1px solid #ccc", borderRadius: "6px",
+            width: "36px", height: "36px", cursor: "pointer", color: "#555",
+            fontSize: "1.1rem", display: "flex", alignItems: "center",
+            justifyContent: "center", padding: 0, flexShrink: 0,
+          }}>‹</button>
 
           <div style={{ textAlign: "center", width: "160px" }}>
-            <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
-              {formatDate(viewedDate)}
-            </p>
-            <p style={{ fontSize: "0.75rem", color: isToday ? "#aaa" : "transparent", marginTop: "2px" }}>
-              Today
-            </p>
+            <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>{formatDate(viewedDate)}</p>
+            <p style={{ fontSize: "0.75rem", color: isToday ? "#aaa" : "transparent", marginTop: "2px" }}>Today</p>
           </div>
 
-          <button
-            onClick={() => onNavigateDay(1)}
-            style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
-              fontSize: "1.1rem", display: "flex", alignItems: "center",
-              justifyContent: "center", padding: 0, flexShrink: 0,
-            }}
-          >›</button>
+          <button onClick={() => onNavigateDay(1)} style={{
+            background: "none", border: "1px solid #ccc", borderRadius: "6px",
+            width: "36px", height: "36px", cursor: "pointer", color: "#555",
+            fontSize: "1.1rem", display: "flex", alignItems: "center",
+            justifyContent: "center", padding: 0, flexShrink: 0,
+          }}>›</button>
         </div>
 
-        {/* Sessions */}
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
           {safeSessions.length === 0 && (
             <p style={{ fontSize: "0.9rem", color: "#bbb", textAlign: "center" }}>
@@ -997,30 +1178,19 @@ export default function WorkoutScreen({
             />
           ))}
 
-          {/* Start + Templates buttons */}
           {!hasActiveSession && (
-            <button
-              onClick={() => setWorkoutView("picker")}
-              style={{
-                width: "100%", padding: "14px", background: "#1a1a1a",
-                color: "#fff", border: "none", borderRadius: "10px",
-                fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-              }}
-            >
-              Start Workout
-            </button>
+            <button onClick={() => setWorkoutView("picker")} style={{
+              width: "100%", padding: "14px", background: "#1a1a1a",
+              color: "#fff", border: "none", borderRadius: "10px",
+              fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+            }}>Start Workout</button>
           )}
 
-          <button
-            onClick={() => setWorkoutView("templates")}
-            style={{
-              width: "100%", padding: "12px", background: "none",
-              color: "#555", border: "1px solid #ddd", borderRadius: "10px",
-              fontSize: "0.88rem", cursor: "pointer",
-            }}
-          >
-            Manage Templates
-          </button>
+          <button onClick={() => setWorkoutView("templates")} style={{
+            width: "100%", padding: "12px", background: "none",
+            color: "#555", border: "1px solid #ddd", borderRadius: "10px",
+            fontSize: "0.88rem", cursor: "pointer",
+          }}>Manage Templates</button>
         </div>
       </div>
     </div>

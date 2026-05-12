@@ -1,4 +1,7 @@
+import { useState } from "react";
 import SectionBlock from "../components/SectionBlock";
+
+const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -18,7 +21,161 @@ function todayString() {
   return `${y}-${m}-${dd}`;
 }
 
-export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, viewedDate, onNavigateDay }) {
+// ── Stats Modal ──
+function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClose, onOpenReview }) {
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 200,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+    }}>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.35)",
+        }}
+      />
+
+      {/* Sheet */}
+      <div style={{
+        position: "relative",
+        background: "#f5f5f3",
+        borderRadius: "20px 20px 0 0",
+        padding: "24px 24px 48px",
+        zIndex: 201,
+        maxHeight: "85vh",
+        overflowY: "auto",
+      }}>
+        {/* Handle */}
+        <div style={{
+          width: "36px", height: "4px", background: "#ddd",
+          borderRadius: "99px", margin: "0 auto 24px",
+        }} />
+
+        {/* Title */}
+        <p style={{
+          fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+          textTransform: "uppercase", letterSpacing: "0.08em",
+          marginBottom: "20px",
+        }}>This Week</p>
+
+        {/* Weekly dots — larger in modal */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "28px",
+          gap: "6px",
+        }}>
+          {weeklyDots.map((dot, i) => (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+              <div style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                background: dot.active ? "#1a1a1a" : "#e8e8e6",
+              }} />
+              <span style={{
+                fontSize: "0.68rem",
+                color: dot.active ? "#1a1a1a" : "#ccc",
+                fontWeight: dot.active ? 600 : 400,
+              }}>
+                {DAY_LABELS[i]}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Stats grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "10px",
+          marginBottom: "20px",
+        }}>
+          {[
+            { label: "Current Streak", value: `${currentStreak} day${currentStreak !== 1 ? "s" : ""}` },
+            { label: "Best Streak", value: `${longestStreak} day${longestStreak !== 1 ? "s" : ""}` },
+            { label: "Active Days", value: `${weekStats.activeDays} / 7` },
+            { label: "Workouts", value: weekStats.totalWorkouts },
+            {
+              label: "Task Completion",
+              value: weekStats.taskPct !== null ? `${weekStats.taskPct}%` : "—",
+              wide: weekStats.taskPct !== null,
+            },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              style={{
+                background: "#fff",
+                borderRadius: "12px",
+                padding: "16px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+              }}
+            >
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a", lineHeight: 1 }}>
+                {stat.value}
+              </p>
+              <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Insight line */}
+        {weekStats.taskPct !== null && (
+          <div style={{
+            background: weekStats.taskPct >= 80 ? "#f0faf0" : weekStats.taskPct >= 50 ? "#fafaf0" : "#faf5f0",
+            borderRadius: "10px",
+            padding: "14px 16px",
+            marginBottom: "20px",
+          }}>
+            <p style={{ fontSize: "0.88rem", color: "#444", lineHeight: 1.5 }}>
+              {weekStats.taskPct >= 80
+                ? "Strong week. You're showing up consistently — keep the momentum."
+                : weekStats.taskPct >= 50
+                ? "Solid effort. A few more completions and this becomes a strong week."
+                : "Every day is a chance to reset. Tomorrow is fresh."}
+            </p>
+          </div>
+        )}
+
+        {/* Weekly review link */}
+        <button
+          onClick={() => { onClose(); onOpenReview(); }}
+          style={{
+            width: "100%",
+            padding: "14px",
+            background: "#1a1a1a",
+            color: "#fff",
+            border: "none",
+            borderRadius: "10px",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Weekly Review →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function HomeScreen({
+  tasks, onToggle, onSectionTap, onResetDay,
+  viewedDate, onNavigateDay,
+  currentStreak, longestStreak,
+  weeklyDots, weekStats,
+  onOpenReview,
+}) {
+  const [showStats, setShowStats] = useState(false);
   const isToday = viewedDate === todayString();
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(viewedDate)).length;
@@ -36,6 +193,17 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
       padding: "40px 0 100px",
       boxSizing: "border-box",
     }}>
+      {showStats && (
+        <StatsModal
+          currentStreak={currentStreak}
+          longestStreak={longestStreak}
+          weeklyDots={weeklyDots}
+          weekStats={weekStats}
+          onClose={() => setShowStats(false)}
+          onOpenReview={onOpenReview}
+        />
+      )}
+
       <div style={{
         width: "100%",
         maxWidth: "480px",
@@ -48,11 +216,75 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
           fontSize: "2rem",
           fontWeight: 700,
           color: "#1a1a1a",
-          marginBottom: "8px",
+          marginBottom: "16px",
           textAlign: "center",
         }}>
           Anchor
         </h1>
+
+        {/* Streak display — tappable */}
+        <button
+          onClick={() => setShowStats(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+            background: "none",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            marginBottom: "20px",
+          }}
+        >
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", lineHeight: 1 }}>
+              {currentStreak}
+            </p>
+            <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              day streak
+            </p>
+          </div>
+
+          <div style={{ width: "1px", height: "28px", background: "#e0e0e0", flexShrink: 0 }} />
+
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "#aaa", lineHeight: 1 }}>
+              {longestStreak}
+            </p>
+            <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              best
+            </p>
+          </div>
+        </button>
+
+        {/* Weekly dots */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "28px",
+          gap: "4px",
+        }}>
+          {(weeklyDots || []).map((dot, i) => (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
+              <div style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "50%",
+                background: dot.active ? "#1a1a1a" : "#e8e8e6",
+                transition: "background 0.2s ease",
+              }} />
+              <span style={{
+                fontSize: "0.65rem",
+                color: dot.active ? "#1a1a1a" : "#ccc",
+                fontWeight: dot.active ? 600 : 400,
+                lineHeight: 1,
+              }}>
+                {DAY_LABELS[i]}
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* Date navigation */}
         <div style={{
@@ -79,9 +311,7 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
               padding: 0,
               flexShrink: 0,
             }}
-          >
-            ‹
-          </button>
+          >‹</button>
 
           <div style={{ textAlign: "center", width: "160px" }}>
             <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
@@ -91,9 +321,7 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
               fontSize: "0.75rem",
               color: isToday ? "#aaa" : "transparent",
               marginTop: "2px",
-            }}>
-              Today
-            </p>
+            }}>Today</p>
           </div>
 
           <button
@@ -113,9 +341,7 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
               padding: 0,
               flexShrink: 0,
             }}
-          >
-            ›
-          </button>
+          >›</button>
         </div>
 
         {/* Sections */}
@@ -152,7 +378,6 @@ export default function HomeScreen({ tasks, onToggle, onSectionTap, onResetDay, 
             {completedCount} / {totalCount} complete
           </p>
 
-          {/* Progress bar */}
           <div style={{
             width: "100%",
             height: "6px",
