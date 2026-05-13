@@ -161,17 +161,9 @@ export function getWeekStats(tasks, workouts, weekDates) {
 }
 
 const defaultTasks = {
-  Morning: [
-    { id: 1, name: "Make your bed", section: "Morning", frequency: "daily", completedDates: [] },
-    { id: 2, name: "Drink a glass of water", section: "Morning", frequency: "daily", completedDates: [] },
-  ],
-  Afternoon: [
-    { id: 3, name: "Go for a short walk", section: "Afternoon", frequency: "daily", completedDates: [] },
-  ],
-  Night: [
-    { id: 4, name: "Read for 10 minutes", section: "Night", frequency: "daily", completedDates: [] },
-    { id: 5, name: "Write in your journal", section: "Night", frequency: "daily", completedDates: [] },
-  ],
+  Morning: [],
+  Afternoon: [],
+  Night: [],
 };
 
 const ANCHOR_TEMPLATES = [
