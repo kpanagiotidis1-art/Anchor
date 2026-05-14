@@ -221,16 +221,34 @@ export default function HomeScreen({
         boxSizing: "border-box",
       }}>
 
-        {/* App title */}
-        <h1 style={{
-          fontSize: "2rem",
-          fontWeight: 700,
-          color: "#1a1a1a",
-          marginBottom: "20px",
-          textAlign: "center",
-        }}>
-          Anchor
-        </h1>
+        {/* App title + logout */}
+        <div style={{ position: "relative", marginBottom: "20px" }}>
+          <h1 style={{
+            fontSize: "2rem",
+            fontWeight: 700,
+            color: "#1a1a1a",
+            textAlign: "center",
+          }}>
+            Anchor
+          </h1>
+          <button
+            onClick={onLogout}
+            style={{
+              position: "absolute",
+              right: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              fontSize: "0.78rem",
+              color: "#bbb",
+              cursor: "pointer",
+              padding: "4px",
+            }}
+          >
+            Log out
+          </button>
+        </div>
 
         {/* Date navigation */}
         <div style={{
