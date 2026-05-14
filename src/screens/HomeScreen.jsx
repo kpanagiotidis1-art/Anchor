@@ -175,6 +175,7 @@ export default function HomeScreen({
   currentStreak, longestStreak,
   weeklyDots, weekStats,
   onOpenReview,
+  onLogout,
 }) {
   const [showStats, setShowStats] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
