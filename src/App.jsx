@@ -15,6 +15,18 @@ import {
   fetchWeeklyReviews,
   saveWeeklyReview as dbSaveWeeklyReview,
 } from "./lib/taskService";
+import {
+  fetchAllSessions,
+  createSession,
+  updateSession,
+  deleteSession,
+  fetchExerciseHistory,
+  saveExerciseHistory,
+  fetchUserTemplates,
+  createUserTemplate,
+  updateUserTemplate,
+  deleteUserTemplate,
+} from "./lib/workoutService";
 
 const SCREENS = ["today", "workout"];
 
@@ -86,7 +98,6 @@ function getVisibleTasks(tasks, dateStr) {
 
 function getStreakData(tasks, workouts) {
   const today = todayString();
-
   function isActiveDay(dateStr) {
     const hasCompletedTask = Object.values(tasks).some(section =>
       section.some(task => task.completedDates.includes(dateStr))
@@ -94,14 +105,12 @@ function getStreakData(tasks, workouts) {
     const hasWorkout = (workouts[dateStr] || []).length > 0;
     return hasCompletedTask || hasWorkout;
   }
-
   let current = 0;
   let cursor = today;
   while (isActiveDay(cursor)) {
     current++;
     cursor = offsetDate(cursor, -1);
   }
-
   const allDates = new Set();
   Object.values(tasks).forEach(section =>
     section.forEach(task => task.completedDates.forEach(d => allDates.add(d)))
@@ -109,7 +118,6 @@ function getStreakData(tasks, workouts) {
   Object.keys(workouts).forEach(d => {
     if ((workouts[d] || []).length > 0) allDates.add(d);
   });
-
   const sorted = Array.from(allDates).sort();
   let longest = 0;
   let run = 0;
@@ -122,7 +130,6 @@ function getStreakData(tasks, workouts) {
     if (run > longest) longest = run;
   }
   longest = Math.max(longest, current);
-
   return { current, longest };
 }
 
@@ -174,47 +181,22 @@ const ANCHOR_TEMPLATES = [
   { id: "anchor-cardio", name: "Cardio & Core", anchor: true, exercises: ["Treadmill Run", "Plank", "Sit Ups", "Mountain Climbers", "Jump Rope"] },
 ];
 
-// Workouts stay local for now (Phase 2 migration)
-function migrateWorkouts(workouts) {
-  const migrated = {};
-  for (const date in workouts) {
-    migrated[date] = (workouts[date] || []).map(session => ({
-      ...session,
-      exercises: (session.exercises || []).map(ex => ({ ...ex, sets: ex.sets || [] })),
-      notes: session.notes || "",
-      endTime: session.endTime || null,
-      duration: session.duration || null,
-    }));
-  }
-  return migrated;
-}
-
 export default function App() {
   // ── Auth ──
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // ── Task state (Supabase-backed) ──
+  // ── Task state (Supabase) ──
   const [tasks, setTasks] = useState({ Morning: [], Afternoon: [], Night: [] });
   const [tasksLoading, setTasksLoading] = useState(false);
 
-  // ── Weekly reviews (Supabase-backed) ──
+  // ── Weekly reviews (Supabase) ──
   const [weeklyReviewNotes, setWeeklyReviewNotes] = useState({});
 
-  // ── Workout state (still localStorage) ──
-  const [workouts, setWorkouts] = useState(() => {
-    const saved = localStorage.getItem("anchor-workouts");
-    const parsed = saved ? JSON.parse(saved) : {};
-    return migrateWorkouts(parsed);
-  });
-  const [exerciseHistory, setExerciseHistory] = useState(() => {
-    const saved = localStorage.getItem("anchor-exercise-history");
-    return saved ? JSON.parse(saved) : {};
-  });
-  const [userTemplates, setUserTemplates] = useState(() => {
-    const saved = localStorage.getItem("anchor-templates");
-    return saved ? JSON.parse(saved) : [];
-  });
+  // ── Workout state (Supabase — Phase 2) ──
+  const [workouts, setWorkouts] = useState({});
+  const [exerciseHistory, setExerciseHistory] = useState({});
+  const [userTemplates, setUserTemplates] = useState([]);
 
   // ── UI state ──
   const [screen, setScreen] = useState("home");
@@ -230,58 +212,58 @@ export default function App() {
 
   // ── Auth listener ──
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
-      if (session?.user) {
-        loadUserData(session.user.id);
-      }
+      if (session?.user) loadUserData(session.user.id);
     });
 
-    // Listen for auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      if (event === "SIGNED_IN" && session?.user) {
-        loadUserData(session.user.id);
-      }
+      if (event === "SIGNED_IN" && session?.user) loadUserData(session.user.id);
       if (event === "SIGNED_OUT") {
         setTasks({ Morning: [], Afternoon: [], Night: [] });
         setWeeklyReviewNotes({});
+        setWorkouts({});
+        setExerciseHistory({});
+        setUserTemplates([]);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Load user data when auth resolves ──
   useEffect(() => {
     if (!user) {
       setTasks({ Morning: [], Afternoon: [], Night: [] });
       setWeeklyReviewNotes({});
+      setWorkouts({});
+      setExerciseHistory({});
+      setUserTemplates([]);
     }
   }, [user]);
 
   async function loadUserData(userId) {
     setTasksLoading(true);
     try {
-      const [fetchedTasks, fetchedReviews] = await Promise.all([
+      const [fetchedTasks, fetchedReviews, fetchedWorkouts, fetchedHistory, fetchedTemplates] = await Promise.all([
         fetchTasks(userId),
         fetchWeeklyReviews(userId),
+        fetchAllSessions(userId),
+        fetchExerciseHistory(userId),
+        fetchUserTemplates(userId),
       ]);
       setTasks(fetchedTasks);
       setWeeklyReviewNotes(fetchedReviews);
+      setWorkouts(fetchedWorkouts);
+      setExerciseHistory(fetchedHistory);
+      setUserTemplates(fetchedTemplates);
     } catch (err) {
       console.error("Failed to load user data:", err);
     } finally {
       setTasksLoading(false);
     }
   }
-
-  // ── Workout localStorage sync (unchanged) ──
-  useEffect(() => { localStorage.setItem("anchor-workouts", JSON.stringify(workouts)); }, [workouts]);
-  useEffect(() => { localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory)); }, [exerciseHistory]);
-  useEffect(() => { localStorage.setItem("anchor-templates", JSON.stringify(userTemplates)); }, [userTemplates]);
 
   // ── Swipe navigation ──
   function handleTouchStart(e) {
@@ -307,20 +289,16 @@ export default function App() {
     }
   }
 
-  // ── Auth ──
   async function handleLogout() {
     await supabase.auth.signOut();
   }
 
-  // ── Task handlers (Supabase-backed) ──
-
+  // ── Task handlers ──
   async function toggleTask(section, taskId) {
     if (!user) return;
     const task = tasks[section].find(t => t.id === taskId);
     if (!task) return;
     const already = task.completedDates.includes(viewedDate);
-
-    // Optimistic update — UI responds immediately
     setTasks(prev => ({
       ...prev,
       [section]: prev[section].map(t => {
@@ -333,8 +311,6 @@ export default function App() {
         };
       }),
     }));
-
-    // Sync to Supabase
     try {
       if (already) {
         await markIncomplete(user.id, taskId, viewedDate);
@@ -343,7 +319,6 @@ export default function App() {
       }
     } catch (err) {
       console.error("Failed to sync completion:", err);
-      // Revert optimistic update on failure
       setTasks(prev => ({
         ...prev,
         [section]: prev[section].map(t => {
@@ -362,9 +337,7 @@ export default function App() {
   async function addTask(section, taskName, frequency, days, date) {
     if (!user) return;
     try {
-      const newTask = await createTask(user.id, {
-        name: taskName, section, frequency, days, date,
-      });
+      const newTask = await createTask(user.id, { name: taskName, section, frequency, days, date });
       setTasks(prev => ({ ...prev, [section]: [...prev[section], newTask] }));
       setScreen("home");
     } catch (err) {
@@ -374,20 +347,17 @@ export default function App() {
 
   async function deleteTask(section, taskId) {
     if (!user) return;
-    // Optimistic
     setTasks(prev => ({ ...prev, [section]: prev[section].filter(t => t.id !== taskId) }));
     try {
       await archiveTask(taskId);
     } catch (err) {
       console.error("Failed to archive task:", err);
-      // Reload to restore correct state
       loadUserData(user.id);
     }
   }
 
   async function updateTask(section, taskId, updates) {
     if (!user) return;
-    // Optimistic
     setTasks(prev => ({
       ...prev,
       [section]: prev[section].map(t => t.id === taskId ? { ...t, ...updates } : t),
@@ -402,33 +372,23 @@ export default function App() {
 
   async function resetDay() {
     if (!user) return;
-    const today = viewedDate;
+    const completionsToRemove = Object.values(tasks).flat()
+      .filter(task => task.completedDates.includes(viewedDate))
+      .map(task => task.id);
 
-    // Find all tasks completed on this date
-    const completionsToRemove = [];
-    Object.values(tasks).flat().forEach(task => {
-      if (task.completedDates.includes(today)) {
-        completionsToRemove.push({ section: task.section, id: task.id });
-      }
-    });
-
-    // Optimistic update
     setTasks(prev => {
       const reset = {};
       for (const section in prev) {
         reset[section] = prev[section].map(task => ({
           ...task,
-          completedDates: task.completedDates.filter(d => d !== today),
+          completedDates: task.completedDates.filter(d => d !== viewedDate),
         }));
       }
       return reset;
     });
 
-    // Sync each removal
     try {
-      await Promise.all(
-        completionsToRemove.map(({ id }) => markIncomplete(user.id, id, today))
-      );
+      await Promise.all(completionsToRemove.map(id => markIncomplete(user.id, id, viewedDate)));
     } catch (err) {
       console.error("Failed to reset day:", err);
       loadUserData(user.id);
@@ -437,7 +397,6 @@ export default function App() {
 
   // ── Weekly review ──
   async function saveWeeklyReview(weekKey, reflection, goals) {
-    // Optimistic
     setWeeklyReviewNotes(prev => ({
       ...prev,
       [weekKey]: { reflection, goals, savedAt: todayString() },
@@ -449,19 +408,63 @@ export default function App() {
     }
   }
 
-  // ── Template handlers (local) ──
-  function createTemplate(name, exercises) {
-    setUserTemplates(prev => [...prev, { id: `template-${Date.now()}`, name, anchor: false, exercises }]);
-  }
-  function updateTemplate(templateId, name, exercises) {
-    setUserTemplates(prev => prev.map(t => t.id === templateId ? { ...t, name, exercises } : t));
-  }
-  function deleteTemplate(templateId) {
-    setUserTemplates(prev => prev.filter(t => t.id !== templateId));
+  // ── Template handlers (Supabase) ──
+  async function createTemplate(name, exercises) {
+    if (!user) return;
+    const newTemplate = { id: `template-${Date.now()}`, name, anchor: false, exercises };
+    setUserTemplates(prev => [...prev, newTemplate]);
+    try {
+      await createUserTemplate(user.id, newTemplate);
+    } catch (err) {
+      console.error("Failed to create template:", err);
+      loadUserData(user.id);
+    }
   }
 
-  // ── Workout handlers (local — Phase 2) ──
-  function startWorkout(templateExercises = []) {
+  async function updateTemplate(templateId, name, exercises) {
+    if (!user) return;
+    setUserTemplates(prev => prev.map(t => t.id === templateId ? { ...t, name, exercises } : t));
+    try {
+      await updateUserTemplate(templateId, name, exercises);
+    } catch (err) {
+      console.error("Failed to update template:", err);
+      loadUserData(user.id);
+    }
+  }
+
+  async function deleteTemplateHandler(templateId) {
+    if (!user) return;
+    setUserTemplates(prev => prev.filter(t => t.id !== templateId));
+    try {
+      await deleteUserTemplate(templateId);
+    } catch (err) {
+      console.error("Failed to delete template:", err);
+      loadUserData(user.id);
+    }
+  }
+
+  // ── Workout handlers (Supabase) ──
+
+  // Helper: sync current session state to Supabase
+  async function syncSession(sessionId, dateStr) {
+    const sessions = workouts[dateStr] || [];
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    try {
+      await updateSession(sessionId, {
+        status: session.status,
+        endTime: session.endTime,
+        duration: session.duration,
+        notes: session.notes,
+        exercises: session.exercises,
+      });
+    } catch (err) {
+      console.error("Failed to sync session:", err);
+    }
+  }
+
+  async function startWorkout(templateExercises = []) {
+    if (!user) return;
     const now = new Date();
     const timeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
     const newSession = {
@@ -473,107 +476,146 @@ export default function App() {
         id: `exercise-${Date.now()}-${Math.random()}`, name, sets: [],
       })),
     };
+    // Optimistic
     setWorkouts(prev => ({ ...prev, [viewedDate]: [...(prev[viewedDate] || []), newSession] }));
+    try {
+      await createSession(user.id, viewedDate, newSession);
+    } catch (err) {
+      console.error("Failed to create session:", err);
+      setWorkouts(prev => ({
+        ...prev,
+        [viewedDate]: (prev[viewedDate] || []).filter(s => s.id !== newSession.id),
+      }));
+    }
   }
 
-  function endWorkout(sessionId) {
+  async function endWorkout(sessionId) {
+    if (!user) return;
     const now = new Date();
     const endTimeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+
+    let completedSession = null;
+
     setWorkouts(prev => {
       const sessions = prev[viewedDate] || [];
       const session = sessions.find(s => s.id === sessionId);
       const startTs = session?.startTimestamp || now.getTime();
       const durationMins = Math.round((now.getTime() - startTs) / 60000);
-      if (session) {
-        setExerciseHistory(prevHistory => {
-          const updated = { ...prevHistory };
-          (session.exercises || []).forEach(ex => {
-            if (!updated[ex.name]) updated[ex.name] = [];
-            updated[ex.name] = [{ date: viewedDate, sets: ex.sets || [] }, ...updated[ex.name].slice(0, 19)];
-          });
-          return updated;
-        });
-      }
+
       const updatedSessions = sessions.map(s =>
-        s.id === sessionId ? { ...s, status: "completed", endTime: endTimeLabel, duration: durationMins } : s
+        s.id === sessionId
+          ? { ...s, status: "completed", endTime: endTimeLabel, duration: durationMins }
+          : s
       );
-      setSummarySession(updatedSessions.find(s => s.id === sessionId));
+      completedSession = updatedSessions.find(s => s.id === sessionId);
+      setSummarySession(completedSession);
       return { ...prev, [viewedDate]: updatedSessions };
     });
+
+    // Save exercise history and update session in Supabase
+    try {
+      const sessions = workouts[viewedDate] || [];
+      const session = sessions.find(s => s.id === sessionId);
+      const startTs = session?.startTimestamp || now.getTime();
+      const durationMins = Math.round((now.getTime() - startTs) / 60000);
+
+      await updateSession(sessionId, {
+        status: "completed",
+        endTime: endTimeLabel,
+        duration: durationMins,
+        exercises: session?.exercises || [],
+      });
+
+      if (session?.exercises?.length > 0) {
+        await saveExerciseHistory(user.id, viewedDate, session.exercises);
+        // Refresh exercise history state
+        const freshHistory = await fetchExerciseHistory(user.id);
+        setExerciseHistory(freshHistory);
+      }
+    } catch (err) {
+      console.error("Failed to end workout in Supabase:", err);
+    }
   }
 
-  function updateWorkoutNotes(sessionId, notes) {
+  async function updateWorkoutNotes(sessionId, notes) {
+    if (!user) return;
     setWorkouts(prev => ({
       ...prev,
       [viewedDate]: prev[viewedDate].map(s => s.id === sessionId ? { ...s, notes } : s),
     }));
+    try {
+      await updateSession(sessionId, { notes });
+    } catch (err) {
+      console.error("Failed to update notes:", err);
+    }
+  }
+
+  // For exercise mutations (add/delete/rename/set changes),
+  // we update local state then sync the full exercises array to Supabase
+  function mutateSession(sessionId, mutateFn) {
+    setWorkouts(prev => {
+      const sessions = prev[viewedDate] || [];
+      const updated = sessions.map(s => s.id === sessionId ? mutateFn(s) : s);
+      const updatedSession = updated.find(s => s.id === sessionId);
+      // Sync to Supabase after state update
+      if (updatedSession) {
+        updateSession(sessionId, { exercises: updatedSession.exercises })
+          .catch(err => console.error("Failed to sync exercises:", err));
+      }
+      return { ...prev, [viewedDate]: updated };
+    });
   }
 
   function addExercise(sessionId, exercise) {
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: prev[viewedDate].map(s =>
-        s.id === sessionId ? { ...s, exercises: [...(s.exercises || []), exercise] } : s
-      ),
-    }));
+    mutateSession(sessionId, s => ({ ...s, exercises: [...(s.exercises || []), exercise] }));
   }
 
   function addSet(sessionId, exerciseId, set) {
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: prev[viewedDate].map(s =>
-        s.id === sessionId ? {
-          ...s,
-          exercises: (s.exercises || []).map(ex =>
-            ex.id === exerciseId ? { ...ex, sets: [...(ex.sets || []), set] } : ex
-          ),
-        } : s
+    mutateSession(sessionId, s => ({
+      ...s,
+      exercises: (s.exercises || []).map(ex =>
+        ex.id === exerciseId ? { ...ex, sets: [...(ex.sets || []), set] } : ex
       ),
     }));
   }
 
   function deleteSet(sessionId, exerciseId, setId) {
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: prev[viewedDate].map(s =>
-        s.id === sessionId ? {
-          ...s,
-          exercises: (s.exercises || []).map(ex =>
-            ex.id === exerciseId ? { ...ex, sets: (ex.sets || []).filter(set => set.id !== setId) } : ex
-          ),
-        } : s
+    mutateSession(sessionId, s => ({
+      ...s,
+      exercises: (s.exercises || []).map(ex =>
+        ex.id === exerciseId ? { ...ex, sets: (ex.sets || []).filter(set => set.id !== setId) } : ex
       ),
     }));
   }
 
   function deleteExercise(sessionId, exerciseId) {
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: prev[viewedDate].map(s =>
-        s.id === sessionId ? { ...s, exercises: (s.exercises || []).filter(ex => ex.id !== exerciseId) } : s
-      ),
+    mutateSession(sessionId, s => ({
+      ...s,
+      exercises: (s.exercises || []).filter(ex => ex.id !== exerciseId),
     }));
   }
 
   function renameExercise(sessionId, exerciseId, newName) {
-    setWorkouts(prev => ({
-      ...prev,
-      [viewedDate]: prev[viewedDate].map(s =>
-        s.id === sessionId ? {
-          ...s,
-          exercises: (s.exercises || []).map(ex =>
-            ex.id === exerciseId ? { ...ex, name: newName } : ex
-          ),
-        } : s
+    mutateSession(sessionId, s => ({
+      ...s,
+      exercises: (s.exercises || []).map(ex =>
+        ex.id === exerciseId ? { ...ex, name: newName } : ex
       ),
     }));
   }
 
-  function deleteWorkout(sessionId) {
+  async function deleteWorkout(sessionId) {
+    if (!user) return;
     setWorkouts(prev => ({
       ...prev,
       [viewedDate]: (prev[viewedDate] || []).filter(s => s.id !== sessionId),
     }));
+    try {
+      await deleteSession(sessionId);
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+      loadUserData(user.id);
+    }
   }
 
   function navigateDay(direction, exactDate) {
@@ -597,7 +639,7 @@ export default function App() {
   const currentWeekDates = getWeekDates(today);
   const weekStats = getWeekStats(tasks, workouts, currentWeekDates);
 
-  // ── Render: loading ──
+  // ── Loading states ──
   if (authLoading) {
     return (
       <div style={{
@@ -609,12 +651,8 @@ export default function App() {
     );
   }
 
-  // ── Render: not logged in ──
-  if (!user) {
-    return <AuthScreen />;
-  }
+  if (!user) return <AuthScreen />;
 
-  // ── Render: tasks loading ──
   if (tasksLoading) {
     return (
       <div style={{
@@ -698,7 +736,7 @@ export default function App() {
           userTemplates={userTemplates}
           onCreateTemplate={createTemplate}
           onUpdateTemplate={updateTemplate}
-          onDeleteTemplate={deleteTemplate}
+          onDeleteTemplate={deleteTemplateHandler}
         />
       )}
 
