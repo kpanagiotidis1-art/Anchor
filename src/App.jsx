@@ -3,6 +3,18 @@ import HomeScreen from "./screens/HomeScreen";
 import AddTaskScreen from "./screens/AddTaskScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WeeklyReviewScreen from "./screens/WeeklyReviewScreen";
+import AuthScreen from "./screens/AuthScreen";
+import { supabase } from "./lib/supabase";
+import {
+  fetchTasks,
+  createTask,
+  updateTask as dbUpdateTask,
+  archiveTask,
+  markComplete,
+  markIncomplete,
+  fetchWeeklyReviews,
+  saveWeeklyReview as dbSaveWeeklyReview,
+} from "./lib/taskService";
 
 const SCREENS = ["today", "workout"];
 
@@ -29,7 +41,6 @@ function getDayOfWeek(dateStr) {
   return new Date(year, month - 1, day).getDay();
 }
 
-// Returns ISO week key e.g. "2026-W19"
 export function getWeekKey(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const d = new Date(year, month - 1, day);
@@ -43,7 +54,6 @@ export function getWeekKey(dateStr) {
   return `${y}-W${String(weekNum).padStart(2, "0")}`;
 }
 
-// Returns the Mon–Sun date strings for the week containing dateStr
 export function getWeekDates(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
   const d = new Date(year, month - 1, day);
@@ -57,7 +67,7 @@ export function getWeekDates(dateStr) {
     const d2 = String(dd.getDate()).padStart(2, "0");
     dates.push(`${y2}-${m2}-${d2}`);
   }
-  return dates; // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+  return dates;
 }
 
 function getVisibleTasks(tasks, dateStr) {
@@ -130,15 +140,12 @@ function getWeeklyDots(tasks, workouts) {
 
 export function getWeekStats(tasks, workouts, weekDates) {
   const today = todayString();
-
   const activeDays = weekDates.filter(dateStr => {
     const hasTask = Object.values(tasks).some(s => s.some(t => t.completedDates.includes(dateStr)));
     const hasWorkout = (workouts[dateStr] || []).length > 0;
     return hasTask || hasWorkout;
   }).length;
-
   const totalWorkouts = weekDates.reduce((acc, d) => acc + (workouts[d] || []).length, 0);
-
   let totalPossible = 0;
   let totalCompleted = 0;
   weekDates.forEach(dateStr => {
@@ -154,17 +161,9 @@ export function getWeekStats(tasks, workouts, weekDates) {
     totalPossible += visible.length;
     totalCompleted += visible.filter(t => t.completedDates.includes(dateStr)).length;
   });
-
   const taskPct = totalPossible === 0 ? null : Math.round((totalCompleted / totalPossible) * 100);
-
   return { activeDays, totalWorkouts, taskPct, totalCompleted, totalPossible };
 }
-
-const defaultTasks = {
-  Morning: [],
-  Afternoon: [],
-  Night: [],
-};
 
 const ANCHOR_TEMPLATES = [
   { id: "anchor-push", name: "Push Day", anchor: true, exercises: ["Bench Press", "Incline DB Press", "Shoulder Press", "Lateral Raises", "Tricep Pushdown"] },
@@ -175,22 +174,7 @@ const ANCHOR_TEMPLATES = [
   { id: "anchor-cardio", name: "Cardio & Core", anchor: true, exercises: ["Treadmill Run", "Plank", "Sit Ups", "Mountain Climbers", "Jump Rope"] },
 ];
 
-function migrateTasks(tasks) {
-  const migrated = {};
-  for (const section in tasks) {
-    migrated[section] = tasks[section].map(task => {
-      const updated = { ...task };
-      if (!updated.completedDates) {
-        updated.completedDates = updated.completed ? [todayString()] : [];
-        delete updated.completed;
-      }
-      if (!updated.section) updated.section = section;
-      return updated;
-    });
-  }
-  return migrated;
-}
-
+// Workouts stay local for now (Phase 2 migration)
 function migrateWorkouts(workouts) {
   const migrated = {};
   for (const date in workouts) {
@@ -206,34 +190,34 @@ function migrateWorkouts(workouts) {
 }
 
 export default function App() {
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem("anchor-tasks");
-    const parsed = saved ? JSON.parse(saved) : defaultTasks;
-    return migrateTasks(parsed);
-  });
+  // ── Auth ──
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  // ── Task state (Supabase-backed) ──
+  const [tasks, setTasks] = useState({ Morning: [], Afternoon: [], Night: [] });
+  const [tasksLoading, setTasksLoading] = useState(false);
+
+  // ── Weekly reviews (Supabase-backed) ──
+  const [weeklyReviewNotes, setWeeklyReviewNotes] = useState({});
+
+  // ── Workout state (still localStorage) ──
   const [workouts, setWorkouts] = useState(() => {
     const saved = localStorage.getItem("anchor-workouts");
     const parsed = saved ? JSON.parse(saved) : {};
     return migrateWorkouts(parsed);
   });
-
   const [exerciseHistory, setExerciseHistory] = useState(() => {
     const saved = localStorage.getItem("anchor-exercise-history");
     return saved ? JSON.parse(saved) : {};
   });
-
   const [userTemplates, setUserTemplates] = useState(() => {
     const saved = localStorage.getItem("anchor-templates");
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [weeklyReviewNotes, setWeeklyReviewNotes] = useState(() => {
-    const saved = localStorage.getItem("anchor-weekly-review");
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  const [screen, setScreen] = useState("home"); // "home" | "add" | "review"
+  // ── UI state ──
+  const [screen, setScreen] = useState("home");
   const [activeSection, setActiveSection] = useState(null);
   const [viewedDate, setViewedDate] = useState(todayString());
   const [activeScreen, setActiveScreen] = useState("today");
@@ -244,6 +228,55 @@ export default function App() {
   const SWIPE_THRESHOLD = 60;
   const VERTICAL_LOCK = 10;
 
+  // ── Auth listener ──
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Load user data when auth resolves ──
+  useEffect(() => {
+    if (!user) {
+      // Clear task state on logout
+      setTasks({ Morning: [], Afternoon: [], Night: [] });
+      setWeeklyReviewNotes({});
+      return;
+    }
+    loadUserData(user.id);
+  }, [user]);
+
+  async function loadUserData(userId) {
+    setTasksLoading(true);
+    try {
+      const [fetchedTasks, fetchedReviews] = await Promise.all([
+        fetchTasks(userId),
+        fetchWeeklyReviews(userId),
+      ]);
+      setTasks(fetchedTasks);
+      setWeeklyReviewNotes(fetchedReviews);
+    } catch (err) {
+      console.error("Failed to load user data:", err);
+    } finally {
+      setTasksLoading(false);
+    }
+  }
+
+  // ── Workout localStorage sync (unchanged) ──
+  useEffect(() => { localStorage.setItem("anchor-workouts", JSON.stringify(workouts)); }, [workouts]);
+  useEffect(() => { localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory)); }, [exerciseHistory]);
+  useEffect(() => { localStorage.setItem("anchor-templates", JSON.stringify(userTemplates)); }, [userTemplates]);
+
+  // ── Swipe navigation ──
   function handleTouchStart(e) {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
@@ -267,19 +300,149 @@ export default function App() {
     }
   }
 
-  useEffect(() => { localStorage.setItem("anchor-tasks", JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { localStorage.setItem("anchor-workouts", JSON.stringify(workouts)); }, [workouts]);
-  useEffect(() => { localStorage.setItem("anchor-exercise-history", JSON.stringify(exerciseHistory)); }, [exerciseHistory]);
-  useEffect(() => { localStorage.setItem("anchor-templates", JSON.stringify(userTemplates)); }, [userTemplates]);
-  useEffect(() => { localStorage.setItem("anchor-weekly-review", JSON.stringify(weeklyReviewNotes)); }, [weeklyReviewNotes]);
+  // ── Auth ──
+  async function handleLogout() {
+    await supabase.auth.signOut();
+  }
 
-  function saveWeeklyReview(weekKey, reflection, goals) {
+  // ── Task handlers (Supabase-backed) ──
+
+  async function toggleTask(section, taskId) {
+    if (!user) return;
+    const task = tasks[section].find(t => t.id === taskId);
+    if (!task) return;
+    const already = task.completedDates.includes(viewedDate);
+
+    // Optimistic update — UI responds immediately
+    setTasks(prev => ({
+      ...prev,
+      [section]: prev[section].map(t => {
+        if (t.id !== taskId) return t;
+        return {
+          ...t,
+          completedDates: already
+            ? t.completedDates.filter(d => d !== viewedDate)
+            : [...t.completedDates, viewedDate],
+        };
+      }),
+    }));
+
+    // Sync to Supabase
+    try {
+      if (already) {
+        await markIncomplete(user.id, taskId, viewedDate);
+      } else {
+        await markComplete(user.id, taskId, viewedDate);
+      }
+    } catch (err) {
+      console.error("Failed to sync completion:", err);
+      // Revert optimistic update on failure
+      setTasks(prev => ({
+        ...prev,
+        [section]: prev[section].map(t => {
+          if (t.id !== taskId) return t;
+          return {
+            ...t,
+            completedDates: already
+              ? [...t.completedDates, viewedDate]
+              : t.completedDates.filter(d => d !== viewedDate),
+          };
+        }),
+      }));
+    }
+  }
+
+  async function addTask(section, taskName, frequency, days, date) {
+    if (!user) return;
+    try {
+      const newTask = await createTask(user.id, {
+        name: taskName, section, frequency, days, date,
+      });
+      setTasks(prev => ({ ...prev, [section]: [...prev[section], newTask] }));
+      setScreen("home");
+    } catch (err) {
+      console.error("Failed to create task:", err);
+    }
+  }
+
+  async function deleteTask(section, taskId) {
+    if (!user) return;
+    // Optimistic
+    setTasks(prev => ({ ...prev, [section]: prev[section].filter(t => t.id !== taskId) }));
+    try {
+      await archiveTask(taskId);
+    } catch (err) {
+      console.error("Failed to archive task:", err);
+      // Reload to restore correct state
+      loadUserData(user.id);
+    }
+  }
+
+  async function updateTask(section, taskId, updates) {
+    if (!user) return;
+    // Optimistic
+    setTasks(prev => ({
+      ...prev,
+      [section]: prev[section].map(t => t.id === taskId ? { ...t, ...updates } : t),
+    }));
+    try {
+      await dbUpdateTask(taskId, updates);
+    } catch (err) {
+      console.error("Failed to update task:", err);
+      loadUserData(user.id);
+    }
+  }
+
+  async function resetDay() {
+    if (!user) return;
+    const today = viewedDate;
+
+    // Find all tasks completed on this date
+    const completionsToRemove = [];
+    Object.values(tasks).flat().forEach(task => {
+      if (task.completedDates.includes(today)) {
+        completionsToRemove.push({ section: task.section, id: task.id });
+      }
+    });
+
+    // Optimistic update
+    setTasks(prev => {
+      const reset = {};
+      for (const section in prev) {
+        reset[section] = prev[section].map(task => ({
+          ...task,
+          completedDates: task.completedDates.filter(d => d !== today),
+        }));
+      }
+      return reset;
+    });
+
+    // Sync each removal
+    try {
+      await Promise.all(
+        completionsToRemove.map(({ id }) => markIncomplete(user.id, id, today))
+      );
+    } catch (err) {
+      console.error("Failed to reset day:", err);
+      loadUserData(user.id);
+    }
+  }
+
+  // ── Weekly review ──
+  async function saveWeeklyReview(weekKey, reflection, goals) {
+    // Optimistic
     setWeeklyReviewNotes(prev => ({
       ...prev,
       [weekKey]: { reflection, goals, savedAt: todayString() },
     }));
+    try {
+      await dbSaveWeeklyReview(user.id, weekKey, reflection, goals);
+    } catch (err) {
+      console.error("Failed to save weekly review:", err);
+    }
   }
 
+  // ── Template handlers (local) ──
   function createTemplate(name, exercises) {
     setUserTemplates(prev => [...prev, { id: `template-${Date.now()}`, name, anchor: false, exercises }]);
   }
@@ -290,6 +453,7 @@ export default function App() {
     setUserTemplates(prev => prev.filter(t => t.id !== templateId));
   }
 
+  // ── Workout handlers (local — Phase 2) ──
   function startWorkout(templateExercises = []) {
     const now = new Date();
     const timeLabel = now.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
@@ -405,56 +569,6 @@ export default function App() {
     }));
   }
 
-  function toggleTask(section, taskId) {
-    setTasks(prev => ({
-      ...prev,
-      [section]: prev[section].map(task => {
-        if (task.id !== taskId) return task;
-        const already = task.completedDates.includes(viewedDate);
-        return {
-          ...task,
-          completedDates: already
-            ? task.completedDates.filter(d => d !== viewedDate)
-            : [...task.completedDates, viewedDate],
-        };
-      }),
-    }));
-  }
-
-  function addTask(section, taskName, frequency, days, date) {
-    const newTask = {
-      id: Date.now(), name: taskName, section, frequency, completedDates: [],
-      ...(frequency === "weekly" && { days }),
-      ...(frequency === "one-time" && { date }),
-    };
-    setTasks(prev => ({ ...prev, [section]: [...prev[section], newTask] }));
-    setScreen("home");
-  }
-
-  function deleteTask(section, taskId) {
-    setTasks(prev => ({ ...prev, [section]: prev[section].filter(t => t.id !== taskId) }));
-  }
-
-  function updateTask(section, taskId, updates) {
-    setTasks(prev => ({
-      ...prev,
-      [section]: prev[section].map(t => t.id === taskId ? { ...t, ...updates } : t),
-    }));
-  }
-
-  function resetDay() {
-    setTasks(prev => {
-      const reset = {};
-      for (const section in prev) {
-        reset[section] = prev[section].map(task => ({
-          ...task,
-          completedDates: task.completedDates.filter(d => d !== viewedDate),
-        }));
-      }
-      return reset;
-    });
-  }
-
   function navigateDay(direction, exactDate) {
     if (exactDate !== undefined) {
       setViewedDate(exactDate);
@@ -474,8 +588,36 @@ export default function App() {
   const weeklyDots = getWeeklyDots(tasks, workouts);
   const today = todayString();
   const currentWeekDates = getWeekDates(today);
-  const currentWeekKey = getWeekKey(today);
   const weekStats = getWeekStats(tasks, workouts, currentWeekDates);
+
+  // ── Render: loading ──
+  if (authLoading) {
+    return (
+      <div style={{
+        width: "100%", minHeight: "100vh", background: "#f5f5f3",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <p style={{ fontSize: "0.9rem", color: "#aaa" }}>Loading…</p>
+      </div>
+    );
+  }
+
+  // ── Render: not logged in ──
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  // ── Render: tasks loading ──
+  if (tasksLoading) {
+    return (
+      <div style={{
+        width: "100%", minHeight: "100vh", background: "#f5f5f3",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <p style={{ fontSize: "0.9rem", color: "#aaa" }}>Loading your data…</p>
+      </div>
+    );
+  }
 
   // ── Routing ──
   if (screen === "add") {
@@ -524,6 +666,7 @@ export default function App() {
           weeklyDots={weeklyDots}
           weekStats={weekStats}
           onOpenReview={() => setScreen("review")}
+          onLogout={handleLogout}
         />
       )}
 
