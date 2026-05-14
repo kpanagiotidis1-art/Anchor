@@ -496,12 +496,10 @@ export default function App() {
   if (screen === "review") {
     return (
       <WeeklyReviewScreen
-        weekKey={currentWeekKey}
-        weekDates={currentWeekDates}
-        weekStats={weekStats}
-        weeklyDots={weeklyDots}
-        savedNotes={weeklyReviewNotes[currentWeekKey] || {}}
-        onSave={(reflection, goals) => saveWeeklyReview(currentWeekKey, reflection, goals)}
+        tasks={tasks}
+        workouts={workouts}
+        weeklyReviewNotes={weeklyReviewNotes}
+        onSave={saveWeeklyReview}
         onBack={() => setScreen("home")}
       />
     );
