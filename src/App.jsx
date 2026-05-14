@@ -234,11 +234,21 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
+      if (session?.user) {
+        loadUserData(session.user.id);
+      }
     });
 
     // Listen for auth changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "SIGNED_IN" && session?.user) {
+        loadUserData(session.user.id);
+      }
+      if (event === "SIGNED_OUT") {
+        setTasks({ Morning: [], Afternoon: [], Night: [] });
+        setWeeklyReviewNotes({});
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -247,12 +257,9 @@ export default function App() {
   // ── Load user data when auth resolves ──
   useEffect(() => {
     if (!user) {
-      // Clear task state on logout
       setTasks({ Morning: [], Afternoon: [], Night: [] });
       setWeeklyReviewNotes({});
-      return;
     }
-    loadUserData(user.id);
   }, [user]);
 
   async function loadUserData(userId) {
