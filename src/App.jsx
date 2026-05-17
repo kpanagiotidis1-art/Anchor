@@ -729,7 +729,6 @@ export default function App() {
           weeklyDots={weeklyDots}
           weekStats={weekStats}
           onOpenReview={() => setScreen("review")}
-          onOpenSettings={() => setScreen("settings")}
           onEditTask={updateTask}
           onDeleteTask={deleteTask}
         />
@@ -744,6 +743,7 @@ export default function App() {
           weeklyDots={weeklyDots}
           viewedDate={viewedDate}
           onGoToTasks={() => setActiveScreen("today")}
+          onOpenSettings={() => setScreen("settings")}
         />
       )}
 

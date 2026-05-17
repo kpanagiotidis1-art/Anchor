@@ -382,7 +382,6 @@ export default function HomeScreen({
   currentStreak, longestStreak,
   weeklyDots, weekStats,
   onOpenReview,
-  onOpenSettings,
   onEditTask,
   onDeleteTask,
 }) {
@@ -448,40 +447,16 @@ export default function HomeScreen({
         boxSizing: "border-box",
       }}>
 
-        {/* App title + settings + logout */}
-        <div style={{ position: "relative", marginBottom: "20px" }}>
-          <h1 style={{
-            fontSize: "2rem",
-            fontWeight: 700,
-            color: "var(--text-primary)",
-            textAlign: "center",
-          }}>
-            Anchor
-          </h1>
-          {/* Settings icon — top right */}
-          <button
-            onClick={onOpenSettings}
-            style={{
-              position: "absolute",
-              right: 0,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "4px",
-              color: "var(--text-muted)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
+        {/* App title */}
+        <h1 style={{
+          fontSize: "2rem",
+          fontWeight: 700,
+          color: "var(--text-primary)",
+          textAlign: "center",
+          marginBottom: "20px",
+        }}>
+          Anchor
+        </h1>
 
         {/* Date navigation */}
         <div style={{
