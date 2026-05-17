@@ -501,6 +501,32 @@ function WorkoutSummary({ session, onDismiss }) {
 
 // ── Template Picker ──
 function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
+  // Normalise exercise display — handle both string and object formats
+  function exerciseLabel(ex) {
+    return typeof ex === "string" ? ex : ex.name;
+  }
+
+  function renderTemplate(template) {
+    return (
+      <button
+        key={template.id}
+        onClick={() => onSelect(template.exercises)}
+        style={{
+          background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px",
+          padding: "14px 18px", textAlign: "left", cursor: "pointer",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        }}
+      >
+        <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
+          {template.name}
+        </p>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+          {template.exercises.map(exerciseLabel).join("  ·  ")}
+        </p>
+      </button>
+    );
+  }
+
   return (
     <div style={{
       width: "100%", minHeight: "100vh", background: "var(--bg)",
@@ -508,76 +534,30 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
       padding: "40px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
-        <h1 style={{
-          fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)",
-          marginBottom: "6px", textAlign: "center",
-        }}>Start Workout</h1>
+        <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px", textAlign: "center" }}>Start Workout</h1>
         <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", textAlign: "center", marginBottom: "32px" }}>
           Choose a template or start empty
         </p>
 
-        <p style={{
-          fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
-          textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
-        }}>Anchor Workouts</p>
+        <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>Anchor Workouts</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
-          {anchorTemplates.map(template => (
-            <button
-              key={template.id}
-              onClick={() => onSelect(template.exercises)}
-              style={{
-                background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px",
-                padding: "14px 18px", textAlign: "left", cursor: "pointer",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              }}
-            >
-              <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
-                {template.name}
-              </p>
-              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                {template.exercises.join("  ·  ")}
-              </p>
-            </button>
-          ))}
+          {anchorTemplates.map(renderTemplate)}
         </div>
 
         {userTemplates.length > 0 && (
           <>
-            <p style={{
-              fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
-              textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
-            }}>My Templates</p>
+            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>My Templates</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
-              {userTemplates.map(template => (
-                <button
-                  key={template.id}
-                  onClick={() => onSelect(template.exercises)}
-                  style={{
-                    background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px",
-                    padding: "14px 18px", textAlign: "left", cursor: "pointer",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  }}
-                >
-                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
-                    {template.name}
-                  </p>
-                  <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                    {template.exercises.join("  ·  ")}
-                  </p>
-                </button>
-              ))}
+              {userTemplates.map(renderTemplate)}
             </div>
           </>
         )}
 
-        <button
-          onClick={onSkip}
-          style={{
-            width: "100%", padding: "14px", background: "var(--text-primary)",
-            color: "var(--bg)", border: "none", borderRadius: "10px",
-            fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-          }}
-        >Start Empty</button>
+        <button onClick={onSkip} style={{
+          width: "100%", padding: "14px", background: "var(--text-primary)",
+          color: "var(--bg)", border: "none", borderRadius: "10px",
+          fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+        }}>Start Empty</button>
       </div>
     </div>
   );
@@ -588,27 +568,60 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   const [view, setView] = useState("list");
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [name, setName] = useState("");
+  // exercises are now objects: { name, tracking_mode }
   const [exercises, setExercises] = useState([]);
   const [newExercise, setNewExercise] = useState("");
+  const [newMode, setNewMode] = useState("reps");
   const [error, setError] = useState("");
+  const [editingExIdx, setEditingExIdx] = useState(null);
+  const [editingExName, setEditingExName] = useState("");
+
+  function normaliseExercises(exList) {
+    // Handle old string arrays and new object arrays
+    return exList.map(ex =>
+      typeof ex === "string"
+        ? { name: ex, tracking_mode: "reps" }
+        : { name: ex.name, tracking_mode: ex.tracking_mode || "reps" }
+    );
+  }
 
   function openCreate() {
-    setName(""); setExercises([]); setNewExercise(""); setError(""); setView("create");
+    setName(""); setExercises([]); setNewExercise(""); setNewMode("reps"); setError(""); setView("create");
   }
 
   function openEdit(template) {
-    setEditingTemplate(template); setName(template.name);
-    setExercises([...template.exercises]); setNewExercise(""); setError(""); setView("edit");
+    setEditingTemplate(template);
+    setName(template.name);
+    setExercises(normaliseExercises(template.exercises));
+    setNewExercise(""); setNewMode("reps"); setError(""); setView("edit");
   }
 
   function addExerciseToList() {
     if (!newExercise.trim()) return;
-    setExercises(prev => [...prev, newExercise.trim()]);
+    setExercises(prev => [...prev, { name: newExercise.trim(), tracking_mode: newMode }]);
     setNewExercise("");
+    setNewMode("reps");
   }
 
   function removeExerciseFromList(idx) {
     setExercises(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function startEditExercise(idx) {
+    setEditingExIdx(idx);
+    setEditingExName(exercises[idx].name);
+  }
+
+  function saveEditExercise(idx) {
+    if (editingExName.trim()) {
+      setExercises(prev => prev.map((ex, i) => i === idx ? { ...ex, name: editingExName.trim() } : ex));
+    }
+    setEditingExIdx(null);
+    setEditingExName("");
+  }
+
+  function setExerciseMode(idx, mode) {
+    setExercises(prev => prev.map((ex, i) => i === idx ? { ...ex, tracking_mode: mode } : ex));
   }
 
   function handleSaveCreate() {
@@ -629,23 +642,32 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
     width: "100%", padding: "12px 14px", border: "1px solid var(--border)",
     borderRadius: "8px", fontSize: "0.95rem", outline: "none",
     background: "var(--bg-card)", color: "var(--text-primary)", boxSizing: "border-box",
+    fontFamily: "inherit",
   };
 
-  // Inline exercise name editing
-  const [editingExIdx, setEditingExIdx] = useState(null);
-  const [editingExName, setEditingExName] = useState("");
+  const MODE_LABELS = { reps: "Reps", time: "Time", cardio: "Cardio" };
+  const MODE_KEYS = ["reps", "time", "cardio"];
 
-  function startEditExercise(idx) {
-    setEditingExIdx(idx);
-    setEditingExName(exercises[idx]);
-  }
-
-  function saveEditExercise(idx) {
-    if (editingExName.trim()) {
-      setExercises(prev => prev.map((ex, i) => i === idx ? editingExName.trim() : ex));
-    }
-    setEditingExIdx(null);
-    setEditingExName("");
+  function ModeToggle({ value, onChange, small }) {
+    return (
+      <div style={{ display: "flex", background: "var(--bg-subtle)", borderRadius: "6px", padding: "2px", gap: "2px" }}>
+        {MODE_KEYS.map(m => (
+          <button key={m} onClick={() => onChange(m)} style={{
+            padding: small ? "3px 7px" : "4px 10px",
+            borderRadius: "4px",
+            border: "none",
+            background: value === m ? "var(--bg-card)" : "none",
+            color: value === m ? "var(--text-primary)" : "var(--text-muted)",
+            fontSize: small ? "0.68rem" : "0.75rem",
+            fontWeight: value === m ? 600 : 400,
+            cursor: "pointer",
+            boxShadow: value === m ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
+            fontFamily: "inherit",
+            whiteSpace: "nowrap",
+          }}>{MODE_LABELS[m]}</button>
+        ))}
+      </div>
+    );
   }
 
   if (view === "create" || view === "edit") {
@@ -658,7 +680,7 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
         <div style={{ width: "100%", maxWidth: "480px" }}>
           <button onClick={() => setView("list")} style={{
             background: "none", border: "none", fontSize: "0.9rem",
-            color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
+            color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px", fontFamily: "inherit",
           }}>← Back</button>
 
           <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "24px" }}>
@@ -666,83 +688,66 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
           </h2>
 
           <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px" }}>Template Name</p>
-          <input
-            type="text" placeholder="e.g. Push Day" value={name}
+          <input type="text" placeholder="e.g. Push Day" value={name}
             onChange={e => { setName(e.target.value); setError(""); }}
-            style={{ ...inputStyle, marginBottom: "20px" }} autoFocus
-          />
+            style={{ ...inputStyle, marginBottom: "20px" }} autoFocus />
 
           <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px" }}>Exercises</p>
 
           {exercises.length > 0 && (
-            <div style={{
-              background: "var(--bg-card)", borderRadius: "10px", padding: "4px 0",
-              marginBottom: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-            }}>
+            <div style={{ background: "var(--bg-card)", borderRadius: "10px", padding: "4px 0", marginBottom: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               {exercises.map((ex, idx) => (
                 <div key={idx} style={{
-                  display: "flex", alignItems: "center",
-                  padding: "8px 16px",
-                  borderBottom: idx < exercises.length - 1 ? "1px solid #f5f5f5" : "none",
-                  gap: "8px",
+                  padding: "10px 16px",
+                  borderBottom: idx < exercises.length - 1 ? "1px solid var(--border-light)" : "none",
                 }}>
-                  {editingExIdx === idx ? (
-                    <input
-                      autoFocus
-                      value={editingExName}
-                      onChange={e => setEditingExName(e.target.value)}
-                      onBlur={() => saveEditExercise(idx)}
-                      onKeyDown={e => { if (e.key === "Enter") saveEditExercise(idx); if (e.key === "Escape") setEditingExIdx(null); }}
-                      style={{
-                        flex: 1, padding: "6px 10px", border: "1px solid var(--text-primary)",
-                        borderRadius: "6px", fontSize: "0.92rem", outline: "none",
-                        background: "var(--bg-exercise)", color: "var(--text-primary)", boxSizing: "border-box",
-                      }}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => startEditExercise(idx)}
-                      style={{
-                        flex: 1, background: "none", border: "none", padding: "4px 0",
-                        textAlign: "left", cursor: "pointer", fontSize: "0.92rem", color: "var(--text-primary)",
-                      }}
-                    >
-                      {ex}
-                    </button>
-                  )}
-                  <button onClick={() => removeExerciseFromList(idx)} style={{
-                    background: "none", border: "none", color: "var(--text-faint)",
-                    fontSize: "1.1rem", cursor: "pointer", padding: "4px", flexShrink: 0,
-                  }}>×</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                    {editingExIdx === idx ? (
+                      <input
+                        autoFocus value={editingExName}
+                        onChange={e => setEditingExName(e.target.value)}
+                        onBlur={() => saveEditExercise(idx)}
+                        onKeyDown={e => { if (e.key === "Enter") saveEditExercise(idx); if (e.key === "Escape") setEditingExIdx(null); }}
+                        style={{ flex: 1, padding: "4px 8px", border: "1px solid var(--text-primary)", borderRadius: "6px", fontSize: "0.92rem", outline: "none", background: "var(--bg-exercise)", color: "var(--text-primary)", boxSizing: "border-box", fontFamily: "inherit" }}
+                      />
+                    ) : (
+                      <button onClick={() => startEditExercise(idx)} style={{ flex: 1, background: "none", border: "none", padding: "2px 0", textAlign: "left", cursor: "pointer", fontSize: "0.92rem", color: "var(--text-primary)", fontFamily: "inherit" }}>
+                        {ex.name}
+                      </button>
+                    )}
+                    <button onClick={() => removeExerciseFromList(idx)} style={{ background: "none", border: "none", color: "var(--text-faint)", fontSize: "1.1rem", cursor: "pointer", padding: "4px", flexShrink: 0 }}>×</button>
+                  </div>
+                  {/* Tracking mode toggle per exercise */}
+                  <ModeToggle value={ex.tracking_mode || "reps"} onChange={mode => setExerciseMode(idx, mode)} small />
                 </div>
               ))}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
-            <input
-              type="text" placeholder="Add exercise..." value={newExercise}
-              onChange={e => setNewExercise(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") addExerciseToList(); }}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button onClick={addExerciseToList} style={{
-              padding: "12px 16px", background: "var(--bg-subtle)", border: "none",
-              borderRadius: "8px", fontSize: "1.2rem", cursor: "pointer",
-              color: "var(--text-secondary)", flexShrink: 0,
-            }}>+</button>
+          {/* Add exercise row */}
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+              <input type="text" placeholder="Add exercise..." value={newExercise}
+                onChange={e => setNewExercise(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") addExerciseToList(); }}
+                style={{ ...inputStyle, flex: 1 }} />
+              <button onClick={addExerciseToList} style={{
+                padding: "12px 16px", background: "var(--bg-subtle)", border: "none",
+                borderRadius: "8px", fontSize: "1.2rem", cursor: "pointer",
+                color: "var(--text-secondary)", flexShrink: 0,
+              }}>+</button>
+            </div>
+            {/* Mode for the new exercise */}
+            <ModeToggle value={newMode} onChange={setNewMode} />
           </div>
 
           {error && <p style={{ color: "#e05252", fontSize: "0.85rem", marginBottom: "12px" }}>{error}</p>}
 
-          <button
-            onClick={view === "create" ? handleSaveCreate : handleSaveEdit}
-            style={{
-              width: "100%", padding: "14px", background: "var(--text-primary)",
-              color: "var(--bg)", border: "none", borderRadius: "10px",
-              fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-            }}
-          >Save Template</button>
+          <button onClick={view === "create" ? handleSaveCreate : handleSaveEdit} style={{
+            width: "100%", padding: "14px", background: "var(--text-primary)",
+            color: "var(--bg)", border: "none", borderRadius: "10px",
+            fontSize: "0.95rem", fontWeight: 600, cursor: "pointer", marginTop: "12px", fontFamily: "inherit",
+          }}>Save Template</button>
         </div>
       </div>
     );
@@ -781,7 +786,7 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
                     {template.name}
                   </p>
                   <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                    {template.exercises.join("  ·  ")}
+                    {template.exercises.map(ex => typeof ex === "string" ? ex : ex.name).join("  ·  ")}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "8px", marginLeft: "12px", flexShrink: 0 }}>

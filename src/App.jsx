@@ -490,9 +490,17 @@ export default function App() {
       startTime: timeLabel,
       startTimestamp: now.getTime(),
       endTime: null, duration: null, status: "active", notes: "",
-      exercises: templateExercises.map(name => ({
-        id: `exercise-${Date.now()}-${Math.random()}`, name, sets: [],
-      })),
+      exercises: templateExercises.map(ex => {
+        // Support both old string format and new object format { name, tracking_mode }
+        const name = typeof ex === "string" ? ex : ex.name;
+        const tracking_mode = typeof ex === "string" ? "reps" : (ex.tracking_mode || "reps");
+        return {
+          id: `exercise-${Date.now()}-${Math.random()}`,
+          name,
+          tracking_mode,
+          sets: [],
+        };
+      }),
     };
     // Optimistic
     setWorkouts(prev => ({ ...prev, [viewedDate]: [...(prev[viewedDate] || []), newSession] }));
