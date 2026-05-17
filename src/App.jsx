@@ -29,8 +29,9 @@ import {
   updateUserTemplate,
   deleteUserTemplate,
 } from "./lib/workoutService";
+import OverviewScreen from "./screens/OverviewScreen";
 
-const SCREENS = ["today", "workout"];
+const SCREENS = ["today", "overview", "workout"];
 
 function todayString() {
   const d = new Date();
@@ -207,7 +208,7 @@ export default function App() {
   const [screen, setScreen] = useState("home");
   const [activeSection, setActiveSection] = useState(null);
   const [viewedDate, setViewedDate] = useState(todayString());
-  const [activeScreen, setActiveScreen] = useState("today");
+  const [activeScreen, setActiveScreen] = useState("overview");
   const [summarySession, setSummarySession] = useState(null);
 
   const touchStartX = useRef(null);
@@ -734,6 +735,18 @@ export default function App() {
         />
       )}
 
+      {activeScreen === "overview" && (
+        <OverviewScreen
+          tasks={visibleTasks}
+          workouts={workouts}
+          currentStreak={currentStreak}
+          longestStreak={longestStreak}
+          weeklyDots={weeklyDots}
+          viewedDate={viewedDate}
+          onGoToTasks={() => setActiveScreen("today")}
+        />
+      )}
+
       {activeScreen === "workout" && (
         <WorkoutScreen
           viewedDate={viewedDate}
@@ -762,6 +775,7 @@ export default function App() {
         />
       )}
 
+      {/* Tab bar — three tabs */}
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
@@ -770,26 +784,30 @@ export default function App() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "48px",
         height: "calc(64px + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}>
         {[
-          { key: "today", label: "Today" },
+          { key: "today", label: "Tasks" },
+          { key: "overview", label: "Overview" },
           { key: "workout", label: "Workout" },
         ].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveScreen(tab.key)}
             style={{
+              flex: 1,
               background: "none",
               border: "none",
-              fontSize: "0.95rem",
+              fontSize: activeScreen === tab.key ? "0.88rem" : "0.82rem",
               fontWeight: activeScreen === tab.key ? 700 : 400,
               color: activeScreen === tab.key ? "var(--text-primary)" : "var(--text-muted)",
               cursor: "pointer",
-              padding: "12px 24px",
-              borderBottom: activeScreen === tab.key ? "2px solid var(--text-primary)" : "2px solid transparent",
+              padding: "12px 8px",
+              borderBottom: activeScreen === tab.key
+                ? "2px solid var(--text-primary)"
+                : "2px solid transparent",
+              transition: "color 0.15s",
             }}
           >
             {tab.label}
