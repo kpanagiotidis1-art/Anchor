@@ -100,6 +100,8 @@ function MealFormSheet({ onAdd, onClose, prefill, initialCategory }) {
       source: prefill?.source || "manual",
       aiConfidence: prefill?.aiConfidence || null,
       aiNotes: prefill?.aiNotes || null,
+      // Store original AI name separately so edits don't overwrite it
+      originalAiName: prefill?.source === "ai" ? prefill?.name : null,
       createdAt: new Date().toISOString(),
     });
     onClose();
@@ -329,8 +331,9 @@ function MealDetailsSheet({ meal, onClose, onDelete, onUpdate }) {
     if (!name.trim()) { setError("Please enter a meal name."); return; }
     if (!calories || isNaN(Number(calories))) { setError("Please enter valid calories."); return; }
     onUpdate({
-      ...meal,
-      name: name.trim(), category,
+      ...meal,                          // preserve id, source, aiConfidence, aiNotes, originalAiName, createdAt
+      name: name.trim(),
+      category,
       calories: Math.round(Number(calories)),
       protein: Math.round(Number(protein) || 0),
       carbs: Math.round(Number(carbs) || 0),
@@ -357,10 +360,18 @@ function MealDetailsSheet({ meal, onClose, onDelete, onUpdate }) {
           {/* Details view */}
           {meal.source === "ai" && (
             <div style={{ background: "var(--bg-subtle)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
-              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                ✨ Estimated macros · Confidence: {meal.aiConfidence || "medium"}
+              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                ✨ AI scan · Confidence: {meal.aiConfidence || "medium"}
               </p>
-              {meal.aiNotes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "3px", fontStyle: "italic" }}>{meal.aiNotes}</p>}
+              {/* Show original AI name only if user has edited it */}
+              {meal.originalAiName && meal.originalAiName !== meal.name && (
+                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "3px" }}>
+                  Originally identified as "{meal.originalAiName}"
+                </p>
+              )}
+              {meal.aiNotes && (
+                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "3px", fontStyle: "italic" }}>{meal.aiNotes}</p>
+              )}
             </div>
           )}
 
