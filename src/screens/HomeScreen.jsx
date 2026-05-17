@@ -550,22 +550,6 @@ export default function HomeScreen({
               transition: "width 0.3s ease",
             }} />
           </div>
-
-          <button
-            onClick={onResetDay}
-            style={{
-              padding: "10px 20px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              background: "none",
-              fontSize: "0.9rem",
-              color: "#555",
-              cursor: "pointer",
-              marginTop: "4px",
-            }}
-          >
-            Reset Day
-          </button>
         </div>
       </div>
     </div>
