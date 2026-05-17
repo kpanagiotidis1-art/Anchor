@@ -35,6 +35,7 @@ import {
   getNutritionForDate,
   addMealToDate,
   deleteMealFromDate,
+  updateMealInDate,
   setWaterForDate,
   getTotalsForDate,
 } from "./lib/nutritionService";
@@ -646,6 +647,11 @@ export default function App() {
     setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
   }
 
+  function handleUpdateMeal(dateStr, updatedMeal) {
+    const updated = updateMealInDate(dateStr, updatedMeal);
+    setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
+  }
+
   function handleSetWater(dateStr, glasses) {
     const updated = setWaterForDate(dateStr, glasses);
     setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
@@ -787,6 +793,7 @@ export default function App() {
           goals={settings.nutritionGoals || { calories: 2000, protein: 150, carbs: 200, fats: 65, water: 8 }}
           onAddMeal={handleAddMeal}
           onDeleteMeal={handleDeleteMeal}
+          onUpdateMeal={handleUpdateMeal}
           onSetWater={handleSetWater}
           viewedDate={viewedDate}
           onNavigateDay={navigateDay}

@@ -46,7 +46,14 @@ export function setWaterForDate(dateStr, glasses) {
   return all[dateStr];
 }
 
-// Get totals for a date
+// Update a meal in a date
+export function updateMealInDate(dateStr, updatedMeal) {
+  const all = loadAll();
+  if (!all[dateStr]) return { meals: [], water: 0 };
+  all[dateStr].meals = all[dateStr].meals.map(m => m.id === updatedMeal.id ? updatedMeal : m);
+  saveAll(all);
+  return all[dateStr];
+}
 export function getTotalsForDate(dateStr) {
   const { meals } = getNutritionForDate(dateStr);
   return meals.reduce((acc, meal) => ({
