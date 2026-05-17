@@ -177,7 +177,17 @@ export async function fetchUserTemplates(userId) {
     id: row.id,
     name: row.name,
     anchor: false,
-    exercises: row.exercises || [],
+    // Exercises may be plain strings (old format) or JSON strings
+    // (when objects were stored in a text[] column). Parse safely.
+    exercises: (row.exercises || []).map(ex => {
+      if (typeof ex === "object" && ex !== null) return ex;
+      try {
+        const parsed = JSON.parse(ex);
+        if (parsed && typeof parsed === "object" && parsed.name) return parsed;
+      } catch {}
+      // Plain string — old format
+      return { name: ex, tracking_mode: "reps" };
+    }),
   }));
 }
 
