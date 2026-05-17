@@ -7,6 +7,13 @@ const defaultSettings = {
   restTimerEnabled: true,
   restTimerDuration: 90, // seconds
   smartSuggestionsEnabled: true,
+  nutritionGoals: {
+    calories: 2000,
+    protein: 150,
+    carbs: 200,
+    fats: 65,
+    water: 8,
+  },
 };
 
 function loadSettings() {

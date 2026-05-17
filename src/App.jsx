@@ -30,8 +30,16 @@ import {
   deleteUserTemplate,
 } from "./lib/workoutService";
 import OverviewScreen from "./screens/OverviewScreen";
+import NutritionScreen from "./screens/NutritionScreen";
+import {
+  getNutritionForDate,
+  addMealToDate,
+  deleteMealFromDate,
+  setWaterForDate,
+  getTotalsForDate,
+} from "./lib/nutritionService";
 
-const SCREENS = ["today", "overview", "workout"];
+const SCREENS = ["today", "overview", "nutrition", "workout"];
 
 function todayString() {
   const d = new Date();
@@ -203,6 +211,9 @@ export default function App() {
   const [workouts, setWorkouts] = useState({});
   const [exerciseHistory, setExerciseHistory] = useState({});
   const [userTemplates, setUserTemplates] = useState([]);
+
+  // ── Nutrition state (localStorage) ──
+  const [nutritionData, setNutritionData] = useState({});
 
   // ── UI state ──
   const [screen, setScreen] = useState("home");
@@ -624,6 +635,28 @@ export default function App() {
     }
   }
 
+  // ── Nutrition handlers (localStorage) ──
+  function handleAddMeal(dateStr, meal) {
+    const updated = addMealToDate(dateStr, meal);
+    setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
+  }
+
+  function handleDeleteMeal(dateStr, mealId) {
+    const updated = deleteMealFromDate(dateStr, mealId);
+    setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
+  }
+
+  function handleSetWater(dateStr, glasses) {
+    const updated = setWaterForDate(dateStr, glasses);
+    setNutritionData(prev => ({ ...prev, [dateStr]: updated }));
+  }
+
+  // Load nutrition for viewed date on mount and date change
+  useEffect(() => {
+    const data = getNutritionForDate(viewedDate);
+    setNutritionData(prev => ({ ...prev, [viewedDate]: data }));
+  }, [viewedDate]);
+
   function navigateDay(direction, exactDate) {
     if (exactDate !== undefined) {
       setViewedDate(exactDate);
@@ -644,6 +677,7 @@ export default function App() {
   const today = todayString();
   const currentWeekDates = getWeekDates(today);
   const weekStats = getWeekStats(tasks, workouts, currentWeekDates);
+  const todayNutritionTotals = getTotalsForDate(today);
 
   // ── Loading states ──
   if (authLoading) {
@@ -741,6 +775,21 @@ export default function App() {
           onGoToTasks={() => setActiveScreen("today")}
           onOpenSettings={() => setScreen("settings")}
           onOpenReview={() => setScreen("review")}
+          nutritionSummary={todayNutritionTotals}
+          nutritionGoals={settings.nutritionGoals}
+          onGoToNutrition={() => setActiveScreen("nutrition")}
+        />
+      )}
+
+      {activeScreen === "nutrition" && (
+        <NutritionScreen
+          nutritionData={nutritionData}
+          goals={settings.nutritionGoals || { calories: 2000, protein: 150, carbs: 200, fats: 65, water: 8 }}
+          onAddMeal={handleAddMeal}
+          onDeleteMeal={handleDeleteMeal}
+          onSetWater={handleSetWater}
+          viewedDate={viewedDate}
+          onNavigateDay={navigateDay}
         />
       )}
 
@@ -787,6 +836,7 @@ export default function App() {
         {[
           { key: "today", label: "Tasks" },
           { key: "overview", label: "Overview" },
+          { key: "nutrition", label: "Nutrition" },
           { key: "workout", label: "Workout" },
         ].map(tab => (
           <button

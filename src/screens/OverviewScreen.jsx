@@ -69,6 +69,9 @@ export default function OverviewScreen({
   onGoToTasks,
   onOpenSettings,
   onOpenReview,
+  nutritionSummary,
+  nutritionGoals,
+  onGoToNutrition,
 }) {
   const today = todayString();
 
@@ -250,6 +253,45 @@ export default function OverviewScreen({
           </div>
           <p style={{ fontSize: "1.4rem" }}>👟</p>
         </div>
+
+        {/* Nutrition preview */}
+        {nutritionSummary && (
+          <button
+            onClick={onGoToNutrition}
+            style={{
+              width: "100%", background: "var(--bg-card)", border: "none",
+              borderRadius: "12px", padding: "16px 20px", boxShadow: "var(--shadow)",
+              marginBottom: "16px", cursor: "pointer", textAlign: "left", boxSizing: "border-box",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Nutrition
+              </p>
+              <span style={{ fontSize: "0.78rem", color: "var(--text-faint)" }}>→</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px", marginBottom: "8px" }}>
+              <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
+                {nutritionSummary.calories}
+              </p>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                / {nutritionGoals?.calories || 2000} kcal
+              </p>
+            </div>
+            {/* Calorie bar */}
+            <div style={{ height: "4px", background: "var(--border)", borderRadius: "99px", overflow: "hidden", marginBottom: "8px" }}>
+              <div style={{
+                height: "100%",
+                width: `${Math.min((nutritionSummary.calories / (nutritionGoals?.calories || 2000)) * 100, 100)}%`,
+                background: "var(--text-primary)",
+                borderRadius: "99px",
+              }} />
+            </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              {nutritionSummary.protein}g protein · {nutritionSummary.carbs}g carbs · {nutritionSummary.fats}g fat
+            </p>
+          </button>
+        )}
 
         {/* Remaining tasks */}
         {remainingToday.length > 0 && (

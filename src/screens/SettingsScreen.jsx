@@ -226,6 +226,42 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
           </SettingRow>
         </SettingsCard>
 
+        {/* ── Nutrition ── */}
+        <SectionHeader label="Nutrition Goals" />
+        <SettingsCard>
+          {[
+            { key: "calories", label: "Daily Calories", unit: "kcal" },
+            { key: "protein", label: "Protein", unit: "g" },
+            { key: "carbs", label: "Carbs", unit: "g" },
+            { key: "fats", label: "Fats", unit: "g" },
+            { key: "water", label: "Water", unit: "glasses" },
+          ].map(goal => (
+            <SettingRow key={goal.key} label={goal.label} subtitle={`Daily target in ${goal.unit}`}>
+              <input
+                type="number"
+                min="0"
+                value={settings.nutritionGoals?.[goal.key] ?? ""}
+                onChange={e => onUpdateSetting("nutritionGoals", {
+                  ...settings.nutritionGoals,
+                  [goal.key]: Number(e.target.value),
+                })}
+                style={{
+                  width: "72px",
+                  padding: "6px 10px",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "0.9rem",
+                  background: "var(--bg-input)",
+                  color: "var(--text-primary)",
+                  textAlign: "right",
+                  outline: "none",
+                  fontFamily: "inherit",
+                }}
+              />
+            </SettingRow>
+          ))}
+        </SettingsCard>
+
         {/* Version */}
         <p style={{
           textAlign: "center",
