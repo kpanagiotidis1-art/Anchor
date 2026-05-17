@@ -175,7 +175,7 @@ export default function HomeScreen({
   currentStreak, longestStreak,
   weeklyDots, weekStats,
   onOpenReview,
-  onLogout,
+  onOpenSettings,
 }) {
   const [showStats, setShowStats] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -222,18 +222,19 @@ export default function HomeScreen({
         boxSizing: "border-box",
       }}>
 
-        {/* App title + logout */}
+        {/* App title + settings + logout */}
         <div style={{ position: "relative", marginBottom: "20px" }}>
           <h1 style={{
             fontSize: "2rem",
             fontWeight: 700,
-            color: "#1a1a1a",
+            color: "var(--text-primary)",
             textAlign: "center",
           }}>
             Anchor
           </h1>
+          {/* Settings icon — top right */}
           <button
-            onClick={onLogout}
+            onClick={onOpenSettings}
             style={{
               position: "absolute",
               right: 0,
@@ -241,13 +242,18 @@ export default function HomeScreen({
               transform: "translateY(-50%)",
               background: "none",
               border: "none",
-              fontSize: "0.78rem",
-              color: "#bbb",
               cursor: "pointer",
               padding: "4px",
+              color: "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            Log out
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
 

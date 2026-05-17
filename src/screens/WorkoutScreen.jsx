@@ -17,11 +17,11 @@ function todayString() {
 }
 
 // ── Rest Timer ──
-function RestTimer({ onDismiss }) {
+function RestTimer({ onDismiss, defaultDuration = 90 }) {
   const DURATIONS = [60, 90, 120];
-  const [selected, setSelected] = useState(90);
-  const [timeLeft, setTimeLeft] = useState(null); // null = not started
-  const [running, setRunning] = useState(false);
+  const [selected, setSelected] = useState(defaultDuration);
+  const [timeLeft, setTimeLeft] = useState(defaultDuration);
+  const [running, setRunning] = useState(true);
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -865,7 +865,7 @@ function AddSetForm({ onAdd }) {
 }
 
 // ── Exercise Card ──
-function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, exerciseHistory }) {
+function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, exerciseHistory, restTimerEnabled, restTimerDuration }) {
   const [showSetForm, setShowSetForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRestTimer, setShowRestTimer] = useState(false);
@@ -878,7 +878,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
   function handleAddSet(set) {
     onAddSet(exercise.id, set);
     setShowSetForm(false);
-    setShowRestTimer(true);
+    if (restTimerEnabled !== false) setShowRestTimer(true);
   }
 
   function saveRename() {
@@ -979,7 +979,10 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 
         {/* Rest timer — shown after adding a set */}
         {sessionActive && showRestTimer && (
-          <RestTimer onDismiss={() => setShowRestTimer(false)} />
+          <RestTimer
+            onDismiss={() => setShowRestTimer(false)}
+            defaultDuration={restTimerDuration || 90}
+          />
         )}
 
         {sessionActive && (
@@ -1056,7 +1059,7 @@ function WorkoutNotes({ sessionId, notes, onUpdateNotes }) {
 }
 
 // ── Session Card ──
-function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory }) {
+function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory, restTimerEnabled, restTimerDuration }) {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -1124,6 +1127,8 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
             onDeleteSet={(exerciseId, setId) => onDeleteSet(session.id, exerciseId, setId)}
             onDeleteExercise={exerciseId => onDeleteExercise(session.id, exerciseId)}
             onRenameExercise={(exerciseId, newName) => onRenameExercise(session.id, exerciseId, newName)}
+            restTimerEnabled={restTimerEnabled}
+            restTimerDuration={restTimerDuration}
           />
         ))
       )}
@@ -1165,6 +1170,7 @@ export default function WorkoutScreen({
   onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes,
   exerciseHistory, summarySession, onDismissSummary,
   anchorTemplates, userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
+  restTimerEnabled, restTimerDuration,
 }) {
   const [workoutView, setWorkoutView] = useState("main");
   const [showCalendar, setShowCalendar] = useState(false);
@@ -1278,6 +1284,8 @@ export default function WorkoutScreen({
               onDeleteWorkout={onDeleteWorkout}
               onUpdateNotes={onUpdateNotes}
               exerciseHistory={exerciseHistory}
+              restTimerEnabled={restTimerEnabled}
+              restTimerDuration={restTimerDuration}
             />
           ))}
 

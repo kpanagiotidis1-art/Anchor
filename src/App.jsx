@@ -4,6 +4,8 @@ import AddTaskScreen from "./screens/AddTaskScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
 import WeeklyReviewScreen from "./screens/WeeklyReviewScreen";
 import AuthScreen from "./screens/AuthScreen";
+import SettingsScreen from "./screens/SettingsScreen";
+import { useSettings } from "./hooks/useSettings";
 import { supabase } from "./lib/supabase";
 import {
   fetchTasks,
@@ -185,6 +187,9 @@ export default function App() {
   // ── Auth ──
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Settings ──
+  const { settings, updateSetting } = useSettings();
 
   // ── Task state (Supabase) ──
   const [tasks, setTasks] = useState({ Morning: [], Afternoon: [], Night: [] });
@@ -692,6 +697,18 @@ export default function App() {
     );
   }
 
+  if (screen === "settings") {
+    return (
+      <SettingsScreen
+        settings={settings}
+        onUpdateSetting={updateSetting}
+        userEmail={user?.email}
+        onLogout={handleLogout}
+        onBack={() => setScreen("home")}
+      />
+    );
+  }
+
   return (
     <div
       onTouchStart={handleTouchStart}
@@ -711,7 +728,7 @@ export default function App() {
           weeklyDots={weeklyDots}
           weekStats={weekStats}
           onOpenReview={() => setScreen("review")}
-          onLogout={handleLogout}
+          onOpenSettings={() => setScreen("settings")}
         />
       )}
 
@@ -737,6 +754,8 @@ export default function App() {
           onCreateTemplate={createTemplate}
           onUpdateTemplate={updateTemplate}
           onDeleteTemplate={deleteTemplateHandler}
+          restTimerEnabled={settings.restTimerEnabled}
+          restTimerDuration={settings.restTimerDuration}
         />
       )}
 
@@ -744,8 +763,8 @@ export default function App() {
         position: "fixed",
         bottom: 0, left: 0, right: 0,
         height: "64px",
-        background: "#ffffff",
-        borderTop: "1px solid #e0e0e0",
+        background: "var(--tab-bg)",
+        borderTop: "1px solid var(--tab-border)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -764,10 +783,10 @@ export default function App() {
               border: "none",
               fontSize: "0.95rem",
               fontWeight: activeScreen === tab.key ? 700 : 400,
-              color: activeScreen === tab.key ? "#1a1a1a" : "#aaa",
+              color: activeScreen === tab.key ? "var(--text-primary)" : "var(--text-muted)",
               cursor: "pointer",
               padding: "12px 24px",
-              borderBottom: activeScreen === tab.key ? "2px solid #1a1a1a" : "2px solid transparent",
+              borderBottom: activeScreen === tab.key ? "2px solid var(--text-primary)" : "2px solid transparent",
             }}
           >
             {tab.label}
