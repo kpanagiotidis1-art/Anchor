@@ -229,24 +229,6 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   );
 }
 
-function formatDate(dateStr) {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-AU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
-
-function todayString() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
-}
-
 // ── Stats Modal ──
 function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClose, onOpenReview }) {
   return (
