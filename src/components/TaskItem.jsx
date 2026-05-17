@@ -31,7 +31,7 @@ export default function TaskItem({ task, onToggle, onEdit, viewedDate }) {
       >
         {isCompleted && (
           <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-            <path d="M1 4L4.5 7.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M1 4L4.5 7.5L11 1" stroke="var(--bg)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         )}
       </div>
