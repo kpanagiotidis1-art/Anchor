@@ -1,6 +1,6 @@
 import TaskItem from "./TaskItem";
 
-export default function SectionBlock({ title, tasks, onToggle, onTitleTap, viewedDate }) {
+export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate }) {
   return (
     <div style={{
       background: "#ffffff",
@@ -49,7 +49,13 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, viewe
           </p>
         ) : (
           tasks.map(task => (
-            <TaskItem key={task.id} task={task} onToggle={onToggle} viewedDate={viewedDate} />
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={onToggle}
+              onEdit={onEdit}
+              viewedDate={viewedDate}
+            />
           ))
         )}
       </div>

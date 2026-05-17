@@ -3,6 +3,231 @@ import SectionBlock from "../components/SectionBlock";
 import CalendarPicker from "../components/CalendarPicker";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function formatDate(dateStr) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function todayString() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+// ── Edit Task Sheet ──
+function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
+  const [name, setName] = useState(task.name);
+  const [frequency, setFrequency] = useState(task.frequency);
+  const [selectedDays, setSelectedDays] = useState(task.days || []);
+  const [error, setError] = useState("");
+
+  function toggleDay(dow) {
+    setSelectedDays(prev =>
+      prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow]
+    );
+  }
+
+  function handleSave() {
+    if (!name.trim()) { setError("Task name can't be empty."); return; }
+    if (frequency === "weekly" && selectedDays.length === 0) {
+      setError("Please select at least one day.");
+      return;
+    }
+    onSave(task.section, task.id, {
+      name: name.trim(),
+      frequency,
+      days: frequency === "weekly" ? selectedDays : undefined,
+      date: frequency === "one-time" ? (task.date || viewedDate) : undefined,
+    });
+    onClose();
+  }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    border: "1px solid #e0e0e0",
+    borderRadius: "10px",
+    fontSize: "0.95rem",
+    outline: "none",
+    background: "#fff",
+    color: "#1a1a1a",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div style={{
+      position: "fixed",
+      top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 300,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end",
+    }}>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.35)",
+        }}
+      />
+
+      {/* Sheet */}
+      <div style={{
+        position: "relative",
+        background: "#f5f5f3",
+        borderRadius: "20px 20px 0 0",
+        padding: "24px 20px 48px",
+        zIndex: 301,
+        maxHeight: "85vh",
+        overflowY: "auto",
+      }}>
+        {/* Handle */}
+        <div style={{
+          width: "36px", height: "4px", background: "#ddd",
+          borderRadius: "99px", margin: "0 auto 20px",
+        }} />
+
+        {/* Header */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "20px",
+        }}>
+          <p style={{ fontSize: "1rem", fontWeight: 700, color: "#1a1a1a" }}>
+            Edit Task
+          </p>
+          <button onClick={onClose} style={{
+            background: "none", border: "none",
+            fontSize: "1.4rem", color: "#aaa",
+            cursor: "pointer", padding: "4px", lineHeight: 1,
+          }}>×</button>
+        </div>
+
+        {/* Name */}
+        <input
+          autoFocus
+          type="text"
+          value={name}
+          onChange={e => { setName(e.target.value); setError(""); }}
+          onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+          style={{ ...inputStyle, marginBottom: "16px" }}
+        />
+
+        {/* Frequency */}
+        <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "8px" }}>
+          Frequency
+        </p>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+          {["daily", "weekly", "one-time"].map(opt => (
+            <button
+              key={opt}
+              onClick={() => { setFrequency(opt); setError(""); }}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "20px",
+                border: "1px solid",
+                borderColor: frequency === opt ? "#1a1a1a" : "#ccc",
+                background: frequency === opt ? "#1a1a1a" : "none",
+                color: frequency === opt ? "#fff" : "#555",
+                fontSize: "0.82rem",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {opt.charAt(0).toUpperCase() + opt.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Weekly day picker */}
+        {frequency === "weekly" && (
+          <div style={{ marginBottom: "14px" }}>
+            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "8px" }}>
+              Repeat on
+            </p>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {DAY_FULL_LABELS.map((label, dow) => (
+                <button
+                  key={dow}
+                  onClick={() => toggleDay(dow)}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "20px",
+                    border: "1px solid",
+                    borderColor: selectedDays.includes(dow) ? "#1a1a1a" : "#ccc",
+                    background: selectedDays.includes(dow) ? "#1a1a1a" : "none",
+                    color: selectedDays.includes(dow) ? "#fff" : "#555",
+                    fontSize: "0.78rem",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* One-time label */}
+        {frequency === "one-time" && (
+          <p style={{ fontSize: "0.82rem", color: "#888", marginBottom: "14px" }}>
+            Appears on{" "}
+            <span style={{ fontWeight: 600, color: "#1a1a1a" }}>
+              {formatDate(task.date || viewedDate)}
+            </span>
+          </p>
+        )}
+
+        {error && (
+          <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "12px" }}>{error}</p>
+        )}
+
+        {/* Save */}
+        <button
+          onClick={handleSave}
+          style={{
+            width: "100%", padding: "14px",
+            background: "#1a1a1a", color: "#fff",
+            border: "none", borderRadius: "10px",
+            fontSize: "0.95rem", fontWeight: 600,
+            cursor: "pointer", marginBottom: "10px",
+            fontFamily: "inherit",
+          }}
+        >
+          Save
+        </button>
+
+        {/* Delete */}
+        <button
+          onClick={() => { onDelete(task.section, task.id); onClose(); }}
+          style={{
+            width: "100%", padding: "12px",
+            background: "none", color: "#e05252",
+            border: "1px solid #e05252", borderRadius: "10px",
+            fontSize: "0.88rem", cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          Delete Task
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -176,9 +401,12 @@ export default function HomeScreen({
   weeklyDots, weekStats,
   onOpenReview,
   onOpenSettings,
+  onEditTask,
+  onDeleteTask,
 }) {
   const [showStats, setShowStats] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const isToday = viewedDate === todayString();
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(viewedDate)).length;
@@ -212,6 +440,22 @@ export default function HomeScreen({
           viewedDate={viewedDate}
           onSelectDate={date => { onNavigateDay(0, date); }}
           onClose={() => setShowCalendar(false)}
+        />
+      )}
+
+      {editingTask && (
+        <EditTaskSheet
+          task={editingTask}
+          viewedDate={viewedDate}
+          onSave={(section, taskId, updates) => {
+            onEditTask(section, taskId, updates);
+            setEditingTask(null);
+          }}
+          onDelete={(section, taskId) => {
+            onDeleteTask(section, taskId);
+            setEditingTask(null);
+          }}
+          onClose={() => setEditingTask(null)}
         />
       )}
 
@@ -398,6 +642,7 @@ export default function HomeScreen({
               tasks={tasks[section]}
               onToggle={(id) => onToggle(section, id)}
               onTitleTap={() => onSectionTap(section)}
+              onEdit={task => setEditingTask(task)}
               viewedDate={viewedDate}
             />
           ))}

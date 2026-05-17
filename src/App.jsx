@@ -729,6 +729,8 @@ export default function App() {
           weekStats={weekStats}
           onOpenReview={() => setScreen("review")}
           onOpenSettings={() => setScreen("settings")}
+          onEditTask={updateTask}
+          onDeleteTask={deleteTask}
         />
       )}
 
