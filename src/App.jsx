@@ -724,11 +724,6 @@ export default function App() {
           onResetDay={resetDay}
           viewedDate={viewedDate}
           onNavigateDay={navigateDay}
-          currentStreak={currentStreak}
-          longestStreak={longestStreak}
-          weeklyDots={weeklyDots}
-          weekStats={weekStats}
-          onOpenReview={() => setScreen("review")}
           onEditTask={updateTask}
           onDeleteTask={deleteTask}
         />
@@ -741,9 +736,11 @@ export default function App() {
           currentStreak={currentStreak}
           longestStreak={longestStreak}
           weeklyDots={weeklyDots}
+          weekStats={weekStats}
           viewedDate={viewedDate}
           onGoToTasks={() => setActiveScreen("today")}
           onOpenSettings={() => setScreen("settings")}
+          onOpenReview={() => setScreen("review")}
         />
       )}
 

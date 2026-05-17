@@ -2,7 +2,6 @@ import { useState } from "react";
 import SectionBlock from "../components/SectionBlock";
 import CalendarPicker from "../components/CalendarPicker";
 
-const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatDate(dateStr) {
@@ -379,13 +378,9 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
 export default function HomeScreen({
   tasks, onToggle, onSectionTap, onResetDay,
   viewedDate, onNavigateDay,
-  currentStreak, longestStreak,
-  weeklyDots, weekStats,
-  onOpenReview,
   onEditTask,
   onDeleteTask,
 }) {
-  const [showStats, setShowStats] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const isToday = viewedDate === todayString();
@@ -405,17 +400,6 @@ export default function HomeScreen({
       padding: "40px 0 100px",
       boxSizing: "border-box",
     }}>
-      {showStats && (
-        <StatsModal
-          currentStreak={currentStreak}
-          longestStreak={longestStreak}
-          weeklyDots={weeklyDots}
-          weekStats={weekStats}
-          onClose={() => setShowStats(false)}
-          onOpenReview={onOpenReview}
-        />
-      )}
-
       {showCalendar && (
         <CalendarPicker
           viewedDate={viewedDate}
@@ -515,75 +499,6 @@ export default function HomeScreen({
             </svg>
           </button>
         </div>
-
-        {/* Weekly Progress card */}
-        <button
-          onClick={() => setShowStats(true)}
-          style={{
-            width: "100%",
-            marginBottom: "16px",
-            background: "#ffffff",
-            border: "none",
-            borderRadius: "12px",
-            padding: "16px 20px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-            cursor: "pointer",
-            textAlign: "left",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "14px",
-          }}>
-            <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a" }}>Weekly Progress</span>
-            <span style={{ fontSize: "0.78rem", color: "#bbb" }}>→</span>
-          </div>
-
-          <div style={{ display: "flex", gap: "20px", marginBottom: "16px", justifyContent: "center" }}>
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a", lineHeight: 1 }}>
-                {currentStreak}
-              </p>
-              <p style={{ fontSize: "0.68rem", color: "#aaa", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                day streak
-              </p>
-            </div>
-            <div style={{ width: "1px", background: "#f0f0f0", flexShrink: 0 }} />
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#bbb", lineHeight: 1 }}>
-                {longestStreak}
-              </p>
-              <p style={{ fontSize: "0.68rem", color: "#aaa", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                best
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
-            {(weeklyDots || []).map((dot, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
-                <div style={{
-                  width: "100%",
-                  aspectRatio: "1",
-                  maxWidth: "32px",
-                  borderRadius: "50%",
-                  background: dot.active ? "#1a1a1a" : "#eeeeec",
-                }} />
-                <span style={{
-                  fontSize: "0.62rem",
-                  color: dot.active ? "#1a1a1a" : "#ccc",
-                  fontWeight: dot.active ? 600 : 400,
-                  lineHeight: 1,
-                }}>
-                  {DAY_LABELS[i]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </button>
 
         {/* Sections */}
         <div style={{
