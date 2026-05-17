@@ -208,21 +208,49 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
 }
 
 // ── Exercise History Modal ──
-function ExerciseHistoryModal({ name, history, onClose }) {
+function ExerciseHistoryModal({ name, history, mode, onClose }) {
+  mode = mode || "reps";
   const sessions = history || [];
 
-  // Calculate PR — best set by weight × reps score
+  // PR — only meaningful for reps mode (weight × reps score)
   let pr = null;
-  sessions.forEach(session => {
-    (session.sets || []).forEach(set => {
-      if (!pr) { pr = set; return; }
-      const setScore = (set.weight || 0) * set.reps;
-      const prScore = (pr.weight || 0) * pr.reps;
-      if (setScore > prScore) pr = set;
+  if (mode === "reps") {
+    sessions.forEach(session => {
+      (session.sets || []).forEach(set => {
+        if (!pr) { pr = set; return; }
+        const setScore = (set.weight || 0) * set.reps;
+        const prScore = (pr.weight || 0) * pr.reps;
+        if (setScore > prScore) pr = set;
+      });
     });
-  });
+  } else if (mode === "time") {
+    // PR = longest duration
+    sessions.forEach(session => {
+      (session.sets || []).forEach(set => {
+        if (!pr || set.duration > pr.duration) pr = set;
+      });
+    });
+  } else if (mode === "cardio") {
+    // PR = longest duration or most distance
+    sessions.forEach(session => {
+      (session.sets || []).forEach(set => {
+        if (!pr) { pr = set; return; }
+        const score = (set.distance || 0) * 1000 + (set.duration || 0);
+        const prScore = (pr.distance || 0) * 1000 + (pr.duration || 0);
+        if (score > prScore) pr = set;
+      });
+    });
+  }
 
   const lastSession = sessions[0];
+
+  function prDisplay() {
+    if (!pr) return null;
+    if (mode === "reps") return pr.weight ? `${pr.weight}kg × ${pr.reps}` : `BW × ${pr.reps}`;
+    if (mode === "time") return formatDuration(pr.duration);
+    if (mode === "cardio") return formatSetDisplay(pr, "cardio");
+    return null;
+  }
 
   return (
     <div style={{
@@ -277,7 +305,7 @@ function ExerciseHistoryModal({ name, history, onClose }) {
           </p>
         ) : (
           <>
-            {pr && (
+            {pr && prDisplay() && (
               <div style={{
                 background: "#1a1a1a", borderRadius: "12px", padding: "16px 20px",
                 marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -287,7 +315,7 @@ function ExerciseHistoryModal({ name, history, onClose }) {
                     Personal Record
                   </p>
                   <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "#fff" }}>
-                    {pr.weight ? `${pr.weight} kg` : "Bodyweight"} × {pr.reps}
+                    {prDisplay()}
                   </p>
                 </div>
                 <p style={{ fontSize: "1.8rem" }}>🏆</p>
@@ -306,29 +334,18 @@ function ExerciseHistoryModal({ name, history, onClose }) {
                   Last Session — {formatDate(lastSession.date)}
                 </p>
                 {(lastSession.sets || []).length === 0 ? (
-                  <p style={{ fontSize: "0.85rem", color: "#ccc" }}>No sets logged.</p>
+                  <p style={{ fontSize: "0.85rem", color: "#ccc" }}>No entries logged.</p>
                 ) : (
-                  <div>
-                    <div style={{
-                      display: "grid", gridTemplateColumns: "32px 1fr 1fr",
-                      gap: "8px", padding: "2px 0 6px",
+                  lastSession.sets.map((set, idx) => (
+                    <div key={idx} style={{
+                      display: "flex", gap: "8px", padding: "7px 0",
+                      borderBottom: idx < lastSession.sets.length - 1 ? "1px solid #f5f5f5" : "none",
+                      alignItems: "center",
                     }}>
-                      {["Set", "Weight", "Reps"].map((h, i) => (
-                        <span key={i} style={{ fontSize: "0.7rem", color: "#bbb", fontWeight: 600, textTransform: "uppercase" }}>{h}</span>
-                      ))}
+                      <span style={{ fontSize: "0.78rem", color: "#bbb", width: "24px", textAlign: "center" }}>{idx + 1}</span>
+                      <span style={{ fontSize: "0.9rem", color: "#333" }}>{formatSetDisplay(set, mode)}</span>
                     </div>
-                    {lastSession.sets.map((set, idx) => (
-                      <div key={idx} style={{
-                        display: "grid", gridTemplateColumns: "32px 1fr 1fr",
-                        gap: "8px", padding: "7px 0",
-                        borderBottom: idx < lastSession.sets.length - 1 ? "1px solid #f5f5f5" : "none",
-                      }}>
-                        <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>{idx + 1}</span>
-                        <span style={{ fontSize: "0.9rem", color: "#555" }}>{set.weight ? `${set.weight} kg` : "BW"}</span>
-                        <span style={{ fontSize: "0.9rem", color: "#333" }}>{set.reps} reps</span>
-                      </div>
-                    ))}
-                  </div>
+                  ))
                 )}
               </div>
             )}
@@ -349,10 +366,8 @@ function ExerciseHistoryModal({ name, history, onClose }) {
                     </p>
                     {(session.sets || []).map((set, idx) => (
                       <div key={idx} style={{ display: "flex", gap: "12px", padding: "4px 0" }}>
-                        <span style={{ fontSize: "0.78rem", color: "#bbb", width: "32px", textAlign: "center" }}>{idx + 1}</span>
-                        <span style={{ fontSize: "0.85rem", color: "#555" }}>
-                          {set.weight ? `${set.weight} kg` : "BW"} × {set.reps} reps
-                        </span>
+                        <span style={{ fontSize: "0.78rem", color: "#bbb", width: "24px", textAlign: "center" }}>{idx + 1}</span>
+                        <span style={{ fontSize: "0.85rem", color: "#555" }}>{formatSetDisplay(set, mode)}</span>
                       </div>
                     ))}
                     {sIdx < sessions.length - 2 && (
@@ -373,11 +388,20 @@ function ExerciseHistoryModal({ name, history, onClose }) {
 function WorkoutSummary({ session, onDismiss }) {
   const exercises = session.exercises || [];
   const totalSets = exercises.reduce((acc, ex) => acc + (ex.sets || []).length, 0);
-  const totalVolume = exercises.reduce((acc, ex) =>
-    acc + (ex.sets || []).reduce((s, set) =>
+
+  // Volume only counts reps exercises
+  const totalVolume = exercises.reduce((acc, ex) => {
+    if ((ex.tracking_mode || "reps") !== "reps") return acc;
+    return acc + (ex.sets || []).reduce((s, set) =>
       s + (set.weight ? set.reps * set.weight : 0), 0
-    ), 0
-  );
+    );
+  }, 0);
+
+  // Total cardio time
+  const totalCardioSecs = exercises.reduce((acc, ex) => {
+    if ((ex.tracking_mode || "reps") !== "cardio") return acc;
+    return acc + (ex.sets || []).reduce((s, set) => s + (set.duration || 0), 0);
+  }, 0);
 
   return (
     <div style={{
@@ -405,7 +429,9 @@ function WorkoutSummary({ session, onDismiss }) {
           {[
             { label: "Exercises", value: exercises.length },
             { label: "Sets", value: totalSets },
-            { label: "Volume", value: totalVolume > 0 ? `${totalVolume}kg` : "—" },
+            totalCardioSecs > 0
+              ? { label: "Cardio", value: formatDuration(totalCardioSecs) }
+              : { label: "Volume", value: totalVolume > 0 ? `${totalVolume}kg` : "—" },
           ].map(stat => (
             <div key={stat.label} style={{
               background: "#fff", borderRadius: "12px", padding: "16px 12px",
@@ -428,15 +454,22 @@ function WorkoutSummary({ session, onDismiss }) {
           {exercises.length === 0 ? (
             <p style={{ fontSize: "0.88rem", color: "#ccc" }}>No exercises logged.</p>
           ) : (
-            exercises.map(ex => (
-              <div key={ex.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "8px 0", borderBottom: "1px solid #f5f5f5",
-              }}>
-                <span style={{ fontSize: "0.92rem", color: "#1a1a1a", fontWeight: 500 }}>{ex.name}</span>
-                <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{(ex.sets || []).length} sets</span>
-              </div>
-            ))
+            exercises.map(ex => {
+              const mode = ex.tracking_mode || "reps";
+              const setCount = (ex.sets || []).length;
+              const label = mode === "cardio"
+                ? `${setCount} session${setCount !== 1 ? "s" : ""}`
+                : `${setCount} set${setCount !== 1 ? "s" : ""}`;
+              return (
+                <div key={ex.id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "8px 0", borderBottom: "1px solid #f5f5f5",
+                }}>
+                  <span style={{ fontSize: "0.92rem", color: "#1a1a1a", fontWeight: 500 }}>{ex.name}</span>
+                  <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{label}</span>
+                </div>
+              );
+            })
           )}
         </div>
 
@@ -776,19 +809,42 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   );
 }
 
+// ── Helpers ──
+function formatDuration(seconds) {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s > 0 ? s + "s" : ""}`.trim() : `${s}s`;
+}
+
+function formatSetDisplay(set, mode) {
+  mode = mode || "reps";
+  if (mode === "time") return formatDuration(set.duration);
+  if (mode === "cardio") {
+    const parts = [];
+    if (set.duration) parts.push(formatDuration(set.duration));
+    if (set.distance) parts.push(`${set.distance}km`);
+    if (set.speed) parts.push(`${set.speed}km/h`);
+    if (set.calories) parts.push(`${set.calories}cal`);
+    return parts.join(" · ") || "—";
+  }
+  // reps
+  const weight = set.weight !== "" && set.weight != null ? `${set.weight}kg` : "BW";
+  return `${weight} × ${set.reps}`;
+}
+
 // ── Set Row ──
-function SetRow({ setNumber, set, sessionActive, onDelete }) {
+function SetRow({ setNumber, set, mode, sessionActive, onDelete }) {
+  mode = mode || "reps";
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "32px 1fr 1fr 36px",
+      display: "grid",
+      gridTemplateColumns: sessionActive ? "32px 1fr 36px" : "32px 1fr",
       gap: "8px", alignItems: "center", padding: "8px 0",
       borderBottom: "1px solid #f5f5f5",
     }}>
       <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>{setNumber}</span>
-      <span style={{ fontSize: "0.9rem", color: "#555" }}>
-        {set.weight !== "" && set.weight != null ? `${set.weight} kg` : "BW"}
-      </span>
-      <span style={{ fontSize: "0.9rem", color: "#333" }}>{set.reps} reps</span>
+      <span style={{ fontSize: "0.9rem", color: "#333" }}>{formatSetDisplay(set, mode)}</span>
       {sessionActive ? (
         <button onClick={onDelete} style={{
           background: "none", border: "none", color: "#ccc", fontSize: "1.2rem",
@@ -796,81 +852,173 @@ function SetRow({ setNumber, set, sessionActive, onDelete }) {
           minWidth: "36px", minHeight: "36px",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>×</button>
-      ) : <span />}
+      ) : null}
     </div>
   );
 }
 
 // ── Add Set Form ──
-function AddSetForm({ onAdd }) {
+function AddSetForm({ onAdd, mode }) {
+  mode = mode || "reps";
+
+  // reps state
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
+  // time state
+  const [minutes, setMinutes] = useState("");
+  const [seconds, setSeconds] = useState("");
+  // cardio state
+  const [duration, setDuration] = useState("");
+  const [distance, setDistance] = useState("");
+  const [speed, setSpeed] = useState("");
+  const [incline, setIncline] = useState("");
+  const [calories, setCalories] = useState("");
+
   const [error, setError] = useState("");
-
-  function handleAdd() {
-    if (!reps.trim() || isNaN(Number(reps)) || Number(reps) <= 0) {
-      setError("Enter a valid rep count.");
-      return;
-    }
-    onAdd({
-      id: `set-${Date.now()}`,
-      reps: Number(reps),
-      weight: weight.trim() !== "" ? Number(weight) : "",
-    });
-    setReps(""); setWeight(""); setError("");
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === "Enter") handleAdd();
-  }
 
   const inputStyle = {
     padding: "12px 14px", border: "1px solid #e0e0e0", borderRadius: "8px",
     fontSize: "1rem", background: "#fff", color: "#1a1a1a",
     outline: "none", boxSizing: "border-box", width: "100%",
+    fontFamily: "inherit",
   };
+
+  const fieldLabel = (label) => (
+    <p style={{
+      fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "5px",
+      textTransform: "uppercase", letterSpacing: "0.04em",
+    }}>{label}</p>
+  );
+
+  function handleAdd() {
+    if (mode === "reps") {
+      if (!reps.trim() || isNaN(Number(reps)) || Number(reps) <= 0) {
+        setError("Enter a valid rep count."); return;
+      }
+      onAdd({
+        id: `set-${Date.now()}`,
+        reps: Number(reps),
+        weight: weight.trim() !== "" ? Number(weight) : "",
+      });
+      setReps(""); setWeight("");
+    } else if (mode === "time") {
+      const totalSecs = (Number(minutes || 0) * 60) + Number(seconds || 0);
+      if (totalSecs <= 0) { setError("Enter a duration."); return; }
+      onAdd({ id: `set-${Date.now()}`, duration: totalSecs });
+      setMinutes(""); setSeconds("");
+    } else if (mode === "cardio") {
+      const totalSecs = Number(duration || 0) * 60;
+      if (totalSecs <= 0) { setError("Enter a duration."); return; }
+      onAdd({
+        id: `set-${Date.now()}`,
+        duration: totalSecs,
+        ...(distance.trim() && { distance: Number(distance) }),
+        ...(speed.trim() && { speed: Number(speed) }),
+        ...(incline.trim() && { incline: Number(incline) }),
+        ...(calories.trim() && { calories: Number(calories) }),
+      });
+      setDuration(""); setDistance(""); setSpeed(""); setIncline(""); setCalories("");
+    }
+    setError("");
+  }
 
   return (
     <div style={{ background: "#f0f0f0", borderRadius: "10px", padding: "14px", marginTop: "10px" }}>
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <div style={{ flex: 1 }}>
-          <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "#888", marginBottom: "5px",
-            textTransform: "uppercase", letterSpacing: "0.04em",
-            height: "16px", display: "flex", alignItems: "center",
-          }}>Weight kg</p>
-          <input type="number" min="0" step="0.5" placeholder="20"
-            value={weight} onChange={e => setWeight(e.target.value)}
-            onKeyDown={handleKeyDown} style={inputStyle} />
+
+      {mode === "reps" && (
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div style={{ flex: 1 }}>
+            {fieldLabel("Weight kg")}
+            <input type="number" min="0" step="0.5" placeholder="—"
+              value={weight} onChange={e => setWeight(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            {fieldLabel("Reps *")}
+            <input type="number" min="1" placeholder="10"
+              value={reps} onChange={e => { setReps(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "#888", marginBottom: "5px",
-            textTransform: "uppercase", letterSpacing: "0.04em",
-            height: "16px", display: "flex", alignItems: "center",
-          }}>Reps *</p>
-          <input type="number" min="1" placeholder="10"
-            value={reps} onChange={e => { setReps(e.target.value); setError(""); }}
-            onKeyDown={handleKeyDown} style={inputStyle} />
+      )}
+
+      {mode === "time" && (
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div style={{ flex: 1 }}>
+            {fieldLabel("Min")}
+            <input type="number" min="0" placeholder="0"
+              value={minutes} onChange={e => { setMinutes(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            {fieldLabel("Sec")}
+            <input type="number" min="0" max="59" placeholder="30"
+              value={seconds} onChange={e => { setSeconds(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+          </div>
         </div>
-      </div>
+      )}
+
+      {mode === "cardio" && (
+        <>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <div style={{ flex: 1 }}>
+              {fieldLabel("Duration (min) *")}
+              <input type="number" min="0" placeholder="30"
+                value={duration} onChange={e => { setDuration(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+            </div>
+            <div style={{ flex: 1 }}>
+              {fieldLabel("Distance (km)")}
+              <input type="number" min="0" step="0.1" placeholder="—"
+                value={distance} onChange={e => setDistance(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+            <div style={{ flex: 1 }}>
+              {fieldLabel("Speed (km/h)")}
+              <input type="number" min="0" step="0.1" placeholder="—"
+                value={speed} onChange={e => setSpeed(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+            </div>
+            <div style={{ flex: 1 }}>
+              {fieldLabel("Incline / Res.")}
+              <input type="number" min="0" step="0.5" placeholder="—"
+                value={incline} onChange={e => setIncline(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+            </div>
+          </div>
+          <div style={{ marginBottom: "10px" }}>
+            <div style={{ flex: 1 }}>
+              {fieldLabel("Calories")}
+              <input type="number" min="0" placeholder="—"
+                value={calories} onChange={e => setCalories(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleAdd()} style={inputStyle} />
+            </div>
+          </div>
+        </>
+      )}
+
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
       <button onClick={handleAdd} style={{
         width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
         border: "none", borderRadius: "8px", fontSize: "0.95rem",
-        fontWeight: 600, cursor: "pointer",
-      }}>+ Add Set</button>
+        fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+      }}>+ Log</button>
     </div>
   );
 }
 
 // ── Exercise Card ──
-function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, exerciseHistory, restTimerEnabled, restTimerDuration }) {
+function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, exerciseHistory, restTimerEnabled, restTimerDuration, smartSuggestionsEnabled }) {
   const [showSetForm, setShowSetForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(exercise.name);
+
+  const mode = exercise.tracking_mode || "reps";
   const sets = exercise.sets || [];
   const history = exerciseHistory?.[exercise.name] || [];
   const lastSession = history[0];
@@ -878,7 +1026,8 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
   function handleAddSet(set) {
     onAddSet(exercise.id, set);
     setShowSetForm(false);
-    if (restTimerEnabled !== false) setShowRestTimer(true);
+    // Only show rest timer for reps/time, not cardio
+    if (restTimerEnabled !== false && mode !== "cardio") setShowRestTimer(true);
   }
 
   function saveRename() {
@@ -888,20 +1037,26 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
     setEditingName(false);
   }
 
+  // Last session hint text
+  function lastSessionHint() {
+    if (!lastSession || !lastSession.sets?.length) return null;
+    return lastSession.sets.map(s => formatSetDisplay(s, mode)).join("  ·  ");
+  }
+
   return (
     <>
       {showHistory && (
         <ExerciseHistoryModal
           name={exercise.name}
           history={history}
+          mode={mode}
           onClose={() => setShowHistory(false)}
         />
       )}
 
       <div style={{ background: "#f9f9f9", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
 
-          {/* Name — tappable for history when not active, editable when active */}
           {sessionActive && editingName ? (
             <input
               autoFocus
@@ -913,7 +1068,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
                 flex: 1, padding: "4px 8px", border: "1px solid #1a1a1a",
                 borderRadius: "6px", fontSize: "0.95rem", fontWeight: 600,
                 outline: "none", background: "#fff", color: "#1a1a1a",
-                boxSizing: "border-box",
+                boxSizing: "border-box", fontFamily: "inherit",
               }}
             />
           ) : (
@@ -948,36 +1103,42 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
           )}
         </div>
 
-        {lastSession && sessionActive && (
+        {/* Mode badge */}
+        {mode !== "reps" && (
+          <span style={{
+            fontSize: "0.65rem", fontWeight: 600, color: "#aaa",
+            textTransform: "uppercase", letterSpacing: "0.06em",
+            marginBottom: "8px", display: "block",
+          }}>
+            {mode === "time" ? "⏱ Time" : "🏃 Cardio"}
+          </span>
+        )}
+
+        {/* Last session hint */}
+        {lastSession && sessionActive && lastSessionHint() && (
           <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "10px", fontStyle: "italic" }}>
-            Last: {lastSession.sets.map(s => `${s.weight ? `${s.weight}kg` : "BW"} × ${s.reps}`).join("  ·  ")}
+            Last: {lastSessionHint()}
           </p>
         )}
 
         {sets.length > 0 && (
-          <div style={{
-            display: "grid", gridTemplateColumns: "32px 1fr 1fr 36px",
-            gap: "8px", padding: "2px 0 4px",
-          }}>
-            {["Set", "Weight", "Reps", ""].map((h, i) => (
-              <span key={i} style={{ fontSize: "0.7rem", color: "#bbb", fontWeight: 600, textTransform: "uppercase" }}>{h}</span>
+          <div style={{ paddingTop: "4px" }}>
+            {sets.map((set, idx) => (
+              <SetRow
+                key={set.id} setNumber={idx + 1} set={set}
+                mode={mode}
+                sessionActive={sessionActive}
+                onDelete={() => onDeleteSet(exercise.id, set.id)}
+              />
             ))}
           </div>
         )}
 
-        {sets.length === 0 ? (
-          <p style={{ fontSize: "0.85rem", color: "#ccc", marginBottom: "8px" }}>No sets yet.</p>
-        ) : (
-          sets.map((set, idx) => (
-            <SetRow
-              key={set.id} setNumber={idx + 1} set={set}
-              sessionActive={sessionActive}
-              onDelete={() => onDeleteSet(exercise.id, set.id)}
-            />
-          ))
+        {sets.length === 0 && (
+          <p style={{ fontSize: "0.85rem", color: "#ccc", marginBottom: "8px" }}>No entries yet.</p>
         )}
 
-        {/* Rest timer — shown after adding a set */}
+        {/* Rest timer */}
         {sessionActive && showRestTimer && (
           <RestTimer
             onDismiss={() => setShowRestTimer(false)}
@@ -987,13 +1148,13 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 
         {sessionActive && (
           showSetForm ? (
-            <AddSetForm onAdd={handleAddSet} />
+            <AddSetForm onAdd={handleAddSet} mode={mode} />
           ) : (
             <button onClick={() => { setShowSetForm(true); setShowRestTimer(false); }} style={{
               marginTop: "10px", background: "none", border: "1px dashed #ddd",
               borderRadius: "8px", width: "100%", padding: "10px",
               color: "#bbb", fontSize: "0.88rem", cursor: "pointer",
-            }}>+ Add set</button>
+            }}>+ Add {mode === "cardio" ? "session" : "set"}</button>
           )
         )}
       </div>
@@ -1001,34 +1162,147 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
   );
 }
 
+// ── Smart suggestion keywords ──
+const TIME_KEYWORDS = ["plank", "dead hang", "deadhang", "wall sit", "wallsit", "hollow hold", "l-sit", "lsit", "handstand", "hang", "static"];
+const CARDIO_KEYWORDS = ["treadmill", "bike", "bicycle", "stairmaster", "rowing", "rower", "run", "walk", "elliptical", "swim", "cycling", "cardio", "hike", "jog"];
+
+function getSuggestion(name) {
+  const lower = name.toLowerCase();
+  if (CARDIO_KEYWORDS.some(k => lower.includes(k))) return "cardio";
+  if (TIME_KEYWORDS.some(k => lower.includes(k))) return "time";
+  return null;
+}
+
+// ── Tracking mode selector ──
+function TrackingModeSelector({ mode, onChange }) {
+  const modes = [
+    { value: "reps", label: "Reps" },
+    { value: "time", label: "Time" },
+    { value: "cardio", label: "Cardio" },
+  ];
+  return (
+    <div style={{
+      display: "flex",
+      background: "#e8e8e6",
+      borderRadius: "8px",
+      padding: "3px",
+      gap: "2px",
+      marginBottom: "12px",
+    }}>
+      {modes.map(m => (
+        <button
+          key={m.value}
+          onClick={() => onChange(m.value)}
+          style={{
+            flex: 1,
+            padding: "6px 0",
+            borderRadius: "6px",
+            border: "none",
+            background: mode === m.value ? "#fff" : "none",
+            color: mode === m.value ? "#1a1a1a" : "#888",
+            fontSize: "0.82rem",
+            fontWeight: mode === m.value ? 600 : 400,
+            cursor: "pointer",
+            boxShadow: mode === m.value ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            transition: "all 0.15s",
+            fontFamily: "inherit",
+          }}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── Add Exercise Form ──
-function AddExerciseForm({ onAdd }) {
+function AddExerciseForm({ onAdd, smartSuggestionsEnabled }) {
   const [name, setName] = useState("");
+  const [trackingMode, setTrackingMode] = useState("reps");
+  const [suggestion, setSuggestion] = useState(null); // "time" | "cardio" | null
   const [error, setError] = useState("");
+
+  function handleNameChange(val) {
+    setName(val);
+    setError("");
+    if (smartSuggestionsEnabled !== false && val.length > 2) {
+      const s = getSuggestion(val);
+      setSuggestion(s !== trackingMode ? s : null);
+    } else {
+      setSuggestion(null);
+    }
+  }
+
+  function applySuggestion() {
+    setTrackingMode(suggestion);
+    setSuggestion(null);
+  }
 
   function handleAdd() {
     if (!name.trim()) { setError("Exercise name is required."); return; }
-    onAdd({ id: `exercise-${Date.now()}`, name: name.trim(), sets: [] });
-    setName(""); setError("");
+    onAdd({
+      id: `exercise-${Date.now()}`,
+      name: name.trim(),
+      tracking_mode: trackingMode,
+      sets: [],
+    });
+    setName(""); setTrackingMode("reps"); setSuggestion(null); setError("");
   }
 
   return (
     <div style={{ marginTop: "12px" }}>
       <input
-        placeholder="Exercise name e.g. Bench Press" value={name}
-        onChange={e => { setName(e.target.value); setError(""); }}
+        placeholder="Exercise name e.g. Bench Press"
+        value={name}
+        onChange={e => handleNameChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         style={{
           width: "100%", padding: "12px 14px", border: "1px solid #ddd",
           borderRadius: "8px", fontSize: "1rem", background: "#fff",
-          color: "#1a1a1a", outline: "none", boxSizing: "border-box", marginBottom: "8px",
+          color: "#1a1a1a", outline: "none", boxSizing: "border-box",
+          marginBottom: "10px", fontFamily: "inherit",
         }}
         autoFocus
       />
+
+      {/* Smart suggestion chip */}
+      {suggestion && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          marginBottom: "10px",
+          padding: "8px 12px",
+          background: "#f0f0f0",
+          borderRadius: "8px",
+        }}>
+          <span style={{ fontSize: "0.82rem", color: "#555" }}>
+            Track as {suggestion}?
+          </span>
+          <button
+            onClick={applySuggestion}
+            style={{
+              background: "#1a1a1a", color: "#fff", border: "none",
+              borderRadius: "6px", padding: "3px 10px",
+              fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit",
+            }}
+          >Yes</button>
+          <button
+            onClick={() => setSuggestion(null)}
+            style={{
+              background: "none", color: "#aaa", border: "none",
+              fontSize: "0.78rem", cursor: "pointer", padding: "3px 4px",
+              fontFamily: "inherit",
+            }}
+          >Dismiss</button>
+        </div>
+      )}
+
+      <TrackingModeSelector mode={trackingMode} onChange={setTrackingMode} />
+
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
       <button onClick={handleAdd} style={{
         width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
-        border: "none", borderRadius: "8px", fontSize: "0.95rem", cursor: "pointer",
+        border: "none", borderRadius: "8px", fontSize: "0.95rem",
+        cursor: "pointer", fontFamily: "inherit",
       }}>Add Exercise</button>
     </div>
   );
@@ -1059,7 +1333,7 @@ function WorkoutNotes({ sessionId, notes, onUpdateNotes }) {
 }
 
 // ── Session Card ──
-function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory, restTimerEnabled, restTimerDuration }) {
+function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory, restTimerEnabled, restTimerDuration, smartSuggestionsEnabled }) {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -1129,13 +1403,17 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
             onRenameExercise={(exerciseId, newName) => onRenameExercise(session.id, exerciseId, newName)}
             restTimerEnabled={restTimerEnabled}
             restTimerDuration={restTimerDuration}
+            smartSuggestionsEnabled={smartSuggestionsEnabled}
           />
         ))
       )}
 
       {isEditable && (
         showExerciseForm ? (
-          <AddExerciseForm onAdd={exercise => { onAddExercise(session.id, exercise); setShowExerciseForm(false); }} />
+          <AddExerciseForm
+            onAdd={exercise => { onAddExercise(session.id, exercise); setShowExerciseForm(false); }}
+            smartSuggestionsEnabled={smartSuggestionsEnabled}
+          />
         ) : (
           <button onClick={() => setShowExerciseForm(true)} style={{
             background: "none", border: "1px dashed #ccc", borderRadius: "8px",
@@ -1170,7 +1448,7 @@ export default function WorkoutScreen({
   onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes,
   exerciseHistory, summarySession, onDismissSummary,
   anchorTemplates, userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
-  restTimerEnabled, restTimerDuration,
+  restTimerEnabled, restTimerDuration, smartSuggestionsEnabled,
 }) {
   const [workoutView, setWorkoutView] = useState("main");
   const [showCalendar, setShowCalendar] = useState(false);
@@ -1286,6 +1564,7 @@ export default function WorkoutScreen({
               exerciseHistory={exerciseHistory}
               restTimerEnabled={restTimerEnabled}
               restTimerDuration={restTimerDuration}
+              smartSuggestionsEnabled={smartSuggestionsEnabled}
             />
           ))}
 

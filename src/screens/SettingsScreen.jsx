@@ -214,6 +214,16 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
               </div>
             </SettingRow>
           )}
+
+          <SettingRow
+            label="Smart Tracking Suggestions"
+            subtitle="Suggest time or cardio mode based on exercise name"
+          >
+            <Toggle
+              value={settings.smartSuggestionsEnabled}
+              onChange={val => onUpdateSetting("smartSuggestionsEnabled", val)}
+            />
+          </SettingRow>
         </SettingsCard>
 
         {/* Version */}

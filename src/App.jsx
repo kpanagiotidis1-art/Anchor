@@ -758,6 +758,7 @@ export default function App() {
           onDeleteTemplate={deleteTemplateHandler}
           restTimerEnabled={settings.restTimerEnabled}
           restTimerDuration={settings.restTimerDuration}
+          smartSuggestionsEnabled={settings.smartSuggestionsEnabled}
         />
       )}
 

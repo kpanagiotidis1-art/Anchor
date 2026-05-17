@@ -6,6 +6,7 @@ const defaultSettings = {
   darkMode: false,
   restTimerEnabled: true,
   restTimerDuration: 90, // seconds
+  smartSuggestionsEnabled: true,
 };
 
 function loadSettings() {
