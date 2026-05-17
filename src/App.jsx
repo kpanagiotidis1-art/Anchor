@@ -762,13 +762,13 @@ export default function App() {
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
-        height: "64px",
         background: "var(--tab-bg)",
         borderTop: "1px solid var(--tab-border)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         gap: "48px",
+        height: "calc(64px + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}>
         {[
