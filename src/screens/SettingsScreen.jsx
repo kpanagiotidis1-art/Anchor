@@ -41,7 +41,7 @@ function Toggle({ value, onChange }) {
         height: "28px",
         borderRadius: "14px",
         border: "none",
-        background: value ? "#1a1a1a" : "var(--border)",
+        background: value ? "var(--text-primary)" : "var(--border)",
         cursor: "pointer",
         position: "relative",
         transition: "background 0.2s ease",
@@ -56,7 +56,7 @@ function Toggle({ value, onChange }) {
         width: "22px",
         height: "22px",
         borderRadius: "50%",
-        background: "#ffffff",
+        background: "var(--bg-card)",
         transition: "left 0.2s ease",
         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
       }} />

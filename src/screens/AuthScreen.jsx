@@ -43,12 +43,12 @@ export default function AuthScreen() {
   const inputStyle = {
     width: "100%",
     padding: "14px 16px",
-    border: "1px solid #e0e0e0",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     fontSize: "16px",
     outline: "none",
-    background: "#ffffff",
-    color: "#1a1a1a",
+    background: "var(--bg-card)",
+    color: "var(--text-primary)",
     boxSizing: "border-box",
     fontFamily: "inherit",
   };
@@ -57,7 +57,7 @@ export default function AuthScreen() {
     <div style={{
       width: "100%",
       minHeight: "100vh",
-      background: "#f5f5f3",
+      background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -76,7 +76,7 @@ export default function AuthScreen() {
         <h1 style={{
           fontSize: "2.2rem",
           fontWeight: 700,
-          color: "#1a1a1a",
+          color: "var(--text-primary)",
           textAlign: "center",
           marginBottom: "8px",
         }}>
@@ -84,7 +84,7 @@ export default function AuthScreen() {
         </h1>
         <p style={{
           fontSize: "0.88rem",
-          color: "#aaa",
+          color: "var(--text-muted)",
           textAlign: "center",
           marginBottom: "48px",
         }}>
@@ -141,8 +141,8 @@ export default function AuthScreen() {
           style={{
             width: "100%",
             padding: "14px",
-            background: loading ? "#ccc" : "#1a1a1a",
-            color: "#fff",
+            background: loading ? "var(--border)" : "var(--text-primary)",
+            color: "var(--bg)",
             border: "none",
             borderRadius: "10px",
             fontSize: "0.95rem",
@@ -162,7 +162,7 @@ export default function AuthScreen() {
             background: "none",
             border: "none",
             fontSize: "0.85rem",
-            color: "#aaa",
+            color: "var(--text-muted)",
             cursor: "pointer",
             textAlign: "center",
           }}

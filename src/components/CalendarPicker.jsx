@@ -79,7 +79,7 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
       {/* Sheet */}
       <div style={{
         position: "relative",
-        background: "#fff",
+        background: "var(--bg-card)",
         borderRadius: "20px 20px 0 0",
         padding: "20px 20px 48px",
         zIndex: 301,
@@ -90,7 +90,7 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
       }}>
         {/* Handle */}
         <div style={{
-          width: "36px", height: "4px", background: "#e0e0e0",
+          width: "36px", height: "4px", background: "var(--border)",
           borderRadius: "99px", margin: "0 auto 20px",
         }} />
 
@@ -104,22 +104,22 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
           <button
             onClick={prevMonth}
             style={{
-              background: "none", border: "1px solid #e0e0e0", borderRadius: "8px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              background: "none", border: "1px solid var(--border)", borderRadius: "8px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", flexShrink: 0,
             }}
           >‹</button>
 
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: "#1a1a1a" }}>
+          <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>
             {MONTH_NAMES[displayMonth]} {displayYear}
           </p>
 
           <button
             onClick={nextMonth}
             style={{
-              background: "none", border: "1px solid #e0e0e0", borderRadius: "8px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              background: "none", border: "1px solid var(--border)", borderRadius: "8px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", flexShrink: 0,
             }}
@@ -137,7 +137,7 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
               textAlign: "center",
               fontSize: "0.7rem",
               fontWeight: 600,
-              color: "#ccc",
+              color: "var(--text-faint)",
               letterSpacing: "0.04em",
               paddingBottom: "6px",
             }}>{d}</div>
@@ -166,13 +166,13 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
                   borderRadius: "50%",
                   border: "none",
                   background: isSelected
-                    ? "#1a1a1a"
+                    ? "var(--text-primary)"
                     : "none",
                   color: isSelected
-                    ? "#fff"
+                    ? "var(--bg)"
                     : isFuture
-                    ? "#ccc"
-                    : "#1a1a1a",
+                    ? "var(--text-faint)"
+                    : "var(--text-primary)",
                   fontSize: "0.9rem",
                   fontWeight: isSelected || isToday ? 700 : 400,
                   cursor: "pointer",
@@ -195,7 +195,7 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
                     width: "4px",
                     height: "4px",
                     borderRadius: "50%",
-                    background: "#1a1a1a",
+                    background: "var(--text-primary)",
                   }} />
                 )}
               </button>
@@ -212,10 +212,10 @@ export default function CalendarPicker({ viewedDate, onSelectDate, onClose }) {
               marginTop: "20px",
               padding: "12px",
               background: "none",
-              border: "1px solid #e0e0e0",
+              border: "1px solid var(--border)",
               borderRadius: "10px",
               fontSize: "0.9rem",
-              color: "#555",
+              color: "var(--text-secondary)",
               cursor: "pointer",
             }}
           >

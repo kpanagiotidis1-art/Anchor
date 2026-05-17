@@ -139,11 +139,11 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
   const textareaStyle = {
     width: "100%",
     padding: "12px 14px",
-    border: "1px solid #e0e0e0",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     fontSize: "0.92rem",
-    color: "#1a1a1a",
-    background: "#fff",
+    color: "var(--text-primary)",
+    background: "var(--bg-card)",
     outline: "none",
     resize: "none",
     boxSizing: "border-box",
@@ -154,7 +154,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
   const labelStyle = {
     fontSize: "0.72rem",
     fontWeight: 600,
-    color: "#aaa",
+    color: "var(--text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
     marginBottom: "8px",
@@ -165,7 +165,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
     <div style={{
       width: "100%",
       minHeight: "100vh",
-      background: "#f5f5f3",
+      background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -184,14 +184,14 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           onClick={onBack}
           style={{
             background: "none", border: "none", fontSize: "0.9rem",
-            color: "#555", cursor: "pointer", padding: 0,
+            color: "var(--text-secondary)", cursor: "pointer", padding: 0,
             textAlign: "left", marginBottom: "28px",
           }}
         >← Back</button>
 
         {/* Title */}
         <h1 style={{
-          fontSize: "1.7rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "20px",
+          fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px",
         }}>
           Weekly Review
         </h1>
@@ -206,18 +206,18 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           <button
             onClick={prevWeek}
             style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", padding: 0, flexShrink: 0,
             }}
           >‹</button>
 
           <div style={{ textAlign: "center" }}>
-            <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "#1a1a1a" }}>
+            <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>
               {formatWeekRange(weekDates)}
             </p>
-            <p style={{ fontSize: "0.72rem", color: isCurrentWeek ? "#aaa" : "transparent", marginTop: "2px" }}>
+            <p style={{ fontSize: "0.72rem", color: isCurrentWeek ? "var(--text-muted)" : "transparent", marginTop: "2px" }}>
               This week
             </p>
           </div>
@@ -225,9 +225,9 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           <button
             onClick={nextWeek}
             style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
               width: "36px", height: "36px", cursor: "pointer",
-              color: isCurrentWeek ? "#ddd" : "#555",
+              color: isCurrentWeek ? "var(--text-faint)" : "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", padding: 0, flexShrink: 0,
             }}
@@ -237,7 +237,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
 
         {/* Weekly dots */}
         <div style={{
-          background: "#fff", borderRadius: "12px", padding: "18px 20px",
+          background: "var(--bg-card)", borderRadius: "12px", padding: "18px 20px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "16px",
         }}>
           <span style={labelStyle}>Consistency</span>
@@ -249,11 +249,11 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
                 <div style={{
                   width: "32px", height: "32px", borderRadius: "50%",
-                  background: dot.active ? "#1a1a1a" : "#e8e8e6",
+                  background: dot.active ? "var(--text-primary)" : "var(--border)",
                 }} />
                 <span style={{
                   fontSize: "0.68rem",
-                  color: dot.active ? "#1a1a1a" : "#ccc",
+                  color: dot.active ? "var(--text-primary)" : "var(--text-faint)",
                   fontWeight: dot.active ? 600 : 400,
                 }}>{DAY_LABELS[i]}</span>
               </div>
@@ -272,13 +272,13 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
             { label: "Tasks Done", value: weekStats.taskPct !== null ? `${weekStats.taskPct}%` : "—" },
           ].map(stat => (
             <div key={stat.label} style={{
-              background: "#fff", borderRadius: "12px", padding: "14px 12px",
+              background: "var(--bg-card)", borderRadius: "12px", padding: "14px 12px",
               boxShadow: "0 1px 4px rgba(0,0,0,0.07)", textAlign: "center",
             }}>
-              <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "#1a1a1a", lineHeight: 1 }}>
+              <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
                 {stat.value}
               </p>
-              <p style={{ fontSize: "0.68rem", color: "#aaa", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {stat.label}
               </p>
             </div>
@@ -314,8 +314,8 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           onClick={handleSave}
           style={{
             width: "100%", padding: "14px",
-            background: saved ? "#4caf50" : "#1a1a1a",
-            color: "#fff", border: "none", borderRadius: "10px",
+            background: saved ? "#4caf50" : "var(--text-primary)",
+            color: "var(--bg)", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
             transition: "background 0.3s ease",
           }}

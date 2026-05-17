@@ -3,7 +3,7 @@ import TaskItem from "./TaskItem";
 export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate }) {
   return (
     <div style={{
-      background: "#ffffff",
+      background: "var(--bg-card)",
       borderRadius: "12px",
       padding: "16px 20px",
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
@@ -17,20 +17,20 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
         justifyContent: "space-between",
         marginBottom: "14px",
       }}>
-        <span style={{ fontSize: "1rem", fontWeight: 600, color: "#333" }}>
+        <span style={{ fontSize: "1rem", fontWeight: 600, color: "var(--text-primary)" }}>
           {title}
         </span>
         <button
           onClick={onTitleTap}
           style={{
             background: "none",
-            border: "1px solid #ddd",
+            border: "1px solid var(--border)",
             borderRadius: "8px",
             width: "32px",
             height: "32px",
             fontSize: "1.1rem",
             cursor: "pointer",
-            color: "#888",
+            color: "var(--text-muted)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -44,7 +44,7 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {tasks.length === 0 ? (
-          <p style={{ fontSize: "0.85rem", color: "#ccc" }}>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-faint)" }}>
             No tasks yet — tap + to add one.
           </p>
         ) : (

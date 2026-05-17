@@ -53,12 +53,12 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   const inputStyle = {
     width: "100%",
     padding: "12px 14px",
-    border: "1px solid #e0e0e0",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
     fontSize: "0.95rem",
     outline: "none",
-    background: "#fff",
-    color: "#1a1a1a",
+    background: "var(--bg-card)",
+    color: "var(--text-primary)",
     boxSizing: "border-box",
     fontFamily: "inherit",
   };
@@ -85,7 +85,7 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
       {/* Sheet */}
       <div style={{
         position: "relative",
-        background: "#f5f5f3",
+        background: "var(--bg)",
         borderRadius: "20px 20px 0 0",
         padding: "24px 20px 48px",
         zIndex: 301,
@@ -105,12 +105,12 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
           alignItems: "center",
           marginBottom: "20px",
         }}>
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: "#1a1a1a" }}>
+          <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>
             Edit Task
           </p>
           <button onClick={onClose} style={{
             background: "none", border: "none",
-            fontSize: "1.4rem", color: "#aaa",
+            fontSize: "1.4rem", color: "var(--text-muted)",
             cursor: "pointer", padding: "4px", lineHeight: 1,
           }}>×</button>
         </div>
@@ -126,7 +126,7 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
         />
 
         {/* Frequency */}
-        <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "8px" }}>
+        <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "8px" }}>
           Frequency
         </p>
         <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
@@ -138,9 +138,9 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
                 padding: "6px 14px",
                 borderRadius: "20px",
                 border: "1px solid",
-                borderColor: frequency === opt ? "#1a1a1a" : "#ccc",
-                background: frequency === opt ? "#1a1a1a" : "none",
-                color: frequency === opt ? "#fff" : "#555",
+                borderColor: frequency === opt ? "var(--text-primary)" : "var(--border)",
+                background: frequency === opt ? "var(--text-primary)" : "none",
+                color: frequency === opt ? "var(--bg)" : "var(--text-secondary)",
                 fontSize: "0.82rem",
                 cursor: "pointer",
                 fontFamily: "inherit",
@@ -154,7 +154,7 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
         {/* Weekly day picker */}
         {frequency === "weekly" && (
           <div style={{ marginBottom: "14px" }}>
-            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "8px" }}>
+            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "8px" }}>
               Repeat on
             </p>
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -166,9 +166,9 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
                     padding: "5px 10px",
                     borderRadius: "20px",
                     border: "1px solid",
-                    borderColor: selectedDays.includes(dow) ? "#1a1a1a" : "#ccc",
-                    background: selectedDays.includes(dow) ? "#1a1a1a" : "none",
-                    color: selectedDays.includes(dow) ? "#fff" : "#555",
+                    borderColor: selectedDays.includes(dow) ? "var(--text-primary)" : "var(--border)",
+                    background: selectedDays.includes(dow) ? "var(--text-primary)" : "none",
+                    color: selectedDays.includes(dow) ? "var(--bg)" : "var(--text-secondary)",
                     fontSize: "0.78rem",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -183,9 +183,9 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
 
         {/* One-time label */}
         {frequency === "one-time" && (
-          <p style={{ fontSize: "0.82rem", color: "#888", marginBottom: "14px" }}>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "14px" }}>
             Appears on{" "}
-            <span style={{ fontWeight: 600, color: "#1a1a1a" }}>
+            <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
               {formatDate(task.date || viewedDate)}
             </span>
           </p>
@@ -200,7 +200,7 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
           onClick={handleSave}
           style={{
             width: "100%", padding: "14px",
-            background: "#1a1a1a", color: "#fff",
+            background: "var(--text-primary)", color: "var(--bg)",
             border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600,
             cursor: "pointer", marginBottom: "10px",
@@ -252,7 +252,7 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
       {/* Sheet */}
       <div style={{
         position: "relative",
-        background: "#f5f5f3",
+        background: "var(--bg)",
         borderRadius: "20px 20px 0 0",
         padding: "24px 24px 48px",
         zIndex: 201,
@@ -267,7 +267,7 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
 
         {/* Title */}
         <p style={{
-          fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+          fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)",
           textTransform: "uppercase", letterSpacing: "0.08em",
           marginBottom: "20px",
         }}>This Week</p>
@@ -285,11 +285,11 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
                 width: "32px",
                 height: "32px",
                 borderRadius: "50%",
-                background: dot.active ? "#1a1a1a" : "#e8e8e6",
+                background: dot.active ? "var(--text-primary)" : "var(--border)",
               }} />
               <span style={{
                 fontSize: "0.68rem",
-                color: dot.active ? "#1a1a1a" : "#ccc",
+                color: dot.active ? "var(--text-primary)" : "var(--text-faint)",
                 fontWeight: dot.active ? 600 : 400,
               }}>
                 {DAY_LABELS[i]}
@@ -319,16 +319,16 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
             <div
               key={i}
               style={{
-                background: "#fff",
+                background: "var(--bg-card)",
                 borderRadius: "12px",
                 padding: "16px",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
               }}
             >
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a", lineHeight: 1 }}>
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
                 {stat.value}
               </p>
-              <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {stat.label}
               </p>
             </div>
@@ -343,7 +343,7 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
             padding: "14px 16px",
             marginBottom: "20px",
           }}>
-            <p style={{ fontSize: "0.88rem", color: "#444", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
               {weekStats.taskPct >= 80
                 ? "Strong week. You're showing up consistently — keep the momentum."
                 : weekStats.taskPct >= 50
@@ -359,8 +359,8 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
           style={{
             width: "100%",
             padding: "14px",
-            background: "#1a1a1a",
-            color: "#fff",
+            background: "var(--text-primary)",
+            color: "var(--bg)",
             border: "none",
             borderRadius: "10px",
             fontSize: "0.95rem",
@@ -393,7 +393,7 @@ export default function HomeScreen({
     <div style={{
       width: "100%",
       minHeight: "100vh",
-      background: "#f5f5f3",
+      background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -454,20 +454,20 @@ export default function HomeScreen({
           <button
             onClick={() => onNavigateDay(-1)}
             style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", padding: 0, flexShrink: 0,
             }}
           >‹</button>
 
           <div style={{ textAlign: "center", width: "150px" }}>
-            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a", whiteSpace: "nowrap" }}>
+            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
               {formatDate(viewedDate)}
             </p>
             <p style={{
               fontSize: "0.72rem",
-              color: isToday ? "#aaa" : "transparent",
+              color: isToday ? "var(--text-muted)" : "transparent",
               marginTop: "2px",
             }}>Today</p>
           </div>
@@ -475,8 +475,8 @@ export default function HomeScreen({
           <button
             onClick={() => onNavigateDay(1)}
             style={{
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#555",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
               fontSize: "1.1rem", display: "flex", alignItems: "center",
               justifyContent: "center", padding: 0, flexShrink: 0,
             }}
@@ -486,16 +486,16 @@ export default function HomeScreen({
             onClick={() => setShowCalendar(true)}
             style={{
               position: "absolute", right: 0,
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#888",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-muted)",
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: 0,
             }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="3" width="14" height="12" rx="2" stroke="#888" strokeWidth="1.5"/>
-              <path d="M1 7h14" stroke="#888" strokeWidth="1.5"/>
-              <path d="M5 1v4M11 1v4" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="1" y="3" width="14" height="12" rx="2" stroke="var(--text-muted)" strokeWidth="1.5"/>
+              <path d="M1 7h14" stroke="var(--text-muted)" strokeWidth="1.5"/>
+              <path d="M5 1v4M11 1v4" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
@@ -525,27 +525,27 @@ export default function HomeScreen({
           width: "100%",
           marginTop: "32px",
           paddingTop: "20px",
-          borderTop: "1px solid #e0e0e0",
+          borderTop: "1px solid var(--border)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: "12px",
         }}>
-          <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#444" }}>
+          <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-secondary)" }}>
             {completedCount} / {totalCount} complete
           </p>
 
           <div style={{
             width: "100%",
             height: "6px",
-            background: "#e0e0e0",
+            background: "var(--border)",
             borderRadius: "999px",
             overflow: "hidden",
           }}>
             <div style={{
               height: "100%",
               width: `${percentage}%`,
-              background: percentage === 100 ? "#4caf50" : "#1a1a1a",
+              background: percentage === 100 ? "#4caf50" : "var(--text-primary)",
               borderRadius: "999px",
               transition: "width 0.3s ease",
             }} />

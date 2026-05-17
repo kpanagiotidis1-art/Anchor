@@ -70,7 +70,7 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
 
   return (
     <div style={{
-      background: "#f9f9f9",
+      background: "var(--bg-exercise)",
       borderRadius: "12px",
       padding: "14px 16px",
       marginTop: "10px",
@@ -85,14 +85,14 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
           <circle
             cx="34" cy="34" r={radius}
             fill="none"
-            stroke="#e0e0e0"
+            stroke="var(--border)"
             strokeWidth="4"
           />
           {/* Progress */}
           <circle
             cx="34" cy="34" r={radius}
             fill="none"
-            stroke={isFinished ? "#4caf50" : "#1a1a1a"}
+            stroke={isFinished ? "#4caf50" : "var(--text-primary)"}
             strokeWidth="4"
             strokeDasharray={`${strokeDash} ${circumference}`}
             strokeLinecap="round"
@@ -109,11 +109,11 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
           {isFinished ? (
             <span style={{ fontSize: "1.2rem" }}>✓</span>
           ) : isActive ? (
-            <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1a1a1a" }}>
+            <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
               {timeDisplay}
             </span>
           ) : (
-            <span style={{ fontSize: "0.72rem", color: "#aaa", textAlign: "center", lineHeight: 1.2 }}>
+            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", lineHeight: 1.2 }}>
               Rest
             </span>
           )}
@@ -132,23 +132,23 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
                 onClick={() => start(selected)}
                 style={{
                   flex: 1, padding: "7px", borderRadius: "7px",
-                  border: "1px solid #ccc", background: "none",
-                  fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                  border: "1px solid var(--border)", background: "none",
+                  fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer",
                 }}
               >Again</button>
               <button
                 onClick={onDismiss}
                 style={{
                   flex: 1, padding: "7px", borderRadius: "7px",
-                  border: "none", background: "#1a1a1a",
-                  fontSize: "0.8rem", color: "#fff", cursor: "pointer",
+                  border: "none", background: "var(--text-primary)",
+                  fontSize: "0.8rem", color: "var(--bg)", cursor: "pointer",
                 }}
               >Done</button>
             </div>
           </div>
         ) : isActive ? (
           <div>
-            <p style={{ fontSize: "0.78rem", color: "#aaa", marginBottom: "8px" }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "8px" }}>
               Resting · {selected}s
             </p>
             <div style={{ display: "flex", gap: "6px" }}>
@@ -156,23 +156,23 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
                 onClick={reset}
                 style={{
                   flex: 1, padding: "7px", borderRadius: "7px",
-                  border: "1px solid #ccc", background: "none",
-                  fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                  border: "1px solid var(--border)", background: "none",
+                  fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer",
                 }}
               >Cancel</button>
               <button
                 onClick={onDismiss}
                 style={{
                   flex: 1, padding: "7px", borderRadius: "7px",
-                  border: "none", background: "#1a1a1a",
-                  fontSize: "0.8rem", color: "#fff", cursor: "pointer",
+                  border: "none", background: "var(--text-primary)",
+                  fontSize: "0.8rem", color: "var(--bg)", cursor: "pointer",
                 }}
               >Skip</button>
             </div>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: "0.78rem", color: "#aaa", marginBottom: "8px" }}>
+            <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "8px" }}>
               Start rest timer
             </p>
             <div style={{ display: "flex", gap: "6px" }}>
@@ -182,8 +182,8 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
                   onClick={() => start(d)}
                   style={{
                     flex: 1, padding: "7px", borderRadius: "7px",
-                    border: "1px solid #ccc", background: "none",
-                    fontSize: "0.8rem", color: "#555", cursor: "pointer",
+                    border: "1px solid var(--border)", background: "none",
+                    fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer",
                   }}
                 >{d}s</button>
               ))}
@@ -197,7 +197,7 @@ function RestTimer({ onDismiss, defaultDuration = 90 }) {
         <button
           onClick={onDismiss}
           style={{
-            background: "none", border: "none", color: "#ccc",
+            background: "none", border: "none", color: "var(--text-faint)",
             fontSize: "1.2rem", cursor: "pointer", padding: "4px",
             alignSelf: "flex-start", flexShrink: 0,
           }}
@@ -271,7 +271,7 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
       />
       <div style={{
         position: "relative",
-        background: "#f5f5f3",
+        background: "var(--bg)",
         borderRadius: "20px 20px 0 0",
         padding: "24px 20px 48px",
         maxHeight: "82vh",
@@ -286,35 +286,35 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
           display: "flex", justifyContent: "space-between",
           alignItems: "center", marginBottom: "20px",
         }}>
-          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "#1a1a1a" }}>
+          <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-primary)" }}>
             {name}
           </h2>
           <button
             onClick={onClose}
             style={{
               background: "none", border: "none",
-              fontSize: "1.4rem", color: "#aaa",
+              fontSize: "1.4rem", color: "var(--text-muted)",
               cursor: "pointer", padding: "4px", lineHeight: 1,
             }}
           >×</button>
         </div>
 
         {sessions.length === 0 ? (
-          <p style={{ fontSize: "0.9rem", color: "#bbb", textAlign: "center", padding: "20px 0" }}>
+          <p style={{ fontSize: "0.9rem", color: "var(--text-faint)", textAlign: "center", padding: "20px 0" }}>
             No history yet. Complete a workout to see data here.
           </p>
         ) : (
           <>
             {pr && prDisplay() && (
               <div style={{
-                background: "#1a1a1a", borderRadius: "12px", padding: "16px 20px",
+                background: "var(--text-primary)", borderRadius: "12px", padding: "16px 20px",
                 marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <div>
-                  <p style={{ fontSize: "0.72rem", color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
                     Personal Record
                   </p>
-                  <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "#fff" }}>
+                  <p style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--bg)" }}>
                     {prDisplay()}
                   </p>
                 </div>
@@ -324,17 +324,17 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
 
             {lastSession && (
               <div style={{
-                background: "#fff", borderRadius: "12px", padding: "16px 20px",
+                background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
                 marginBottom: "16px", boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
               }}>
                 <p style={{
-                  fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+                  fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)",
                   textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
                 }}>
                   Last Session — {formatDate(lastSession.date)}
                 </p>
                 {(lastSession.sets || []).length === 0 ? (
-                  <p style={{ fontSize: "0.85rem", color: "#ccc" }}>No entries logged.</p>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-faint)" }}>No entries logged.</p>
                 ) : (
                   lastSession.sets.map((set, idx) => (
                     <div key={idx} style={{
@@ -342,8 +342,8 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
                       borderBottom: idx < lastSession.sets.length - 1 ? "1px solid #f5f5f5" : "none",
                       alignItems: "center",
                     }}>
-                      <span style={{ fontSize: "0.78rem", color: "#bbb", width: "24px", textAlign: "center" }}>{idx + 1}</span>
-                      <span style={{ fontSize: "0.9rem", color: "#333" }}>{formatSetDisplay(set, mode)}</span>
+                      <span style={{ fontSize: "0.78rem", color: "var(--text-faint)", width: "24px", textAlign: "center" }}>{idx + 1}</span>
+                      <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>{formatSetDisplay(set, mode)}</span>
                     </div>
                   ))
                 )}
@@ -352,26 +352,26 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
 
             {sessions.length > 1 && (
               <div style={{
-                background: "#fff", borderRadius: "12px", padding: "16px 20px",
+                background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
               }}>
                 <p style={{
-                  fontSize: "0.72rem", fontWeight: 600, color: "#aaa",
+                  fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)",
                   textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px",
                 }}>History</p>
                 {sessions.slice(1).map((session, sIdx) => (
                   <div key={sIdx} style={{ marginBottom: sIdx < sessions.length - 2 ? "16px" : 0 }}>
-                    <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#888", marginBottom: "6px" }}>
+                    <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px" }}>
                       {formatDate(session.date)}
                     </p>
                     {(session.sets || []).map((set, idx) => (
                       <div key={idx} style={{ display: "flex", gap: "12px", padding: "4px 0" }}>
-                        <span style={{ fontSize: "0.78rem", color: "#bbb", width: "24px", textAlign: "center" }}>{idx + 1}</span>
-                        <span style={{ fontSize: "0.85rem", color: "#555" }}>{formatSetDisplay(set, mode)}</span>
+                        <span style={{ fontSize: "0.78rem", color: "var(--text-faint)", width: "24px", textAlign: "center" }}>{idx + 1}</span>
+                        <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{formatSetDisplay(set, mode)}</span>
                       </div>
                     ))}
                     {sIdx < sessions.length - 2 && (
-                      <div style={{ borderBottom: "1px solid #f5f5f5", marginTop: "12px" }} />
+                      <div style={{ borderBottom: "1px solid var(--divider)", marginTop: "12px" }} />
                     )}
                   </div>
                 ))}
@@ -405,17 +405,17 @@ function WorkoutSummary({ session, onDismiss }) {
 
   return (
     <div style={{
-      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      width: "100%", minHeight: "100vh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "60px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <p style={{ fontSize: "2rem", marginBottom: "8px" }}>💪</p>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "4px" }}>
+          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
             Workout Complete
           </h1>
-          <p style={{ fontSize: "0.9rem", color: "#aaa" }}>
+          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
             {session.startTime}
             {session.endTime ? ` → ${session.endTime}` : ""}
             {session.duration ? ` · ${session.duration} min` : ""}
@@ -434,25 +434,25 @@ function WorkoutSummary({ session, onDismiss }) {
               : { label: "Volume", value: totalVolume > 0 ? `${totalVolume}kg` : "—" },
           ].map(stat => (
             <div key={stat.label} style={{
-              background: "#fff", borderRadius: "12px", padding: "16px 12px",
+              background: "var(--bg-card)", borderRadius: "12px", padding: "16px 12px",
               textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
             }}>
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "#1a1a1a" }}>{stat.value}</p>
-              <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "2px" }}>{stat.label}</p>
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)" }}>{stat.value}</p>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>{stat.label}</p>
             </div>
           ))}
         </div>
 
         <div style={{
-          background: "#fff", borderRadius: "12px", padding: "16px 20px",
+          background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
         }}>
           <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
+            fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
             textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px",
           }}>Exercises</p>
           {exercises.length === 0 ? (
-            <p style={{ fontSize: "0.88rem", color: "#ccc" }}>No exercises logged.</p>
+            <p style={{ fontSize: "0.88rem", color: "var(--text-faint)" }}>No exercises logged.</p>
           ) : (
             exercises.map(ex => {
               const mode = ex.tracking_mode || "reps";
@@ -463,10 +463,10 @@ function WorkoutSummary({ session, onDismiss }) {
               return (
                 <div key={ex.id} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 0", borderBottom: "1px solid #f5f5f5",
+                  padding: "8px 0", borderBottom: "1px solid var(--divider)",
                 }}>
-                  <span style={{ fontSize: "0.92rem", color: "#1a1a1a", fontWeight: 500 }}>{ex.name}</span>
-                  <span style={{ fontSize: "0.82rem", color: "#aaa" }}>{label}</span>
+                  <span style={{ fontSize: "0.92rem", color: "var(--text-primary)", fontWeight: 500 }}>{ex.name}</span>
+                  <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{label}</span>
                 </div>
               );
             })
@@ -475,22 +475,22 @@ function WorkoutSummary({ session, onDismiss }) {
 
         {session.notes ? (
           <div style={{
-            background: "#fff", borderRadius: "12px", padding: "16px 20px",
+            background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
             boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
           }}>
             <p style={{
-              fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
+              fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
               textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px",
             }}>Notes</p>
-            <p style={{ fontSize: "0.9rem", color: "#444", lineHeight: 1.5 }}>{session.notes}</p>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{session.notes}</p>
           </div>
         ) : null}
 
         <button
           onClick={onDismiss}
           style={{
-            width: "100%", padding: "14px", background: "#1a1a1a",
-            color: "#fff", border: "none", borderRadius: "10px",
+            width: "100%", padding: "14px", background: "var(--text-primary)",
+            color: "var(--bg)", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
           }}
         >Done</button>
@@ -503,21 +503,21 @@ function WorkoutSummary({ session, onDismiss }) {
 function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
   return (
     <div style={{
-      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      width: "100%", minHeight: "100vh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "40px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <h1 style={{
-          fontSize: "1.6rem", fontWeight: 700, color: "#1a1a1a",
+          fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)",
           marginBottom: "6px", textAlign: "center",
         }}>Start Workout</h1>
-        <p style={{ fontSize: "0.88rem", color: "#aaa", textAlign: "center", marginBottom: "32px" }}>
+        <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", textAlign: "center", marginBottom: "32px" }}>
           Choose a template or start empty
         </p>
 
         <p style={{
-          fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
+          fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
           textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
         }}>Anchor Workouts</p>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
@@ -526,15 +526,15 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
               key={template.id}
               onClick={() => onSelect(template.exercises)}
               style={{
-                background: "#fff", border: "1px solid #e0e0e0", borderRadius: "12px",
+                background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px",
                 padding: "14px 18px", textAlign: "left", cursor: "pointer",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
               }}
             >
-              <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px" }}>
+              <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                 {template.name}
               </p>
-              <p style={{ fontSize: "0.78rem", color: "#aaa" }}>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
                 {template.exercises.join("  ·  ")}
               </p>
             </button>
@@ -544,7 +544,7 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
         {userTemplates.length > 0 && (
           <>
             <p style={{
-              fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
+              fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
               textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px",
             }}>My Templates</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
@@ -553,15 +553,15 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
                   key={template.id}
                   onClick={() => onSelect(template.exercises)}
                   style={{
-                    background: "#fff", border: "1px solid #e0e0e0", borderRadius: "12px",
+                    background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "12px",
                     padding: "14px 18px", textAlign: "left", cursor: "pointer",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                   }}
                 >
-                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a", marginBottom: "4px" }}>
+                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>
                     {template.name}
                   </p>
-                  <p style={{ fontSize: "0.78rem", color: "#aaa" }}>
+                  <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
                     {template.exercises.join("  ·  ")}
                   </p>
                 </button>
@@ -573,8 +573,8 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
         <button
           onClick={onSkip}
           style={{
-            width: "100%", padding: "14px", background: "#1a1a1a",
-            color: "#fff", border: "none", borderRadius: "10px",
+            width: "100%", padding: "14px", background: "var(--text-primary)",
+            color: "var(--bg)", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
           }}
         >Start Empty</button>
@@ -626,9 +626,9 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   }
 
   const inputStyle = {
-    width: "100%", padding: "12px 14px", border: "1px solid #ddd",
+    width: "100%", padding: "12px 14px", border: "1px solid var(--border)",
     borderRadius: "8px", fontSize: "0.95rem", outline: "none",
-    background: "#fff", color: "#1a1a1a", boxSizing: "border-box",
+    background: "var(--bg-card)", color: "var(--text-primary)", boxSizing: "border-box",
   };
 
   // Inline exercise name editing
@@ -651,32 +651,32 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   if (view === "create" || view === "edit") {
     return (
       <div style={{
-        width: "100%", minHeight: "100vh", background: "#f5f5f3",
+        width: "100%", minHeight: "100vh", background: "var(--bg)",
         display: "flex", flexDirection: "column", alignItems: "center",
         padding: "40px 20px 100px", boxSizing: "border-box",
       }}>
         <div style={{ width: "100%", maxWidth: "480px" }}>
           <button onClick={() => setView("list")} style={{
             background: "none", border: "none", fontSize: "0.9rem",
-            color: "#555", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
+            color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
           }}>← Back</button>
 
-          <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "24px" }}>
             {view === "create" ? "New Template" : "Edit Template"}
           </h2>
 
-          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>Template Name</p>
+          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px" }}>Template Name</p>
           <input
             type="text" placeholder="e.g. Push Day" value={name}
             onChange={e => { setName(e.target.value); setError(""); }}
             style={{ ...inputStyle, marginBottom: "20px" }} autoFocus
           />
 
-          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#555", marginBottom: "6px" }}>Exercises</p>
+          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px" }}>Exercises</p>
 
           {exercises.length > 0 && (
             <div style={{
-              background: "#fff", borderRadius: "10px", padding: "4px 0",
+              background: "var(--bg-card)", borderRadius: "10px", padding: "4px 0",
               marginBottom: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
             }}>
               {exercises.map((ex, idx) => (
@@ -694,9 +694,9 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
                       onBlur={() => saveEditExercise(idx)}
                       onKeyDown={e => { if (e.key === "Enter") saveEditExercise(idx); if (e.key === "Escape") setEditingExIdx(null); }}
                       style={{
-                        flex: 1, padding: "6px 10px", border: "1px solid #1a1a1a",
+                        flex: 1, padding: "6px 10px", border: "1px solid var(--text-primary)",
                         borderRadius: "6px", fontSize: "0.92rem", outline: "none",
-                        background: "#f9f9f9", color: "#1a1a1a", boxSizing: "border-box",
+                        background: "var(--bg-exercise)", color: "var(--text-primary)", boxSizing: "border-box",
                       }}
                     />
                   ) : (
@@ -704,14 +704,14 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
                       onClick={() => startEditExercise(idx)}
                       style={{
                         flex: 1, background: "none", border: "none", padding: "4px 0",
-                        textAlign: "left", cursor: "pointer", fontSize: "0.92rem", color: "#1a1a1a",
+                        textAlign: "left", cursor: "pointer", fontSize: "0.92rem", color: "var(--text-primary)",
                       }}
                     >
                       {ex}
                     </button>
                   )}
                   <button onClick={() => removeExerciseFromList(idx)} style={{
-                    background: "none", border: "none", color: "#ccc",
+                    background: "none", border: "none", color: "var(--text-faint)",
                     fontSize: "1.1rem", cursor: "pointer", padding: "4px", flexShrink: 0,
                   }}>×</button>
                 </div>
@@ -727,9 +727,9 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
               style={{ ...inputStyle, flex: 1 }}
             />
             <button onClick={addExerciseToList} style={{
-              padding: "12px 16px", background: "#f0f0f0", border: "none",
+              padding: "12px 16px", background: "var(--bg-subtle)", border: "none",
               borderRadius: "8px", fontSize: "1.2rem", cursor: "pointer",
-              color: "#555", flexShrink: 0,
+              color: "var(--text-secondary)", flexShrink: 0,
             }}>+</button>
           </div>
 
@@ -738,8 +738,8 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
           <button
             onClick={view === "create" ? handleSaveCreate : handleSaveEdit}
             style={{
-              width: "100%", padding: "14px", background: "#1a1a1a",
-              color: "#fff", border: "none", borderRadius: "10px",
+              width: "100%", padding: "14px", background: "var(--text-primary)",
+              color: "var(--bg)", border: "none", borderRadius: "10px",
               fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
             }}
           >Save Template</button>
@@ -750,44 +750,44 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
 
   return (
     <div style={{
-      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      width: "100%", minHeight: "100vh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "40px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <button onClick={onBack} style={{
           background: "none", border: "none", fontSize: "0.9rem",
-          color: "#555", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
+          color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "24px",
         }}>← Back</button>
 
-        <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "28px" }}>
+        <h2 style={{ fontSize: "1.4rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "28px" }}>
           My Templates
         </h2>
 
         {userTemplates.length === 0 ? (
-          <p style={{ fontSize: "0.88rem", color: "#bbb", marginBottom: "24px" }}>
+          <p style={{ fontSize: "0.88rem", color: "var(--text-faint)", marginBottom: "24px" }}>
             No templates yet. Create one below.
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
             {userTemplates.map(template => (
               <div key={template.id} style={{
-                background: "#fff", borderRadius: "12px", padding: "14px 18px",
+                background: "var(--bg-card)", borderRadius: "12px", padding: "14px 18px",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a", marginBottom: "3px" }}>
+                  <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "3px" }}>
                     {template.name}
                   </p>
-                  <p style={{ fontSize: "0.78rem", color: "#aaa" }}>
+                  <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
                     {template.exercises.join("  ·  ")}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "8px", marginLeft: "12px", flexShrink: 0 }}>
                   <button onClick={() => openEdit(template)} style={{
-                    padding: "6px 12px", borderRadius: "6px", border: "1px solid #ccc",
-                    background: "none", color: "#555", fontSize: "0.82rem", cursor: "pointer",
+                    padding: "6px 12px", borderRadius: "6px", border: "1px solid var(--border)",
+                    background: "none", color: "var(--text-secondary)", fontSize: "0.82rem", cursor: "pointer",
                   }}>Edit</button>
                   <button onClick={() => onDeleteTemplate(template.id)} style={{
                     padding: "6px 12px", borderRadius: "6px", border: "1px solid #e05252",
@@ -800,8 +800,8 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
         )}
 
         <button onClick={openCreate} style={{
-          width: "100%", padding: "14px", background: "#1a1a1a",
-          color: "#fff", border: "none", borderRadius: "10px",
+          width: "100%", padding: "14px", background: "var(--text-primary)",
+          color: "var(--bg)", border: "none", borderRadius: "10px",
           fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
         }}>+ Create Template</button>
       </div>
@@ -841,13 +841,13 @@ function SetRow({ setNumber, set, mode, sessionActive, onDelete }) {
       display: "grid",
       gridTemplateColumns: sessionActive ? "32px 1fr 36px" : "32px 1fr",
       gap: "8px", alignItems: "center", padding: "8px 0",
-      borderBottom: "1px solid #f5f5f5",
+      borderBottom: "1px solid var(--divider)",
     }}>
-      <span style={{ fontSize: "0.78rem", color: "#bbb", textAlign: "center" }}>{setNumber}</span>
-      <span style={{ fontSize: "0.9rem", color: "#333" }}>{formatSetDisplay(set, mode)}</span>
+      <span style={{ fontSize: "0.78rem", color: "var(--text-faint)", textAlign: "center" }}>{setNumber}</span>
+      <span style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>{formatSetDisplay(set, mode)}</span>
       {sessionActive ? (
         <button onClick={onDelete} style={{
-          background: "none", border: "none", color: "#ccc", fontSize: "1.2rem",
+          background: "none", border: "none", color: "var(--text-faint)", fontSize: "1.2rem",
           cursor: "pointer", padding: "4px", lineHeight: 1,
           minWidth: "36px", minHeight: "36px",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -877,15 +877,15 @@ function AddSetForm({ onAdd, mode }) {
   const [error, setError] = useState("");
 
   const inputStyle = {
-    padding: "12px 14px", border: "1px solid #e0e0e0", borderRadius: "8px",
-    fontSize: "1rem", background: "#fff", color: "#1a1a1a",
+    padding: "12px 14px", border: "1px solid var(--border)", borderRadius: "8px",
+    fontSize: "1rem", background: "var(--bg-card)", color: "var(--text-primary)",
     outline: "none", boxSizing: "border-box", width: "100%",
     fontFamily: "inherit",
   };
 
   const fieldLabel = (label) => (
     <p style={{
-      fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "5px",
+      fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "5px",
       textTransform: "uppercase", letterSpacing: "0.04em",
     }}>{label}</p>
   );
@@ -923,7 +923,7 @@ function AddSetForm({ onAdd, mode }) {
   }
 
   return (
-    <div style={{ background: "#f0f0f0", borderRadius: "10px", padding: "14px", marginTop: "10px" }}>
+    <div style={{ background: "var(--bg-subtle)", borderRadius: "10px", padding: "14px", marginTop: "10px" }}>
 
       {mode === "reps" && (
         <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
@@ -1002,7 +1002,7 @@ function AddSetForm({ onAdd, mode }) {
 
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
       <button onClick={handleAdd} style={{
-        width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
+        width: "100%", padding: "12px", background: "var(--text-primary)", color: "var(--bg)",
         border: "none", borderRadius: "8px", fontSize: "0.95rem",
         fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
       }}>+ Log</button>
@@ -1054,7 +1054,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
         />
       )}
 
-      <div style={{ background: "#f9f9f9", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
+      <div style={{ background: "var(--bg-exercise)", borderRadius: "10px", padding: "14px", marginBottom: "10px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
 
           {sessionActive && editingName ? (
@@ -1065,9 +1065,9 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
               onBlur={saveRename}
               onKeyDown={e => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setEditingName(false); }}
               style={{
-                flex: 1, padding: "4px 8px", border: "1px solid #1a1a1a",
+                flex: 1, padding: "4px 8px", border: "1px solid var(--text-primary)",
                 borderRadius: "6px", fontSize: "0.95rem", fontWeight: 600,
-                outline: "none", background: "#fff", color: "#1a1a1a",
+                outline: "none", background: "var(--bg-card)", color: "var(--text-primary)",
                 boxSizing: "border-box", fontFamily: "inherit",
               }}
             />
@@ -1079,16 +1079,16 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
                 cursor: "pointer", textAlign: "left", flex: 1,
               }}
             >
-              <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1a1a1a" }}>
+              <span style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-primary)" }}>
                 {exercise.name}
               </span>
               {!sessionActive && history.length > 0 && (
-                <span style={{ fontSize: "0.7rem", color: "#aaa", marginLeft: "6px", fontWeight: 400 }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginLeft: "6px", fontWeight: 400 }}>
                   history ›
                 </span>
               )}
               {sessionActive && (
-                <span style={{ fontSize: "0.7rem", color: "#ccc", marginLeft: "6px", fontWeight: 400 }}>
+                <span style={{ fontSize: "0.7rem", color: "var(--text-faint)", marginLeft: "6px", fontWeight: 400 }}>
                   tap to rename
                 </span>
               )}
@@ -1097,7 +1097,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 
           {sessionActive && !editingName && (
             <button onClick={() => onDeleteExercise(exercise.id)} style={{
-              background: "none", border: "none", color: "#bbb",
+              background: "none", border: "none", color: "var(--text-faint)",
               fontSize: "0.82rem", cursor: "pointer", padding: "4px 8px", minHeight: "36px",
             }}>Remove</button>
           )}
@@ -1106,7 +1106,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
         {/* Mode badge */}
         {mode !== "reps" && (
           <span style={{
-            fontSize: "0.65rem", fontWeight: 600, color: "#aaa",
+            fontSize: "0.65rem", fontWeight: 600, color: "var(--text-muted)",
             textTransform: "uppercase", letterSpacing: "0.06em",
             marginBottom: "8px", display: "block",
           }}>
@@ -1116,7 +1116,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 
         {/* Last session hint */}
         {lastSession && sessionActive && lastSessionHint() && (
-          <p style={{ fontSize: "0.75rem", color: "#aaa", marginBottom: "10px", fontStyle: "italic" }}>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "10px", fontStyle: "italic" }}>
             Last: {lastSessionHint()}
           </p>
         )}
@@ -1135,7 +1135,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
         )}
 
         {sets.length === 0 && (
-          <p style={{ fontSize: "0.85rem", color: "#ccc", marginBottom: "8px" }}>No entries yet.</p>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-faint)", marginBottom: "8px" }}>No entries yet.</p>
         )}
 
         {/* Rest timer */}
@@ -1153,7 +1153,7 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
             <button onClick={() => { setShowSetForm(true); setShowRestTimer(false); }} style={{
               marginTop: "10px", background: "none", border: "1px dashed #ddd",
               borderRadius: "8px", width: "100%", padding: "10px",
-              color: "#bbb", fontSize: "0.88rem", cursor: "pointer",
+              color: "var(--text-faint)", fontSize: "0.88rem", cursor: "pointer",
             }}>+ Add {mode === "cardio" ? "session" : "set"}</button>
           )
         )}
@@ -1198,8 +1198,8 @@ function TrackingModeSelector({ mode, onChange }) {
             padding: "6px 0",
             borderRadius: "6px",
             border: "none",
-            background: mode === m.value ? "#fff" : "none",
-            color: mode === m.value ? "#1a1a1a" : "#888",
+            background: mode === m.value ? "var(--bg-card)" : "none",
+            color: mode === m.value ? "var(--text-primary)" : "var(--text-muted)",
             fontSize: "0.82rem",
             fontWeight: mode === m.value ? 600 : 400,
             cursor: "pointer",
@@ -1257,9 +1257,9 @@ function AddExerciseForm({ onAdd, smartSuggestionsEnabled }) {
         onChange={e => handleNameChange(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
         style={{
-          width: "100%", padding: "12px 14px", border: "1px solid #ddd",
-          borderRadius: "8px", fontSize: "1rem", background: "#fff",
-          color: "#1a1a1a", outline: "none", boxSizing: "border-box",
+          width: "100%", padding: "12px 14px", border: "1px solid var(--border)",
+          borderRadius: "8px", fontSize: "1rem", background: "var(--bg-card)",
+          color: "var(--text-primary)", outline: "none", boxSizing: "border-box",
           marginBottom: "10px", fontFamily: "inherit",
         }}
         autoFocus
@@ -1271,16 +1271,16 @@ function AddExerciseForm({ onAdd, smartSuggestionsEnabled }) {
           display: "flex", alignItems: "center", gap: "8px",
           marginBottom: "10px",
           padding: "8px 12px",
-          background: "#f0f0f0",
+          background: "var(--bg-subtle)",
           borderRadius: "8px",
         }}>
-          <span style={{ fontSize: "0.82rem", color: "#555" }}>
+          <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
             Track as {suggestion}?
           </span>
           <button
             onClick={applySuggestion}
             style={{
-              background: "#1a1a1a", color: "#fff", border: "none",
+              background: "var(--text-primary)", color: "var(--bg)", border: "none",
               borderRadius: "6px", padding: "3px 10px",
               fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit",
             }}
@@ -1288,7 +1288,7 @@ function AddExerciseForm({ onAdd, smartSuggestionsEnabled }) {
           <button
             onClick={() => setSuggestion(null)}
             style={{
-              background: "none", color: "#aaa", border: "none",
+              background: "none", color: "var(--text-muted)", border: "none",
               fontSize: "0.78rem", cursor: "pointer", padding: "3px 4px",
               fontFamily: "inherit",
             }}
@@ -1300,7 +1300,7 @@ function AddExerciseForm({ onAdd, smartSuggestionsEnabled }) {
 
       {error && <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "8px" }}>{error}</p>}
       <button onClick={handleAdd} style={{
-        width: "100%", padding: "12px", background: "#1a1a1a", color: "#fff",
+        width: "100%", padding: "12px", background: "var(--text-primary)", color: "var(--bg)",
         border: "none", borderRadius: "8px", fontSize: "0.95rem",
         cursor: "pointer", fontFamily: "inherit",
       }}>Add Exercise</button>
@@ -1313,7 +1313,7 @@ function WorkoutNotes({ sessionId, notes, onUpdateNotes }) {
   return (
     <div style={{ marginTop: "12px" }}>
       <p style={{
-        fontSize: "0.75rem", fontWeight: 600, color: "#aaa",
+        fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
         textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px",
       }}>Notes</p>
       <textarea
@@ -1322,9 +1322,9 @@ function WorkoutNotes({ sessionId, notes, onUpdateNotes }) {
         onChange={e => onUpdateNotes(sessionId, e.target.value)}
         rows={3}
         style={{
-          width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0",
-          borderRadius: "8px", fontSize: "0.9rem", color: "#1a1a1a",
-          background: "#fafafa", outline: "none", resize: "none",
+          width: "100%", padding: "10px 12px", border: "1px solid var(--border)",
+          borderRadius: "8px", fontSize: "0.9rem", color: "var(--text-primary)",
+          background: "var(--bg-input)", outline: "none", resize: "none",
           boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5,
         }}
       />
@@ -1343,18 +1343,18 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
 
   return (
     <div style={{
-      background: "#fff", borderRadius: "12px", padding: "16px 20px",
+      background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)", width: "100%",
       boxSizing: "border-box", outline: isEditing ? "2px solid #d0e8ff" : "none",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
         <div>
-          <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1a1a1a" }}>Workout</span>
-          <span style={{ fontSize: "0.78rem", color: "#aaa", marginLeft: "8px" }}>
+          <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>Workout</span>
+          <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginLeft: "8px" }}>
             {session.startTime}{session.endTime ? ` → ${session.endTime}` : ""}
           </span>
           {session.duration && (
-            <span style={{ fontSize: "0.72rem", color: "#aaa", marginLeft: "6px" }}>· {session.duration} min</span>
+            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginLeft: "6px" }}>· {session.duration} min</span>
           )}
           {sessionActive && (
             <span style={{ fontSize: "0.72rem", color: "#f0a500", marginLeft: "8px", fontWeight: 600 }}>Active</span>
@@ -1373,7 +1373,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
               padding: "6px 14px", borderRadius: "6px",
               border: isEditing ? "1px solid #1a8cff" : "1px solid #ccc",
               background: isEditing ? "#1a8cff" : "none",
-              color: isEditing ? "#fff" : "#555",
+              color: isEditing ? "var(--bg)" : "var(--text-secondary)",
               fontSize: "0.85rem", cursor: "pointer", minHeight: "36px",
             }}
           >{isEditing ? "Done" : "Edit"}</button>
@@ -1389,7 +1389,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
       )}
 
       {exercises.length === 0 ? (
-        <p style={{ fontSize: "0.88rem", color: "#ccc", marginBottom: "10px" }}>No exercises yet.</p>
+        <p style={{ fontSize: "0.88rem", color: "var(--text-faint)", marginBottom: "10px" }}>No exercises yet.</p>
       ) : (
         exercises.map(exercise => (
           <ExerciseCard
@@ -1417,7 +1417,7 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
         ) : (
           <button onClick={() => setShowExerciseForm(true)} style={{
             background: "none", border: "1px dashed #ccc", borderRadius: "8px",
-            width: "100%", padding: "10px", color: "#aaa",
+            width: "100%", padding: "10px", color: "var(--text-muted)",
             fontSize: "0.88rem", cursor: "pointer", marginTop: "6px",
           }}>+ Add exercise</button>
         )
@@ -1433,8 +1433,8 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
       {sessionActive && (
         <button onClick={() => onEnd(session.id)} style={{
           width: "100%", padding: "13px", marginTop: "16px",
-          borderRadius: "8px", border: "none", background: "#1a1a1a",
-          color: "#fff", fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+          borderRadius: "8px", border: "none", background: "var(--text-primary)",
+          color: "var(--bg)", fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
         }}>End Workout</button>
       )}
     </div>
@@ -1485,7 +1485,7 @@ export default function WorkoutScreen({
 
   return (
     <div style={{
-      width: "100%", minHeight: "100vh", background: "#f5f5f3",
+      width: "100%", minHeight: "100vh", background: "var(--bg)",
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "40px 0 100px", boxSizing: "border-box",
     }}>
@@ -1499,26 +1499,26 @@ export default function WorkoutScreen({
 
       <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
 
-        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "#1a1a1a", marginBottom: "20px", textAlign: "center" }}>
+        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px", textAlign: "center" }}>
           Workout
         </h1>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "28px", position: "relative" }}>
           <button onClick={() => onNavigateDay(-1)} style={{
-            background: "none", border: "1px solid #ccc", borderRadius: "6px",
-            width: "36px", height: "36px", cursor: "pointer", color: "#555",
+            background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+            width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
             fontSize: "1.1rem", display: "flex", alignItems: "center",
             justifyContent: "center", padding: 0, flexShrink: 0,
           }}>‹</button>
 
           <div style={{ textAlign: "center", width: "150px" }}>
-            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1a1a", whiteSpace: "nowrap" }}>{formatDate(viewedDate)}</p>
-            <p style={{ fontSize: "0.72rem", color: isToday ? "#aaa" : "transparent", marginTop: "2px" }}>Today</p>
+            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{formatDate(viewedDate)}</p>
+            <p style={{ fontSize: "0.72rem", color: isToday ? "var(--text-muted)" : "transparent", marginTop: "2px" }}>Today</p>
           </div>
 
           <button onClick={() => onNavigateDay(1)} style={{
-            background: "none", border: "1px solid #ccc", borderRadius: "6px",
-            width: "36px", height: "36px", cursor: "pointer", color: "#555",
+            background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+            width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
             fontSize: "1.1rem", display: "flex", alignItems: "center",
             justifyContent: "center", padding: 0, flexShrink: 0,
           }}>›</button>
@@ -1528,23 +1528,23 @@ export default function WorkoutScreen({
             onClick={() => setShowCalendar(true)}
             style={{
               position: "absolute", right: 0,
-              background: "none", border: "1px solid #ccc", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "#888",
+              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-muted)",
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: 0,
             }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="3" width="14" height="12" rx="2" stroke="#888" strokeWidth="1.5"/>
-              <path d="M1 7h14" stroke="#888" strokeWidth="1.5"/>
-              <path d="M5 1v4M11 1v4" stroke="#888" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="1" y="3" width="14" height="12" rx="2" stroke="var(--text-muted)" strokeWidth="1.5"/>
+              <path d="M1 7h14" stroke="var(--text-muted)" strokeWidth="1.5"/>
+              <path d="M5 1v4M11 1v4" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
 
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
           {safeSessions.length === 0 && (
-            <p style={{ fontSize: "0.9rem", color: "#bbb", textAlign: "center" }}>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-faint)", textAlign: "center" }}>
               No workouts logged for this day.
             </p>
           )}
@@ -1570,15 +1570,15 @@ export default function WorkoutScreen({
 
           {!hasActiveSession && (
             <button onClick={() => setWorkoutView("picker")} style={{
-              width: "100%", padding: "14px", background: "#1a1a1a",
-              color: "#fff", border: "none", borderRadius: "10px",
+              width: "100%", padding: "14px", background: "var(--text-primary)",
+              color: "var(--bg)", border: "none", borderRadius: "10px",
               fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
             }}>Start Workout</button>
           )}
 
           <button onClick={() => setWorkoutView("templates")} style={{
             width: "100%", padding: "12px", background: "none",
-            color: "#555", border: "1px solid #ddd", borderRadius: "10px",
+            color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: "10px",
             fontSize: "0.88rem", cursor: "pointer",
           }}>Manage Templates</button>
         </div>
