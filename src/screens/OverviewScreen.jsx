@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getFocusMode } from "./OnboardingScreen";
 
 export { getFocusMode };
@@ -24,42 +24,109 @@ function getGreeting() {
   return "Wind down.";
 }
 
-// ── Context line — appears beneath greeting ──
-function getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode) {
+// ── Contextual intelligence — observant, not overbearing ──
+function getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode, currentStreak, weekStats, workouts) {
   const h = new Date().getHours();
-  const day = new Date().getDay();
+  const day = new Date().getDay(); // 0=Sun
   const proteinLeft = Math.max(0, (nutritionGoals?.protein ?? 150) - (nutritionSummary?.protein ?? 0));
-  const calLeft = Math.max(0, (nutritionGoals?.calories ?? 2000) - (nutritionSummary?.calories ?? 0));
   const allDone = totalCount > 0 && completedCount === totalCount;
 
-  // Fitness mode — fitness-first context
-  if (focusMode === "fitness") {
-    if (workoutDone && proteinLeft > 15) return `${proteinLeft}g protein left to hit your target.`;
-    if (workoutDone && proteinLeft <= 15) return "Protein goal nearly there. Strong day.";
-    if (!workoutDone && h >= 18) return "No workout logged yet. Still time tonight.";
+  // ── Streak milestone moments ──
+  if (currentStreak === 7) return "Seven days straight. That's a real habit.";
+  if (currentStreak === 14) return "Two weeks consistent. Keep going.";
+  if (currentStreak === 30) return "Thirty days. You've built something real.";
+
+  // ── End of day (after 9pm) — calm closure ──
+  if (h >= 21) {
+    if (allDone && workoutDone) return "Strong finish today. Everything done.";
+    if (allDone) return "Tasks done. Good day.";
+    if (workoutDone && proteinLeft <= 15) return "Workout and nutrition on point. Rest up.";
+    if (totalCount > 0 && completedCount === 0) return "Tomorrow is a fresh start.";
+    const remaining = totalCount - completedCount;
+    if (remaining > 0) return `${remaining} task${remaining > 1 ? "s" : ""} left. Wind down when you're ready.`;
     return null;
   }
 
-  // Discipline mode — task/streak first
+  // ── Fitness mode ──
+  if (focusMode === "fitness") {
+    if (workoutDone && proteinLeft > 15) return `${proteinLeft}g protein left to hit your target.`;
+    if (workoutDone && proteinLeft <= 15) return "Workout done. Protein nearly there. Strong day.";
+    if (!workoutDone && h >= 18) return "No workout logged yet. Still time tonight.";
+    if (!workoutDone && h >= 12 && day === 1) return "Mondays set the tone for the week.";
+    return null;
+  }
+
+  // ── Discipline mode ──
   if (focusMode === "discipline") {
+    if (allDone && currentStreak >= 3) return `${currentStreak} days in a row. Discipline compounds.`;
     if (allDone) return "Discipline compounds. Keep the streak going.";
     if (h >= 20 && totalCount > completedCount) return "Finish strong before you sleep.";
     if (day === 0 && h >= 17) return "Take a moment to review your week.";
+    // Morning encouragement based on yesterday's completion
+    if (h < 10 && currentStreak > 0) return `${currentStreak}-day streak. Make today count.`;
     return null;
   }
 
-  // Balanced
+  // ── Balanced ──
+  if (workoutDone && proteinLeft <= 15) return "Workout and nutrition on track. Good day.";
   if (workoutDone && proteinLeft > 20) return `${proteinLeft}g protein left to hit your target.`;
   if (day === 0 && h >= 17) return "Take a moment to review your week.";
   if (allDone) return "Everything done for today.";
   if (h >= 20 && totalCount > completedCount) return "Finish strong before you sleep.";
+  if (h < 10 && currentStreak > 0) return `Day ${currentStreak} of your streak. Stay consistent.`;
+  return null;
+}
+
+// ── End-of-day summary — shown after 8pm when meaningful ──
+function getEndOfDaySummary(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode) {
+  const h = new Date().getHours();
+  if (h < 20) return null;
+
+  const items = [];
+  if (totalCount > 0 && completedCount === totalCount) items.push(`${completedCount} tasks done`);
+  else if (completedCount > 0) items.push(`${completedCount} of ${totalCount} tasks`);
+  if (workoutDone) items.push("workout logged");
+  const proteinHit = nutritionSummary?.protein >= (nutritionGoals?.protein ?? 150) * 0.9;
+  if (proteinHit && nutritionSummary?.protein > 0) items.push("protein goal hit");
+
+  if (items.length < 2) return null; // only show if there's something meaningful
+  return items;
+}
+
+// ── Momentum insight — replaces dead "Steps: coming soon" ──
+function getMomentumInsight(currentStreak, longestStreak, weekStats, workouts, tasks) {
+  // Count total workouts ever
+  const totalWorkouts = Object.values(workouts).reduce((acc, sessions) => acc + sessions.filter(s => s.status === "completed").length, 0);
+
+  // Count total completed tasks this week
+  const weekTaskPct = weekStats?.taskPct;
+  const weekActive = weekStats?.activeDays ?? 0;
+
+  if (currentStreak > 0 && currentStreak === longestStreak && currentStreak > 3) {
+    return { label: "Momentum", value: `${currentStreak}-day streak — your longest yet` };
+  }
+  if (totalWorkouts > 0 && totalWorkouts % 10 === 0) {
+    return { label: "Milestone", value: `${totalWorkouts} workouts logged` };
+  }
+  if (weekActive >= 5) {
+    return { label: "This week", value: `${weekActive} days active — strong week` };
+  }
+  if (weekTaskPct !== null && weekTaskPct >= 80) {
+    return { label: "Consistency", value: `${weekTaskPct}% tasks done this week` };
+  }
+  if (currentStreak >= 3) {
+    return { label: "Streak", value: `${currentStreak} days in a row` };
+  }
+  if (totalWorkouts >= 5) {
+    return { label: "Progress", value: `${totalWorkouts} workouts logged` };
+  }
   return null;
 }
 
 // ── Focus configuration — single source of truth ──
 const FOCUS_CONFIG = {
   discipline: {
-    heroMode: "tasks",              // tasks | fitness
+    heroMode: "tasks",
     emptyTaskHeadline: "Build your routine.",
     emptyTaskSub: "Structure is the foundation of everything.",
     emptyTaskCTA: "Add your first routine →",
@@ -73,7 +140,6 @@ const FOCUS_CONFIG = {
     tasksSubtitle: "Stay on track.",
     sectionEmptyLabel: "Tap + to add a routine",
     workoutNudge: null,
-    // Secondary row: streak on left, workout on right
     secondaryLeft: "streak",
   },
   fitness: {
@@ -85,13 +151,12 @@ const FOCUS_CONFIG = {
     allDoneSub: "Fuelled and focused. Nice work.",
     workoutEmptyLabel: "Ready?",
     workoutEmptySub: "Start today's session →",
-    tertiaryOrder: ["nutrition", "weekly"],
+    tertiaryOrder: ["tasks", "weekly"],
     nutritionEmptyCopy: "Nothing logged — tap to add your first meal",
     weeklyPrefix: null,
     tasksSubtitle: "Structure your day.",
     sectionEmptyLabel: "Tap + to add a task",
     workoutNudge: "Ready for today's session?",
-    // Secondary row: workout on left, streak on right
     secondaryLeft: "workout",
   },
   balanced: {
@@ -117,18 +182,17 @@ export function getConfig(focusMode) {
   return FOCUS_CONFIG[focusMode] || FOCUS_CONFIG.balanced;
 }
 
-// ── Task copy ──
 function getTaskCopy(completed, total, remaining, config) {
   const h = new Date().getHours();
   if (total === 0) return { headline: config.emptyTaskHeadline, sub: config.emptyTaskSub };
   if (completed === total) return { headline: "All done today.", sub: config.allDoneSub };
   if (remaining === 1) return { headline: "One task left.", sub: "Finish strong." };
+  if (h >= 21) return { headline: `${remaining} left tonight.`, sub: "Wind down when ready." };
   if (h >= 20) return { headline: `${remaining} left tonight.`, sub: "Make it count." };
   if (h >= 12 && h < 17) return { headline: `${remaining} left this afternoon.`, sub: `${completed} of ${total} complete.` };
   return { headline: `${remaining} left today.`, sub: `${completed} of ${total} complete.` };
 }
 
-// ── Workout copy ──
 function getWorkoutCopy(sessions, config) {
   const done = sessions.some(s => s.status === "completed");
   const active = sessions.some(s => s.status === "active");
@@ -139,7 +203,6 @@ function getWorkoutCopy(sessions, config) {
   return { label: config.workoutEmptyLabel, color: "var(--text-faint)", sub, tappable: true };
 }
 
-// ── Nutrition copy ──
 function getNutritionCopy(summary, goals, config) {
   const cal = summary?.calories ?? 0;
   const protein = summary?.protein ?? 0;
@@ -153,7 +216,6 @@ function getNutritionCopy(summary, goals, config) {
   return `${cal} / ${goalCal} kcal · ${protein}g protein`;
 }
 
-// ── Weekly insight ──
 function getWeeklyInsight(weekStats, config) {
   const day = new Date().getDay();
   const prefix = config.weeklyPrefix;
@@ -188,7 +250,7 @@ function ProgressRing({ completed, total }) {
           strokeWidth={sw}
           strokeDasharray={`${circ * pct} ${circ}`}
           strokeLinecap="round"
-          style={{ transition: "stroke-dasharray 0.5s ease, stroke 0.4s ease" }}
+          style={{ transition: "stroke-dasharray 0.6s cubic-bezier(0.4,0,0.2,1), stroke 0.4s ease" }}
         />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -209,7 +271,7 @@ function ProgressRing({ completed, total }) {
   );
 }
 
-// ── Protein progress bar — fitness hero ──
+// ── Protein bar ──
 function ProteinBar({ current, goal }) {
   const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
   const left = Math.max(0, goal - current);
@@ -226,7 +288,7 @@ function ProteinBar({ current, goal }) {
         <div style={{
           height: "100%", width: `${pct}%`,
           background: isHit ? "#4caf50" : "#4a90d9",
-          borderRadius: "99px", transition: "width 0.4s ease, background 0.4s ease",
+          borderRadius: "99px", transition: "width 0.5s cubic-bezier(0.4,0,0.2,1), background 0.4s ease",
         }} />
       </div>
       <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
@@ -237,8 +299,6 @@ function ProteinBar({ current, goal }) {
 }
 
 // ── FITNESS HERO CARD ──
-// Primary metric: protein progress
-// Secondary: calories + workout status
 function FitnessHeroCard({ nutritionSummary, nutritionGoals, workoutCopy, weeklyDots, onOpenReview, onGoToWorkout, onGoToNutrition }) {
   const protein = nutritionSummary?.protein ?? 0;
   const goalProtein = nutritionGoals?.protein ?? 150;
@@ -247,12 +307,10 @@ function FitnessHeroCard({ nutritionSummary, nutritionGoals, workoutCopy, weekly
 
   return (
     <div style={{ background: "var(--bg-card)", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow)", marginBottom: "12px" }}>
-      {/* Protein — primary metric */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "16px" }}>
         <ProteinBar current={protein} goal={goalProtein} />
       </div>
 
-      {/* Calories + workout — secondary row */}
       <div style={{ display: "flex", gap: "0", borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
         <button onClick={onGoToNutrition} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
           <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{cal}</p>
@@ -267,17 +325,16 @@ function FitnessHeroCard({ nutritionSummary, nutritionGoals, workoutCopy, weekly
           onClick={workoutCopy.tappable ? onGoToWorkout : undefined}
           style={{ flex: 1, paddingLeft: "16px", background: "none", border: "none", cursor: workoutCopy.tappable ? "pointer" : "default", textAlign: "left" }}
         >
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: workoutCopy.color, lineHeight: 1 }}>{workoutCopy.label}</p>
+          <p style={{ fontSize: "1rem", fontWeight: 700, color: workoutCopy.color, lineHeight: 1, transition: "color 0.3s" }}>{workoutCopy.label}</p>
           <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Workout</p>
         </button>
       </div>
 
-      {/* Weekly dots */}
       <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px", marginTop: "12px" }}>
         <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
           {(weeklyDots || []).map((dot, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-              <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: dot.active ? "var(--text-primary)" : "var(--border)" }} />
+              <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: dot.active ? "var(--text-primary)" : "var(--border)", transition: "background 0.3s" }} />
               <span style={{ fontSize: "0.5rem", color: dot.active ? "var(--text-primary)" : "var(--text-faint)", fontWeight: dot.active ? 600 : 400 }}>{DAY_LABELS[i]}</span>
             </div>
           ))}
@@ -287,7 +344,7 @@ function FitnessHeroCard({ nutritionSummary, nutritionGoals, workoutCopy, weekly
   );
 }
 
-// ── TASK HERO CARD (discipline + balanced) ──
+// ── TASK HERO CARD ──
 function TaskHeroCard({ completedCount, totalCount, remainingToday, taskCopy, config, weeklyDots, onOpenReview, onGoToTasks, onGoToWorkout, onShowRemaining }) {
   const isComplete = totalCount > 0 && completedCount === totalCount;
 
@@ -309,7 +366,7 @@ function TaskHeroCard({ completedCount, totalCount, remainingToday, taskCopy, co
           <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
             {(weeklyDots || []).map((dot, i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-                <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: dot.active ? "var(--text-primary)" : "var(--border)" }} />
+                <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: dot.active ? "var(--text-primary)" : "var(--border)", transition: "background 0.3s" }} />
                 <span style={{ fontSize: "0.5rem", color: dot.active ? "var(--text-primary)" : "var(--text-faint)", fontWeight: dot.active ? 600 : 400 }}>{DAY_LABELS[i]}</span>
               </div>
             ))}
@@ -320,7 +377,7 @@ function TaskHeroCard({ completedCount, totalCount, remainingToday, taskCopy, co
       {remainingToday.length > 0 && (
         <button onClick={onShowRemaining} style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
           <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
-            {remainingToday.slice(0, 3).map((task, i) => (
+            {remainingToday.slice(0, 3).map((task) => (
               <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "5px 0" }}>
                 <div style={{ width: "14px", height: "14px", borderRadius: "4px", border: "1.5px solid var(--border)", flexShrink: 0 }} />
                 <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{task.name}</p>
@@ -353,6 +410,28 @@ function TaskHeroCard({ completedCount, totalCount, remainingToday, taskCopy, co
   );
 }
 
+// ── End-of-day summary card — shown after 8pm ──
+function EndOfDayCard({ items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div style={{
+      background: "var(--bg-card)",
+      borderRadius: "12px",
+      padding: "14px 18px",
+      boxShadow: "var(--shadow)",
+      marginBottom: "12px",
+      borderLeft: "3px solid #4caf50",
+    }}>
+      <p style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+        Today
+      </p>
+      <p style={{ fontSize: "0.88rem", color: "var(--text-primary)", fontWeight: 500 }}>
+        {items.join(" · ")}
+      </p>
+    </div>
+  );
+}
+
 // ── Remaining tasks sheet ──
 function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
   const grouped = {};
@@ -362,7 +441,11 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
       <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
-      <div style={{ position: "relative", background: "var(--bg)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", zIndex: 301, maxHeight: "80vh", overflowY: "auto" }}>
+      <div style={{
+        position: "relative", background: "var(--bg)", borderRadius: "20px 20px 0 0",
+        padding: "24px 20px 48px", zIndex: 301, maxHeight: "80vh", overflowY: "auto",
+        animation: "slideUp 0.3s cubic-bezier(0.4,0,0.2,1)",
+      }}>
         <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "99px", margin: "0 auto 20px" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>Still to do</p>
@@ -402,12 +485,26 @@ function TertiaryRow({ label, value, onClick, isLast }) {
       cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
       borderBottom: isLast ? "none" : "1px solid var(--border-light)",
     }}>
-      <div>
+      <div style={{ flex: 1, minWidth: 0, paddingRight: "12px" }}>
         <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{label}</p>
-        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{value}</p>
+        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</p>
       </div>
-      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)", flexShrink: 0 }}>→</span>
     </button>
+  );
+}
+
+// ── Momentum insight row — replaces "Steps: coming soon" ──
+function MomentumRow({ insight }) {
+  if (!insight) return null;
+  return (
+    <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{insight.label}</p>
+        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{insight.value}</p>
+      </div>
+      <span style={{ fontSize: "1rem" }}>↑</span>
+    </div>
   );
 }
 
@@ -418,7 +515,14 @@ export default function OverviewScreen({
   nutritionSummary, nutritionGoals, onGoToNutrition,
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const today = todayString();
+
+  // Entrance animation
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
 
   const focusMode = getFocusMode();
   const config = getConfig(focusMode);
@@ -435,20 +539,22 @@ export default function OverviewScreen({
   const workoutCopy = getWorkoutCopy(todaySessions, config);
   const nutritionCopy = getNutritionCopy(nutritionSummary, nutritionGoals, config);
   const weeklyInsightText = getWeeklyInsight(weekStats, config);
-  const contextLine = getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode);
+  const contextLine = getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode, currentStreak, weekStats, workouts);
+  const endOfDayItems = getEndOfDaySummary(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals, focusMode);
+  const momentumInsight = getMomentumInsight(currentStreak, longestStreak, weekStats, workouts, tasks);
 
-  // Tertiary strip — fitness mode shows tasks here; others show weekly + nutrition
+  // Tertiary strip — fitness mode shows tasks + weekly; others show weekly + nutrition (no duplicates)
   const tertiaryRows = focusMode === "fitness"
     ? [
         { label: "Tasks", value: totalCount === 0 ? "None added yet" : `${completedCount} of ${totalCount} complete`, onClick: onGoToTasks },
         { label: "This week", value: weeklyInsightText, onClick: onOpenReview },
+        { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
       ]
-    : config.tertiaryOrder.map(key => ({
-        weekly: { label: "This week", value: weeklyInsightText, onClick: onOpenReview },
-        nutrition: { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
-      }[key]));
+    : [
+        { label: "This week", value: weeklyInsightText, onClick: onOpenReview },
+        { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
+      ];
 
-  // Secondary row left/right driven by config
   const streakStat = { label: "Day streak", value: currentStreak, color: "var(--text-primary)", onClick: onOpenReview };
   const workoutStat = { label: workoutCopy.sub || "Workout", value: workoutCopy.label, color: workoutCopy.color, onClick: workoutCopy.tappable ? onGoToWorkout : undefined };
   const [leftStat, rightStat] = config.secondaryLeft === "workout"
@@ -456,109 +562,121 @@ export default function OverviewScreen({
     : [streakStat, workoutStat];
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0 100px", boxSizing: "border-box" }}>
+    <>
+      {/* Slide-up sheet animation keyframe */}
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-      {showRemaining && (
-        <RemainingTasksSheet tasks={remainingToday} onClose={() => setShowRemaining(false)} onGoToTasks={onGoToTasks} />
-      )}
+      <div style={{
+        width: "100%", minHeight: "100vh", background: "var(--bg)",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        padding: "48px 0 100px", boxSizing: "border-box",
+        opacity: mounted ? 1 : 0, transition: "opacity 0.2s ease",
+      }}>
 
-      <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
-
-        {/* ── Header ── */}
-        <div style={{ marginBottom: "28px", position: "relative" }}>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "3px", fontWeight: 500 }}>{formatDateFull(today)}</p>
-          <h1 style={{ fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.15, marginBottom: contextLine ? "6px" : "0" }}>
-            {getGreeting()}
-          </h1>
-          {contextLine && (
-            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{contextLine}</p>
-          )}
-          <button onClick={onOpenSettings} style={{ position: "absolute", right: 0, top: 0, background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-
-        {/* ── PRIMARY HERO — switches by focus mode ── */}
-        {focusMode === "fitness" ? (
-          <FitnessHeroCard
-            nutritionSummary={nutritionSummary}
-            nutritionGoals={nutritionGoals}
-            workoutCopy={workoutCopy}
-            weeklyDots={weeklyDots}
-            onOpenReview={onOpenReview}
-            onGoToWorkout={onGoToWorkout}
-            onGoToNutrition={onGoToNutrition}
-          />
-        ) : (
-          <TaskHeroCard
-            completedCount={completedCount}
-            totalCount={totalCount}
-            remainingToday={remainingToday}
-            taskCopy={taskCopy}
-            config={config}
-            weeklyDots={weeklyDots}
-            onOpenReview={onOpenReview}
-            onGoToTasks={onGoToTasks}
-            onGoToWorkout={onGoToWorkout}
-            onShowRemaining={() => setShowRemaining(true)}
-          />
+        {showRemaining && (
+          <RemainingTasksSheet tasks={remainingToday} onClose={() => setShowRemaining(false)} onGoToTasks={onGoToTasks} />
         )}
 
-        {/* ── SECONDARY: two-stat row — order from config ── */}
-        <div style={{ background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px", boxShadow: "var(--shadow)", marginBottom: "12px", display: "flex", alignItems: "center" }}>
-          <button
-            onClick={leftStat.onClick}
-            style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
-          >
-            <p style={{ fontSize: "1.3rem", fontWeight: 700, color: leftStat.color, lineHeight: 1 }}>{leftStat.value}</p>
-            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>{leftStat.label}</p>
-          </button>
+        <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
 
-          <div style={{ width: "1px", height: "32px", background: "var(--border-light)", flexShrink: 0 }} />
+          {/* ── Header ── */}
+          <div style={{ marginBottom: "28px", position: "relative" }}>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "3px", fontWeight: 500 }}>{formatDateFull(today)}</p>
+            <h1 style={{ fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.15, marginBottom: contextLine ? "6px" : "0" }}>
+              {getGreeting()}
+            </h1>
+            {contextLine && (
+              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.4 }}>{contextLine}</p>
+            )}
+            <button onClick={onOpenSettings} style={{ position: "absolute", right: 0, top: 0, background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
 
-          <button
-            onClick={rightStat.onClick}
-            style={{ flex: 1, paddingLeft: "20px", background: "none", border: "none", cursor: rightStat.onClick ? "pointer" : "default", textAlign: "left" }}
-          >
-            <p style={{ fontSize: "1.3rem", fontWeight: 700, color: rightStat.color, lineHeight: 1 }}>{rightStat.value}</p>
-            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>{rightStat.label}</p>
-          </button>
-        </div>
+          {/* ── End-of-day summary (after 8pm only, when earned) ── */}
+          <EndOfDayCard items={endOfDayItems} />
 
-        {/* ── TERTIARY: at a glance strip ── */}
-        <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
-          {tertiaryRows.map((row, i) => (
-            <TertiaryRow
-              key={row.label}
-              label={row.label}
-              value={row.value}
-              onClick={row.onClick}
-              isLast={i === tertiaryRows.length - 1}
+          {/* ── PRIMARY HERO ── */}
+          {focusMode === "fitness" ? (
+            <FitnessHeroCard
+              nutritionSummary={nutritionSummary}
+              nutritionGoals={nutritionGoals}
+              workoutCopy={workoutCopy}
+              weeklyDots={weeklyDots}
+              onOpenReview={onOpenReview}
+              onGoToWorkout={onGoToWorkout}
+              onGoToNutrition={onGoToNutrition}
             />
-          ))}
-          {/* Nutrition row for non-fitness modes */}
-          {focusMode !== "fitness" && (
-            <TertiaryRow
-              label="Nutrition"
-              value={nutritionCopy}
-              onClick={onGoToNutrition}
-              isLast={false}
+          ) : (
+            <TaskHeroCard
+              completedCount={completedCount}
+              totalCount={totalCount}
+              remainingToday={remainingToday}
+              taskCopy={taskCopy}
+              config={config}
+              weeklyDots={weeklyDots}
+              onOpenReview={onOpenReview}
+              onGoToTasks={onGoToTasks}
+              onGoToWorkout={onGoToWorkout}
+              onShowRemaining={() => setShowRemaining(true)}
             />
           )}
-          {/* Steps */}
-          <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Steps</p>
-              <p style={{ fontSize: "0.88rem", color: "var(--text-faint)" }}>Coming soon</p>
-            </div>
-            <p style={{ fontSize: "1.1rem" }}>👟</p>
-          </div>
-        </div>
 
+          {/* ── SECONDARY: two-stat row ── */}
+          <div style={{ background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px", boxShadow: "var(--shadow)", marginBottom: "12px", display: "flex", alignItems: "center" }}>
+            <button
+              onClick={leftStat.onClick}
+              style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
+            >
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: leftStat.color, lineHeight: 1, transition: "color 0.3s" }}>{leftStat.value}</p>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>{leftStat.label}</p>
+            </button>
+
+            <div style={{ width: "1px", height: "32px", background: "var(--border-light)", flexShrink: 0 }} />
+
+            <button
+              onClick={rightStat.onClick}
+              style={{ flex: 1, paddingLeft: "20px", background: "none", border: "none", cursor: rightStat.onClick ? "pointer" : "default", textAlign: "left" }}
+            >
+              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: rightStat.color, lineHeight: 1, transition: "color 0.3s" }}>{rightStat.value}</p>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>{rightStat.label}</p>
+            </button>
+          </div>
+
+          {/* ── TERTIARY: at-a-glance strip ── */}
+          <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+            {tertiaryRows.map((row, i) => (
+              <TertiaryRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+                onClick={row.onClick}
+                isLast={i === tertiaryRows.length - 1 && !momentumInsight}
+              />
+            ))}
+            {/* Momentum insight — replaces dead "Steps: coming soon" */}
+            {momentumInsight && (
+              <>
+                <div style={{ height: "1px", background: "var(--border-light)" }} />
+                <MomentumRow insight={momentumInsight} />
+              </>
+            )}
+          </div>
+
+        </div>
       </div>
-    </div>
+    </>
   );
 }

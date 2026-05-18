@@ -771,7 +771,7 @@ export default function App() {
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      style={{ width: "100%", minHeight: "100vh", background: "#f5f5f3" }}
+      style={{ width: "100%", minHeight: "100vh", background: "var(--bg)" }}
     >
       {activeScreen === "today" && (
         <HomeScreen
@@ -846,45 +846,59 @@ export default function App() {
         />
       )}
 
-      {/* Tab bar — three tabs */}
+      {/* Tab bar */}
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
         background: "var(--tab-bg)",
         borderTop: "1px solid var(--tab-border)",
         display: "flex",
-        alignItems: "center",
+        alignItems: "stretch",
         justifyContent: "center",
         height: "calc(64px + env(safe-area-inset-bottom))",
         paddingBottom: "env(safe-area-inset-bottom)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
       }}>
         {[
           { key: "today", label: "Tasks" },
           { key: "overview", label: "Overview" },
           { key: "nutrition", label: "Nutrition" },
           { key: "workout", label: "Workout" },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveScreen(tab.key)}
-            style={{
-              flex: 1,
-              background: "none",
-              border: "none",
-              fontSize: activeScreen === tab.key ? "0.88rem" : "0.82rem",
-              fontWeight: activeScreen === tab.key ? 700 : 400,
-              color: activeScreen === tab.key ? "var(--text-primary)" : "var(--text-muted)",
-              cursor: "pointer",
-              padding: "12px 8px",
-              borderBottom: activeScreen === tab.key
-                ? "2px solid var(--text-primary)"
-                : "2px solid transparent",
-              transition: "color 0.15s",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ].map(tab => {
+          const isActive = activeScreen === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveScreen(tab.key)}
+              style={{
+                flex: 1,
+                background: "none",
+                border: "none",
+                borderTop: isActive
+                  ? "2px solid var(--text-primary)"
+                  : "2px solid transparent",
+                fontSize: isActive ? "0.88rem" : "0.82rem",
+                fontWeight: isActive ? 700 : 400,
+                color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                cursor: "pointer",
+                padding: "10px 8px 12px",
+                transition: "color 0.2s ease, border-color 0.2s ease",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

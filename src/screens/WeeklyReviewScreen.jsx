@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import HintCard from "../components/HintCard";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 function todayString() {
   const d = new Date();
@@ -62,7 +63,8 @@ function getWeekStats(tasks, workouts, weekDates) {
     const hasWorkout = (workouts[dateStr] || []).length > 0;
     return hasTask || hasWorkout;
   }).length;
-  const totalWorkouts = weekDates.reduce((acc, d) => acc + (workouts[d] || []).length, 0);
+  const totalWorkouts = weekDates.reduce((acc, d) => acc + (workouts[d] || []).filter(s => s.status === "completed").length, 0);
+
   let totalPossible = 0;
   let totalCompleted = 0;
   weekDates.forEach(dateStr => {
@@ -78,8 +80,34 @@ function getWeekStats(tasks, workouts, weekDates) {
     totalPossible += visible.length;
     totalCompleted += visible.filter(t => t.completedDates.includes(dateStr)).length;
   });
+
+  // Per-day completion counts for finding strongest day
+  const perDay = weekDates.map(dateStr => {
+    if (dateStr > today) return { dateStr, count: 0, total: 0 };
+    const allTasks = Object.values(tasks).flat();
+    const dow = getDayOfWeek(dateStr);
+    const visible = allTasks.filter(task => {
+      if (task.frequency === "daily") return true;
+      if (task.frequency === "weekly") return (task.days || []).includes(dow);
+      if (task.frequency === "one-time") return task.date === dateStr;
+      return false;
+    });
+    return {
+      dateStr,
+      count: visible.filter(t => t.completedDates.includes(dateStr)).length,
+      total: visible.length,
+      hasWorkout: (workouts[dateStr] || []).some(s => s.status === "completed"),
+    };
+  });
+
   const taskPct = totalPossible === 0 ? null : Math.round((totalCompleted / totalPossible) * 100);
-  return { activeDays, totalWorkouts, taskPct };
+
+  // Strongest day — most completed tasks (needs at least 1)
+  const strongestDay = perDay
+    .filter(d => d.count > 0 && d.total > 0)
+    .sort((a, b) => (b.count / b.total) - (a.count / a.total))[0];
+
+  return { activeDays, totalWorkouts, taskPct, totalCompleted, totalPossible, perDay, strongestDay };
 }
 
 function getWeeklyDots(tasks, workouts, weekDates) {
@@ -99,9 +127,56 @@ function formatWeekRange(weekDates) {
   return `${start} – ${end}`;
 }
 
+// ── Generate week insights — the personality of the review ──
+function getWeekInsights(stats, isCurrentWeek) {
+  const insights = [];
+  const { activeDays, totalWorkouts, taskPct, strongestDay, perDay } = stats;
+
+  // Strongest consistency day
+  if (strongestDay) {
+    const dow = getDayOfWeek(strongestDay.dateStr);
+    const dayName = DAY_FULL[dow === 0 ? 6 : dow - 1]; // Mon-indexed
+    insights.push({
+      icon: "◎",
+      text: `Most consistent day: ${dayName}`,
+    });
+  }
+
+  // Workout insight
+  if (totalWorkouts >= 5) {
+    insights.push({ icon: "↑", text: `${totalWorkouts} workouts completed — strong training week` });
+  } else if (totalWorkouts >= 3) {
+    insights.push({ icon: "↑", text: `${totalWorkouts} workouts logged this week` });
+  } else if (totalWorkouts === 1) {
+    insights.push({ icon: "→", text: "1 workout logged. More is in reach." });
+  } else if (totalWorkouts === 0 && isCurrentWeek) {
+    insights.push({ icon: "→", text: "No workouts logged yet this week." });
+  }
+
+  // Task consistency
+  if (taskPct !== null) {
+    if (taskPct >= 90) insights.push({ icon: "◎", text: `${taskPct}% of tasks completed. Near perfect week.` });
+    else if (taskPct >= 70) insights.push({ icon: "◎", text: `${taskPct}% completion rate. Solid consistency.` });
+    else if (taskPct >= 50) insights.push({ icon: "→", text: `${taskPct}% completion. More than half done.` });
+    else if (taskPct > 0) insights.push({ icon: "→", text: `${taskPct}% completion. Rough week — what got in the way?` });
+  }
+
+  // Active days
+  if (activeDays >= 6) insights.push({ icon: "◎", text: `${activeDays}/7 days active. Exceptional consistency.` });
+  else if (activeDays >= 5) insights.push({ icon: "◎", text: `${activeDays}/7 days active.` });
+  else if (activeDays === 0 && !isCurrentWeek) insights.push({ icon: "—", text: "No activity logged this week." });
+
+  // Morning section consistency check
+  const morningDays = perDay.filter(d => {
+    const dow = getDayOfWeek(d.dateStr);
+    return d.count > 0;
+  }).length;
+
+  return insights.slice(0, 3); // cap at 3 insights
+}
+
 export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes, onSave, onBack }) {
   const today = todayString();
-  // anchorDate is any date within the viewed week — start at today
   const [anchorDate, setAnchorDate] = useState(today);
 
   const weekDates = getWeekDates(anchorDate);
@@ -110,12 +185,12 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
   const weeklyDots = getWeeklyDots(tasks, workouts, weekDates);
   const savedNotes = weeklyReviewNotes[weekKey] || {};
   const isCurrentWeek = weekDates[0] === getWeekDates(today)[0];
+  const insights = getWeekInsights(weekStats, isCurrentWeek);
 
   const [reflection, setReflection] = useState(savedNotes.reflection || "");
   const [goals, setGoals] = useState(savedNotes.goals || "");
   const [saved, setSaved] = useState(false);
 
-  // When week changes, load that week's saved notes
   useEffect(() => {
     const notes = weeklyReviewNotes[weekKey] || {};
     setReflection(notes.reflection || "");
@@ -192,10 +267,13 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
 
         {/* Title */}
         <h1 style={{
-          fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px",
+          fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px",
         }}>
           Weekly Review
         </h1>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "24px", lineHeight: 1.5 }}>
+          {isCurrentWeek ? "Reflect on this week as it unfolds." : "Look back on how this week went."}
+        </p>
 
         <HintCard
           hintId="weekly_progress"
@@ -208,7 +286,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: "24px",
+          marginBottom: "20px",
         }}>
           <button
             onClick={prevWeek}
@@ -245,7 +323,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
         {/* Weekly dots */}
         <div style={{
           background: "var(--bg-card)", borderRadius: "12px", padding: "18px 20px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "16px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "12px",
         }}>
           <span style={labelStyle}>Consistency</span>
           <div style={{
@@ -257,6 +335,7 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
                 <div style={{
                   width: "32px", height: "32px", borderRadius: "50%",
                   background: dot.active ? "var(--text-primary)" : "var(--border)",
+                  transition: "background 0.3s ease",
                 }} />
                 <span style={{
                   fontSize: "0.68rem",
@@ -268,10 +347,10 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats row */}
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "10px", marginBottom: "28px",
+          gap: "10px", marginBottom: "16px",
         }}>
           {[
             { label: "Active Days", value: `${weekStats.activeDays}/7` },
@@ -291,6 +370,32 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
             </div>
           ))}
         </div>
+
+        {/* ── Insight cards — the personality of the review ── */}
+        {insights.length > 0 && (
+          <div style={{
+            background: "var(--bg-card)", borderRadius: "12px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.07)", overflow: "hidden", marginBottom: "24px",
+          }}>
+            <div style={{ padding: "14px 16px 6px" }}>
+              <span style={labelStyle}>Observations</span>
+            </div>
+            {insights.map((insight, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: "12px",
+                padding: "10px 16px",
+                borderTop: i === 0 ? "none" : "1px solid var(--border-light)",
+              }}>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-faint)", marginTop: "1px", flexShrink: 0, fontWeight: 600 }}>
+                  {insight.icon}
+                </span>
+                <p style={{ fontSize: "0.88rem", color: "var(--text-primary)", lineHeight: 1.4 }}>
+                  {insight.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Reflection */}
         <div style={{ marginBottom: "20px" }}>
@@ -324,11 +429,19 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
             background: saved ? "#4caf50" : "var(--text-primary)",
             color: "var(--bg)", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
-            transition: "background 0.3s ease",
+            transition: "background 0.35s ease",
           }}
         >
           {saved ? "Saved ✓" : "Save Review"}
         </button>
+
+        {/* Quiet footer */}
+        <p style={{
+          textAlign: "center", fontSize: "0.75rem", color: "var(--text-faint)",
+          marginTop: "20px", lineHeight: 1.5,
+        }}>
+          Small reflections. Compounding results.
+        </p>
 
       </div>
     </div>
