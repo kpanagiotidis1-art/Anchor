@@ -524,7 +524,7 @@ export default function HomeScreen({
           <HintCard
             hintId="tasks_first"
             text="Build your daily structure here."
-            sub="Add tasks to Morning, Afternoon, or Night — they repeat based on your schedule."
+            sub="Build routines that repeat automatically each day."
           />
           {["Morning", "Afternoon", "Night"].map(section => (
             <SectionBlock

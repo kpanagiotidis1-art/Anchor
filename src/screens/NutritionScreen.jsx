@@ -652,7 +652,7 @@ export default function NutritionScreen({
         <HintCard
           hintId="nutrition_ai"
           text="Scan meals with AI or log manually."
-          sub="Take a photo of your food and let AI estimate the macros."
+          sub="Track meals in seconds with AI."
         />
 
         {/* Date nav */}
