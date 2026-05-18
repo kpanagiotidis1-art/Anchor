@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { getFocusMode } from "./OnboardingScreen";
 
+export { getFocusMode };
+
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const SECTIONS = ["Morning", "Afternoon", "Night"];
 
