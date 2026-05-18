@@ -20,6 +20,44 @@ function formatDateFull(dateStr) {
   return new Date(y, m-1, d).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
 }
 
+// ── Dynamic task copy ──
+function getTaskCopy(completed, total, remaining) {
+  const h = new Date().getHours();
+  if (total === 0) return { headline: "No tasks today", sub: "Head to Tasks to add your first routine." };
+  if (completed === total) return { headline: "All done today.", sub: "Stay consistent. That's the whole game." };
+  if (remaining === 1) return { headline: "One task left.", sub: "Finish strong." };
+  if (h >= 20 && remaining > 0) return { headline: `${remaining} left tonight.`, sub: "Make it count before you sleep." };
+  if (h >= 12 && h < 17 && remaining > 0) return { headline: `${remaining} left this afternoon.`, sub: `${completed} of ${total} complete.` };
+  return { headline: `${remaining} left today.`, sub: `${completed} of ${total} complete.` };
+}
+
+// ── Dynamic workout copy ──
+function getWorkoutCopy(sessions) {
+  const done = sessions.some(s => s.status === "completed");
+  const active = sessions.some(s => s.status === "active");
+  const h = new Date().getHours();
+  if (active) return { label: "In progress", color: "#f0a500", sub: "Keep going." };
+  if (done) return { label: "Done ✓", color: "#4caf50", sub: "Workout logged." };
+  if (h < 10) return { label: "Not yet", color: "var(--text-faint)", sub: "Day is young." };
+  if (h >= 20) return { label: "Not yet", color: "var(--text-faint)", sub: "Still time tonight." };
+  return { label: "Not yet", color: "var(--text-faint)", sub: null };
+}
+
+// ── Dynamic nutrition copy ──
+function getNutritionCopy(summary, goals) {
+  const cal = summary?.calories ?? 0;
+  const protein = summary?.protein ?? 0;
+  const goalCal = goals?.calories ?? 2000;
+  const goalProtein = goals?.protein ?? 150;
+  const remaining = goalCal - cal;
+  const proteinLeft = goalProtein - protein;
+
+  if (cal === 0) return `Nothing logged yet · ${goalCal} kcal goal`;
+  if (remaining <= 0) return `${cal} kcal · Goal reached`;
+  if (proteinLeft > 0 && proteinLeft < 50) return `${cal} kcal · ${proteinLeft}g protein left`;
+  return `${cal} / ${goalCal} kcal · ${protein}g protein`;
+}
+
 // ── Progress ring ──
 function ProgressRing({ completed, total }) {
   const size = 120;
@@ -57,22 +95,15 @@ function ProgressRing({ completed, total }) {
 
 // ── Remaining tasks sheet ──
 function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
-  // Group by section
   const grouped = {};
   SECTIONS.forEach(s => { grouped[s] = []; });
-  tasks.forEach(t => {
-    if (grouped[t.section]) grouped[t.section].push(t);
-  });
+  tasks.forEach(t => { if (grouped[t.section]) grouped[t.section].push(t); });
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
       <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
-      <div style={{
-        position: "relative", background: "var(--bg)", borderRadius: "20px 20px 0 0",
-        padding: "24px 20px 48px", zIndex: 301, maxHeight: "80vh", overflowY: "auto",
-      }}>
+      <div style={{ position: "relative", background: "var(--bg)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", zIndex: 301, maxHeight: "80vh", overflowY: "auto" }}>
         <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "99px", margin: "0 auto 20px" }} />
-
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>Still to do</p>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}>×</button>
@@ -83,16 +114,10 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
           if (sectionTasks.length === 0) return null;
           return (
             <div key={section} style={{ marginBottom: "20px" }}>
-              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>
-                {section}
-              </p>
+              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>{section}</p>
               <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
                 {sectionTasks.map((task, i) => (
-                  <div key={task.id} style={{
-                    display: "flex", alignItems: "center", gap: "12px",
-                    padding: "12px 16px",
-                    borderBottom: i < sectionTasks.length - 1 ? "1px solid var(--border-light)" : "none",
-                  }}>
+                  <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < sectionTasks.length - 1 ? "1px solid var(--border-light)" : "none" }}>
                     <div style={{ width: "18px", height: "18px", borderRadius: "5px", border: "2px solid var(--border)", flexShrink: 0 }} />
                     <p style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>{task.name}</p>
                   </div>
@@ -102,15 +127,11 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
           );
         })}
 
-        <button
-          onClick={() => { onClose(); onGoToTasks(); }}
-          style={{
-            width: "100%", padding: "13px",
-            background: "var(--text-primary)", color: "var(--bg)",
-            border: "none", borderRadius: "10px",
-            fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-          }}
-        >Go to Tasks</button>
+        <button onClick={() => { onClose(); onGoToTasks(); }} style={{
+          width: "100%", padding: "13px", background: "var(--text-primary)", color: "var(--bg)",
+          border: "none", borderRadius: "10px", fontSize: "0.92rem", fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>Go to Tasks</button>
       </div>
     </div>
   );
@@ -125,6 +146,7 @@ export default function OverviewScreen({
   weekStats,
   viewedDate,
   onGoToTasks,
+  onGoToWorkout,
   onOpenSettings,
   onOpenReview,
   nutritionSummary,
@@ -140,17 +162,23 @@ export default function OverviewScreen({
   const totalCount = allTasks.length;
 
   const todaySessions = workouts[today] || [];
-  const workoutDone = todaySessions.some(s => s.status === "completed");
-  const workoutActive = todaySessions.some(s => s.status === "active");
+  const taskCopy = getTaskCopy(completedCount, totalCount, remainingToday.length);
+  const workoutCopy = getWorkoutCopy(todaySessions);
+  const nutritionCopy = getNutritionCopy(nutritionSummary, nutritionGoals);
 
-  const workoutLabel = workoutActive ? "In progress" : workoutDone ? "Done ✓" : "Not yet";
-  const workoutColor = workoutActive ? "#f0a500" : workoutDone ? "#4caf50" : "var(--text-faint)";
-
+  // Weekly insight
   const weeklyInsight = () => {
+    const day = new Date().getDay(); // 0=Sun
+    if (day === 0 || day === 1) {
+      // Sunday/Monday — new week framing
+      return weekStats?.activeDays > 0
+        ? `${weekStats.activeDays}/7 days active last week. New week, new start.`
+        : "Fresh week. Make it count.";
+    }
     if (!weekStats || weekStats.taskPct === null) return "Start completing tasks to track your week.";
-    if (weekStats.taskPct >= 80) return "Strong week. Keep the momentum going.";
-    if (weekStats.taskPct >= 50) return "Solid progress. Finish strong.";
-    return "Every day is a fresh start.";
+    if (weekStats.taskPct >= 80) return `${weekStats.activeDays}/7 days · Strong week.`;
+    if (weekStats.taskPct >= 50) return `${weekStats.activeDays}/7 days · Solid progress.`;
+    return `${weekStats.activeDays}/7 days · Keep showing up.`;
   };
 
   return (
@@ -178,20 +206,18 @@ export default function OverviewScreen({
           </button>
         </div>
 
-        {/* ── PRIMARY: Hero card — progress + remaining tasks ── */}
+        {/* ── PRIMARY: Hero card ── */}
         <div style={{ background: "var(--bg-card)", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow)", marginBottom: "12px" }}>
-
-          {/* Ring + summary */}
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: remainingToday.length > 0 ? "16px" : "0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: remainingToday.length > 0 || (totalCount > 0 && remainingToday.length === 0) ? "16px" : "0" }}>
             <ProgressRing completed={completedCount} total={totalCount} />
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
-                {totalCount === 0 ? "No tasks today" : completedCount === totalCount ? "All done 🎉" : `${totalCount - completedCount} left today`}
+              <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
+                {taskCopy.headline}
               </p>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "12px" }}>
-                {totalCount === 0 ? "Add tasks to get started" : `${completedCount} of ${totalCount} complete`}
+                {taskCopy.sub}
               </p>
-              {/* Weekly dots */}
+              {/* Weekly dots — tappable */}
               <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
                 {(weeklyDots || []).map((dot, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
@@ -203,26 +229,18 @@ export default function OverviewScreen({
             </div>
           </div>
 
-          {/* Remaining tasks — inline, tappable */}
+          {/* Remaining tasks inline */}
           {remainingToday.length > 0 && (
-            <button
-              onClick={() => setShowRemaining(true)}
-              style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
-            >
+            <button onClick={() => setShowRemaining(true)} style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
               <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
                 {remainingToday.slice(0, 3).map((task, i) => (
-                  <div key={task.id} style={{
-                    display: "flex", alignItems: "center", gap: "10px",
-                    padding: "5px 0",
-                  }}>
+                  <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "5px 0" }}>
                     <div style={{ width: "14px", height: "14px", borderRadius: "4px", border: "1.5px solid var(--border)", flexShrink: 0 }} />
                     <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{task.name}</p>
                   </div>
                 ))}
                 {remainingToday.length > 3 && (
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "6px" }}>
-                    +{remainingToday.length - 3} more → tap to see all
-                  </p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "6px" }}>+{remainingToday.length - 3} more</p>
                 )}
               </div>
             </button>
@@ -233,14 +251,23 @@ export default function OverviewScreen({
               <p style={{ fontSize: "0.82rem", color: "#4caf50", fontWeight: 500 }}>All tasks complete. Stay consistent.</p>
             </div>
           )}
+
+          {/* Empty state CTA */}
+          {totalCount === 0 && (
+            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px" }}>
+              <button onClick={onGoToTasks} style={{
+                background: "none", border: "none", padding: 0, cursor: "pointer",
+                fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "inherit",
+                textDecoration: "underline", textDecorationColor: "var(--border)",
+              }}>
+                Add your first task →
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ── SECONDARY: Streak + Workout — compact inline row ── */}
-        <div style={{
-          background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px",
-          boxShadow: "var(--shadow)", marginBottom: "12px",
-          display: "flex", alignItems: "center", gap: "0",
-        }}>
+        {/* ── SECONDARY: Streak + Workout ── */}
+        <div style={{ background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px", boxShadow: "var(--shadow)", marginBottom: "12px", display: "flex", alignItems: "center" }}>
           <button onClick={onOpenReview} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
             <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{currentStreak}</p>
             <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Day streak</p>
@@ -248,30 +275,29 @@ export default function OverviewScreen({
 
           <div style={{ width: "1px", height: "32px", background: "var(--border-light)", flexShrink: 0 }} />
 
-          <div style={{ flex: 1, paddingLeft: "20px" }}>
-            <p style={{ fontSize: "1.3rem", fontWeight: 700, color: workoutColor, lineHeight: 1 }}>{workoutLabel}</p>
-            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Workout</p>
-          </div>
+          <button
+            onClick={todaySessions.length === 0 ? onGoToWorkout : undefined}
+            style={{ flex: 1, paddingLeft: "20px", background: "none", border: "none", padding: "0 0 0 20px", cursor: todaySessions.length === 0 ? "pointer" : "default", textAlign: "left" }}
+          >
+            <p style={{ fontSize: "1.3rem", fontWeight: 700, color: workoutCopy.color, lineHeight: 1 }}>{workoutCopy.label}</p>
+            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {workoutCopy.sub || "Workout"}
+            </p>
+          </button>
         </div>
 
-        {/* ── TERTIARY: At a glance strip — quiet, compact ── */}
-        <div style={{
-          background: "var(--bg-card)", borderRadius: "12px",
-          boxShadow: "var(--shadow)", overflow: "hidden", marginBottom: "0",
-        }}>
+        {/* ── TERTIARY: At a glance strip ── */}
+        <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+
           {/* Weekly progress */}
           <button onClick={onOpenReview} style={{
             width: "100%", background: "none", border: "none", padding: "14px 20px",
             cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
             borderBottom: "1px solid var(--border-light)",
           }}>
-            <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-              <div>
-                <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
-                <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                  {weekStats?.activeDays ?? 0}/7 days · {weekStats?.taskPct != null ? `${weekStats.taskPct}%` : "—"} tasks
-                </p>
-              </div>
+            <div>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
+              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
             </div>
             <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
           </button>
@@ -284,10 +310,7 @@ export default function OverviewScreen({
           }}>
             <div>
               <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
-              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>
-                {nutritionSummary?.calories ?? 0} / {nutritionGoals?.calories ?? 2000} kcal
-                {nutritionSummary?.protein > 0 && ` · ${nutritionSummary.protein}g protein`}
-              </p>
+              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
             </div>
             <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
           </button>

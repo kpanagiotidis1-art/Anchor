@@ -31,6 +31,7 @@ import {
 } from "./lib/workoutService";
 import OverviewScreen from "./screens/OverviewScreen";
 import NutritionScreen from "./screens/NutritionScreen";
+import OnboardingScreen, { isOnboardingComplete, markOnboardingComplete } from "./screens/OnboardingScreen";
 import {
   getNutritionForDate,
   addMealToDate,
@@ -200,6 +201,9 @@ export default function App() {
 
   // ── Settings ──
   const { settings, updateSetting } = useSettings();
+
+  // ── Onboarding ──
+  const [onboardingDone, setOnboardingDone] = useState(isOnboardingComplete);
 
   // ── Task state (Supabase) ──
   const [tasks, setTasks] = useState({ Morning: [], Afternoon: [], Night: [] });
@@ -707,6 +711,11 @@ export default function App() {
 
   if (!user) return <AuthScreen />;
 
+  // Show onboarding for new users (after auth, before main app)
+  if (!onboardingDone) {
+    return <OnboardingScreen onComplete={() => setOnboardingDone(true)} />;
+  }
+
   if (tasksLoading) {
     return (
       <div style={{
@@ -787,6 +796,7 @@ export default function App() {
           weekStats={weekStats}
           viewedDate={viewedDate}
           onGoToTasks={() => setActiveScreen("today")}
+          onGoToWorkout={() => setActiveScreen("workout")}
           onOpenSettings={() => setScreen("settings")}
           onOpenReview={() => setScreen("review")}
           nutritionSummary={todayNutritionTotals}
