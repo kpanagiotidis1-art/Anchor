@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getFocusMode } from "./OnboardingScreen";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const SECTIONS = ["Morning", "Afternoon", "Night"];
@@ -155,6 +156,7 @@ export default function OverviewScreen({
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const today = todayString();
+  const focusMode = getFocusMode(); // "discipline" | "fitness" | "balanced" | null
 
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(today)).length;
@@ -289,31 +291,58 @@ export default function OverviewScreen({
         {/* ── TERTIARY: At a glance strip ── */}
         <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
 
-          {/* Weekly progress */}
-          <button onClick={onOpenReview} style={{
-            width: "100%", background: "none", border: "none", padding: "14px 20px",
-            cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-            borderBottom: "1px solid var(--border-light)",
-          }}>
-            <div>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
-              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
-            </div>
-            <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-          </button>
-
-          {/* Nutrition */}
-          <button onClick={onGoToNutrition} style={{
-            width: "100%", background: "none", border: "none", padding: "14px 20px",
-            cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-            borderBottom: "1px solid var(--border-light)",
-          }}>
-            <div>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
-              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
-            </div>
-            <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-          </button>
+          {/* For fitness users: nutrition comes before weekly progress */}
+          {focusMode === "fitness" ? (
+            <>
+              <button onClick={onGoToNutrition} style={{
+                width: "100%", background: "none", border: "none", padding: "14px 20px",
+                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
+                borderBottom: "1px solid var(--border-light)",
+              }}>
+                <div>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
+                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+              </button>
+              <button onClick={onOpenReview} style={{
+                width: "100%", background: "none", border: "none", padding: "14px 20px",
+                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
+                borderBottom: "1px solid var(--border-light)",
+              }}>
+                <div>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
+                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={onOpenReview} style={{
+                width: "100%", background: "none", border: "none", padding: "14px 20px",
+                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
+                borderBottom: "1px solid var(--border-light)",
+              }}>
+                <div>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
+                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+              </button>
+              <button onClick={onGoToNutrition} style={{
+                width: "100%", background: "none", border: "none", padding: "14px 20px",
+                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
+                borderBottom: "1px solid var(--border-light)",
+              }}>
+                <div>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
+                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+              </button>
+            </>
+          )}
 
           {/* Steps */}
           <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
