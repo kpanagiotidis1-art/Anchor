@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SectionBlock from "../components/SectionBlock";
 import CalendarPicker from "../components/CalendarPicker";
+import HintCard from "../components/HintCard";
 import { getFocusMode, getConfig } from "./OverviewScreen";
 
 const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -520,6 +521,11 @@ export default function HomeScreen({
           flexDirection: "column",
           gap: "16px",
         }}>
+          <HintCard
+            hintId="tasks_first"
+            text="Build your daily structure here."
+            sub="Add tasks to Morning, Afternoon, or Night — they repeat based on your schedule."
+          />
           {["Morning", "Afternoon", "Night"].map(section => (
             <SectionBlock
               key={section}

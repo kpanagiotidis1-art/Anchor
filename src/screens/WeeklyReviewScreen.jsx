@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import HintCard from "../components/HintCard";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -195,6 +196,12 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
         }}>
           Weekly Review
         </h1>
+
+        <HintCard
+          hintId="weekly_progress"
+          text="Your weekly progress updates automatically."
+          sub="Come back each week to reflect and plan ahead."
+        />
 
         {/* Week navigation */}
         <div style={{

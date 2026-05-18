@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import HintCard from "../components/HintCard";
 
 const CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const CATEGORY_KEYS = ["breakfast", "lunch", "dinner", "snacks"];
@@ -647,6 +648,12 @@ export default function NutritionScreen({
       <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
 
         <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px", textAlign: "center" }}>Nutrition</h1>
+
+        <HintCard
+          hintId="nutrition_ai"
+          text="Scan meals with AI or log manually."
+          sub="Take a photo of your food and let AI estimate the macros."
+        />
 
         {/* Date nav */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "24px", position: "relative" }}>

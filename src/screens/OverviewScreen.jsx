@@ -15,7 +15,34 @@ function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning.";
   if (h < 17) return "Good afternoon.";
-  return "Good evening.";
+  if (h < 21) return "Good evening.";
+  return "Wind down.";
+}
+
+// ── Dynamic contextual sub-header ──
+// Returns a subtle line beneath the greeting based on current context
+function getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals) {
+  const h = new Date().getHours();
+  const day = new Date().getDay(); // 0=Sun
+  const proteinLeft = (nutritionGoals?.protein ?? 150) - (nutritionSummary?.protein ?? 0);
+
+  // Post-workout protein nudge
+  if (workoutDone && proteinLeft > 20) {
+    return `${proteinLeft}g protein left to hit your target.`;
+  }
+  // Sunday — weekly reflection
+  if (day === 0 && h >= 17) {
+    return "Take a moment to review your week.";
+  }
+  // All tasks done — calm reinforcement
+  if (totalCount > 0 && completedCount === totalCount) {
+    return "Everything done for today.";
+  }
+  // Evening with tasks remaining
+  if (h >= 20 && totalCount > completedCount) {
+    return "Finish strong before you sleep.";
+  }
+  return null;
 }
 
 function formatDateFull(dateStr) {
@@ -266,12 +293,13 @@ export default function OverviewScreen({
   const totalCount = allTasks.length;
 
   const todaySessions = workouts[today] || [];
+  const workoutDone = todaySessions.some(s => s.status === "completed");
 
-  // All copy and emphasis flows through config
   const taskCopy = getTaskCopy(completedCount, totalCount, remainingToday.length, config);
   const workoutCopy = getWorkoutCopy(todaySessions, config);
   const nutritionCopy = getNutritionCopy(nutritionSummary, nutritionGoals, config);
   const weeklyInsightText = getWeeklyInsight(weekStats, config);
+  const contextLine = getContextLine(completedCount, totalCount, workoutDone, nutritionSummary, nutritionGoals);
 
   // Tertiary rows — order driven by config
   const tertiaryRows = config.tertiaryOrder.map(key => ({
@@ -295,7 +323,14 @@ export default function OverviewScreen({
         {/* ── Header ── */}
         <div style={{ marginBottom: "28px", position: "relative" }}>
           <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "3px", fontWeight: 500 }}>{formatDateFull(today)}</p>
-          <h1 style={{ fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.15 }}>{getGreeting()}</h1>
+          <h1 style={{ fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.15, marginBottom: contextLine ? "6px" : "0" }}>
+            {getGreeting()}
+          </h1>
+          {contextLine && (
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+              {contextLine}
+            </p>
+          )}
           <button onClick={onOpenSettings} style={{ position: "absolute", right: 0, top: 0, background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text-muted)", display: "flex", alignItems: "center" }}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
