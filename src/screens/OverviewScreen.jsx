@@ -21,42 +21,124 @@ function formatDateFull(dateStr) {
   return new Date(y, m-1, d).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
 }
 
-// ── Dynamic task copy ──
-function getTaskCopy(completed, total, remaining) {
+// ── Focus configuration ──
+// ALL personalisation lives here. Add a new mode by adding a new key.
+// Each screen imports getFocusMode() and getConfig() — no prop drilling.
+const FOCUS_CONFIG = {
+  discipline: {
+    // Hero card — no tasks state
+    emptyTaskHeadline: "Build your routine.",
+    emptyTaskSub: "Structure is the foundation of everything.",
+    emptyTaskCTA: "Add your first routine →",
+    // Hero card — all done state
+    allDoneSub: "Discipline compounds. Keep the streak going.",
+    // Workout card when no session logged
+    workoutEmptyLabel: "Not yet",
+    workoutEmptySub: "Recovery counts too.",
+    // Tertiary strip order
+    tertiaryOrder: ["weekly", "nutrition"],
+    // Nutrition row when nothing logged
+    nutritionEmptyCopy: null,
+    // Weekly insight
+    weeklyPrefix: "Consistency is everything.",
+    // Tasks tab
+    tasksSubtitle: "Stay on track.",
+    sectionEmptyLabel: "Tap + to add a routine",
+    // Workout nudge (shown in workout tab when no session)
+    workoutNudge: null,
+  },
+  fitness: {
+    emptyTaskHeadline: "Track today's training.",
+    emptyTaskSub: "Add tasks to structure your day around your goals.",
+    emptyTaskCTA: "Start a workout →",
+    allDoneSub: "Fuelled and focused. Nice work.",
+    workoutEmptyLabel: "Ready?",
+    workoutEmptySub: "Start today's session →",
+    tertiaryOrder: ["nutrition", "weekly"],
+    nutritionEmptyCopy: "Nothing logged — tap to add your first meal",
+    weeklyPrefix: null,
+    tasksSubtitle: "Structure your day.",
+    sectionEmptyLabel: "Tap + to add a task",
+    workoutNudge: "Ready for today's session?",
+  },
+  balanced: {
+    emptyTaskHeadline: "No tasks today",
+    emptyTaskSub: "Add tasks to get started.",
+    emptyTaskCTA: "Add your first task →",
+    allDoneSub: "Stay consistent. That's the whole game.",
+    workoutEmptyLabel: "Not yet",
+    workoutEmptySub: null,
+    tertiaryOrder: ["weekly", "nutrition"],
+    nutritionEmptyCopy: null,
+    weeklyPrefix: null,
+    tasksSubtitle: null,
+    sectionEmptyLabel: "Tap + to add a task",
+    workoutNudge: null,
+  },
+};
+
+// Exported so any screen can read it without prop drilling
+export function getConfig(focusMode) {
+  return FOCUS_CONFIG[focusMode] || FOCUS_CONFIG.balanced;
+}
+
+// ── Dynamic task copy — focus-aware ──
+function getTaskCopy(completed, total, remaining, config) {
   const h = new Date().getHours();
-  if (total === 0) return { headline: "No tasks today", sub: "Head to Tasks to add your first routine." };
-  if (completed === total) return { headline: "All done today.", sub: "Stay consistent. That's the whole game." };
+  if (total === 0) return { headline: config.emptyTaskHeadline, sub: config.emptyTaskSub };
+  if (completed === total) return { headline: "All done today.", sub: config.allDoneSub };
   if (remaining === 1) return { headline: "One task left.", sub: "Finish strong." };
-  if (h >= 20 && remaining > 0) return { headline: `${remaining} left tonight.`, sub: "Make it count before you sleep." };
-  if (h >= 12 && h < 17 && remaining > 0) return { headline: `${remaining} left this afternoon.`, sub: `${completed} of ${total} complete.` };
+  if (h >= 20) return { headline: `${remaining} left tonight.`, sub: "Make it count before you sleep." };
+  if (h >= 12 && h < 17) return { headline: `${remaining} left this afternoon.`, sub: `${completed} of ${total} complete.` };
   return { headline: `${remaining} left today.`, sub: `${completed} of ${total} complete.` };
 }
 
-// ── Dynamic workout copy ──
-function getWorkoutCopy(sessions) {
+// ── Dynamic workout copy — focus-aware ──
+function getWorkoutCopy(sessions, config) {
   const done = sessions.some(s => s.status === "completed");
   const active = sessions.some(s => s.status === "active");
   const h = new Date().getHours();
-  if (active) return { label: "In progress", color: "#f0a500", sub: "Keep going." };
-  if (done) return { label: "Done ✓", color: "#4caf50", sub: "Workout logged." };
-  if (h < 10) return { label: "Not yet", color: "var(--text-faint)", sub: "Day is young." };
-  if (h >= 20) return { label: "Not yet", color: "var(--text-faint)", sub: "Still time tonight." };
-  return { label: "Not yet", color: "var(--text-faint)", sub: null };
+  if (active) return { label: "In progress", color: "#f0a500", sub: "Keep going.", tappable: false };
+  if (done) return { label: "Done ✓", color: "#4caf50", sub: "Workout logged.", tappable: false };
+  // Empty — focus-aware
+  const sub = config.workoutEmptySub ||
+    (h < 10 ? "Day is young." : h >= 20 ? "Still time tonight." : null);
+  return { label: config.workoutEmptyLabel, color: "var(--text-faint)", sub, tappable: true };
 }
 
-// ── Dynamic nutrition copy ──
-function getNutritionCopy(summary, goals) {
+// ── Dynamic nutrition copy — focus-aware ──
+function getNutritionCopy(summary, goals, config) {
   const cal = summary?.calories ?? 0;
   const protein = summary?.protein ?? 0;
   const goalCal = goals?.calories ?? 2000;
   const goalProtein = goals?.protein ?? 150;
-  const remaining = goalCal - cal;
   const proteinLeft = goalProtein - protein;
+  const remaining = goalCal - cal;
 
-  if (cal === 0) return `Nothing logged yet · ${goalCal} kcal goal`;
+  if (cal === 0) return config.nutritionEmptyCopy || `Nothing logged yet · ${goalCal} kcal goal`;
   if (remaining <= 0) return `${cal} kcal · Goal reached`;
   if (proteinLeft > 0 && proteinLeft < 50) return `${cal} kcal · ${proteinLeft}g protein left`;
   return `${cal} / ${goalCal} kcal · ${protein}g protein`;
+}
+
+// ── Weekly insight — focus-aware ──
+function getWeeklyInsight(weekStats, config) {
+  const day = new Date().getDay();
+  const prefix = config.weeklyPrefix;
+
+  if (day === 0 || day === 1) {
+    return weekStats?.activeDays > 0
+      ? `${weekStats.activeDays}/7 days active last week. New week, new start.`
+      : "Fresh week. Make it count.";
+  }
+  if (!weekStats || weekStats.taskPct === null) {
+    return prefix ? `${prefix} Start logging to track your week.` : "Start completing tasks to track your week.";
+  }
+  if (weekStats.taskPct >= 80) return `${weekStats.activeDays}/7 days · Strong week.`;
+  if (weekStats.taskPct >= 50) return `${weekStats.activeDays}/7 days · Solid progress.`;
+  return prefix
+    ? `${weekStats.activeDays}/7 days · ${prefix}`
+    : `${weekStats.activeDays}/7 days · Keep showing up.`;
 }
 
 // ── Progress ring ──
@@ -109,7 +191,6 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
           <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>Still to do</p>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
-
         {SECTIONS.map(section => {
           const sectionTasks = grouped[section];
           if (sectionTasks.length === 0) return null;
@@ -127,7 +208,6 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
             </div>
           );
         })}
-
         <button onClick={() => { onClose(); onGoToTasks(); }} style={{
           width: "100%", padding: "13px", background: "var(--text-primary)", color: "var(--bg)",
           border: "none", borderRadius: "10px", fontSize: "0.92rem", fontWeight: 600,
@@ -135,6 +215,23 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
         }}>Go to Tasks</button>
       </div>
     </div>
+  );
+}
+
+// ── Tertiary row component — reusable ──
+function TertiaryRow({ label, value, onClick, isLast }) {
+  return (
+    <button onClick={onClick} style={{
+      width: "100%", background: "none", border: "none", padding: "14px 20px",
+      cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
+      borderBottom: isLast ? "none" : "1px solid var(--border-light)",
+    }}>
+      <div>
+        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{label}</p>
+        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{value}</p>
+      </div>
+      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
+    </button>
   );
 }
 
@@ -156,7 +253,10 @@ export default function OverviewScreen({
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const today = todayString();
-  const focusMode = getFocusMode(); // "discipline" | "fitness" | "balanced" | null
+
+  // ── Focus config — single source of truth for personalisation ──
+  const focusMode = getFocusMode();
+  const config = getConfig(focusMode);
 
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(today)).length;
@@ -164,24 +264,18 @@ export default function OverviewScreen({
   const totalCount = allTasks.length;
 
   const todaySessions = workouts[today] || [];
-  const taskCopy = getTaskCopy(completedCount, totalCount, remainingToday.length);
-  const workoutCopy = getWorkoutCopy(todaySessions);
-  const nutritionCopy = getNutritionCopy(nutritionSummary, nutritionGoals);
 
-  // Weekly insight
-  const weeklyInsight = () => {
-    const day = new Date().getDay(); // 0=Sun
-    if (day === 0 || day === 1) {
-      // Sunday/Monday — new week framing
-      return weekStats?.activeDays > 0
-        ? `${weekStats.activeDays}/7 days active last week. New week, new start.`
-        : "Fresh week. Make it count.";
-    }
-    if (!weekStats || weekStats.taskPct === null) return "Start completing tasks to track your week.";
-    if (weekStats.taskPct >= 80) return `${weekStats.activeDays}/7 days · Strong week.`;
-    if (weekStats.taskPct >= 50) return `${weekStats.activeDays}/7 days · Solid progress.`;
-    return `${weekStats.activeDays}/7 days · Keep showing up.`;
-  };
+  // All copy and emphasis flows through config
+  const taskCopy = getTaskCopy(completedCount, totalCount, remainingToday.length, config);
+  const workoutCopy = getWorkoutCopy(todaySessions, config);
+  const nutritionCopy = getNutritionCopy(nutritionSummary, nutritionGoals, config);
+  const weeklyInsightText = getWeeklyInsight(weekStats, config);
+
+  // Tertiary rows — order driven by config
+  const tertiaryRows = config.tertiaryOrder.map(key => ({
+    weekly: { label: "This week", value: weeklyInsightText, onClick: onOpenReview },
+    nutrition: { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
+  }[key]));
 
   return (
     <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0 100px", boxSizing: "border-box" }}>
@@ -210,7 +304,7 @@ export default function OverviewScreen({
 
         {/* ── PRIMARY: Hero card ── */}
         <div style={{ background: "var(--bg-card)", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow)", marginBottom: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: remainingToday.length > 0 || (totalCount > 0 && remainingToday.length === 0) ? "16px" : "0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: (remainingToday.length > 0 || totalCount > 0) ? "16px" : "0" }}>
             <ProgressRing completed={completedCount} total={totalCount} />
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
@@ -219,7 +313,7 @@ export default function OverviewScreen({
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "12px" }}>
                 {taskCopy.sub}
               </p>
-              {/* Weekly dots — tappable */}
+              {/* Weekly dots */}
               <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
                 {(weeklyDots || []).map((dot, i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
@@ -231,7 +325,7 @@ export default function OverviewScreen({
             </div>
           </div>
 
-          {/* Remaining tasks inline */}
+          {/* Remaining tasks */}
           {remainingToday.length > 0 && (
             <button onClick={() => setShowRemaining(true)} style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
               <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
@@ -254,15 +348,18 @@ export default function OverviewScreen({
             </div>
           )}
 
-          {/* Empty state CTA */}
+          {/* Empty state CTA — focus-aware */}
           {totalCount === 0 && (
             <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px" }}>
-              <button onClick={onGoToTasks} style={{
-                background: "none", border: "none", padding: 0, cursor: "pointer",
-                fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "inherit",
-                textDecoration: "underline", textDecorationColor: "var(--border)",
-              }}>
-                Add your first task →
+              <button
+                onClick={focusMode === "fitness" ? onGoToWorkout : onGoToTasks}
+                style={{
+                  background: "none", border: "none", padding: 0, cursor: "pointer",
+                  fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "inherit",
+                  textDecoration: "underline", textDecorationColor: "var(--border)",
+                }}
+              >
+                {config.emptyTaskCTA}
               </button>
             </div>
           )}
@@ -278,73 +375,32 @@ export default function OverviewScreen({
           <div style={{ width: "1px", height: "32px", background: "var(--border-light)", flexShrink: 0 }} />
 
           <button
-            onClick={todaySessions.length === 0 ? onGoToWorkout : undefined}
-            style={{ flex: 1, paddingLeft: "20px", background: "none", border: "none", padding: "0 0 0 20px", cursor: todaySessions.length === 0 ? "pointer" : "default", textAlign: "left" }}
+            onClick={workoutCopy.tappable ? onGoToWorkout : undefined}
+            style={{
+              flex: 1, padding: "0 0 0 20px", background: "none", border: "none",
+              cursor: workoutCopy.tappable ? "pointer" : "default", textAlign: "left",
+            }}
           >
             <p style={{ fontSize: "1.3rem", fontWeight: 700, color: workoutCopy.color, lineHeight: 1 }}>{workoutCopy.label}</p>
-            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <p style={{ fontSize: "0.68rem", color: workoutCopy.tappable && focusMode === "fitness" ? "var(--text-muted)" : "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
               {workoutCopy.sub || "Workout"}
             </p>
           </button>
         </div>
 
-        {/* ── TERTIARY: At a glance strip ── */}
+        {/* ── TERTIARY: At a glance strip — order from config ── */}
         <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+          {tertiaryRows.map((row, i) => (
+            <TertiaryRow
+              key={row.label}
+              label={row.label}
+              value={row.value}
+              onClick={row.onClick}
+              isLast={i === tertiaryRows.length - 1}
+            />
+          ))}
 
-          {/* For fitness users: nutrition comes before weekly progress */}
-          {focusMode === "fitness" ? (
-            <>
-              <button onClick={onGoToNutrition} style={{
-                width: "100%", background: "none", border: "none", padding: "14px 20px",
-                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-                borderBottom: "1px solid var(--border-light)",
-              }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
-                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
-                </div>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-              </button>
-              <button onClick={onOpenReview} style={{
-                width: "100%", background: "none", border: "none", padding: "14px 20px",
-                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-                borderBottom: "1px solid var(--border-light)",
-              }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
-                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
-                </div>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={onOpenReview} style={{
-                width: "100%", background: "none", border: "none", padding: "14px 20px",
-                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-                borderBottom: "1px solid var(--border-light)",
-              }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>This week</p>
-                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{weeklyInsight()}</p>
-                </div>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-              </button>
-              <button onClick={onGoToNutrition} style={{
-                width: "100%", background: "none", border: "none", padding: "14px 20px",
-                cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center",
-                borderBottom: "1px solid var(--border-light)",
-              }}>
-                <div>
-                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Nutrition</p>
-                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{nutritionCopy}</p>
-                </div>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-faint)" }}>→</span>
-              </button>
-            </>
-          )}
-
-          {/* Steps */}
+          {/* Steps — always last */}
           <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>Steps</p>

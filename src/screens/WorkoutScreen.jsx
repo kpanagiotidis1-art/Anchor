@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getFocusMode, getConfig } from "../screens/OverviewScreen";
 import CalendarPicker from "../components/CalendarPicker";
 
 function formatDate(dateStr) {
@@ -1548,11 +1549,14 @@ export default function WorkoutScreen({
         </div>
 
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
-          {safeSessions.length === 0 && (
-            <p style={{ fontSize: "0.9rem", color: "var(--text-faint)", textAlign: "center" }}>
-              No workouts logged for this day.
-            </p>
-          )}
+          {safeSessions.length === 0 && (() => {
+            const wConfig = getConfig(getFocusMode());
+            return (
+              <p style={{ fontSize: "0.9rem", color: "var(--text-faint)", textAlign: "center" }}>
+                {wConfig.workoutNudge || "No workouts logged for this day."}
+              </p>
+            );
+          })()}
 
           {safeSessions.map(session => (
             <SessionCard

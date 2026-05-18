@@ -1,6 +1,6 @@
 import TaskItem from "./TaskItem";
 
-export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate }) {
+export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate, emptyLabel }) {
   return (
     <div style={{
       background: "var(--bg-card)",
@@ -45,7 +45,7 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {tasks.length === 0 ? (
           <p style={{ fontSize: "0.85rem", color: "var(--text-faint)" }}>
-            No tasks yet — tap + to add one.
+            {emptyLabel || "Tap + to add a task"}
           </p>
         ) : (
           tasks.map(task => (

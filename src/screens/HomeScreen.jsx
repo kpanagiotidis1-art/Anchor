@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SectionBlock from "../components/SectionBlock";
 import CalendarPicker from "../components/CalendarPicker";
+import { getFocusMode, getConfig } from "./OverviewScreen";
 
 const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -389,6 +390,8 @@ export default function HomeScreen({
   const totalCount = allTasks.length;
   const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
+  const config = getConfig(getFocusMode());
+
   return (
     <div style={{
       width: "100%",
@@ -437,10 +440,20 @@ export default function HomeScreen({
           fontWeight: 700,
           color: "var(--text-primary)",
           textAlign: "center",
-          marginBottom: "20px",
+          marginBottom: config.tasksSubtitle ? "4px" : "20px",
         }}>
           Anchor
         </h1>
+        {config.tasksSubtitle && (
+          <p style={{
+            fontSize: "0.82rem",
+            color: "var(--text-muted)",
+            textAlign: "center",
+            marginBottom: "16px",
+          }}>
+            {config.tasksSubtitle}
+          </p>
+        )}
 
         {/* Date navigation */}
         <div style={{
@@ -516,6 +529,7 @@ export default function HomeScreen({
               onTitleTap={() => onSectionTap(section)}
               onEdit={task => setEditingTask(task)}
               viewedDate={viewedDate}
+              emptyLabel={config.sectionEmptyLabel}
             />
           ))}
         </div>
