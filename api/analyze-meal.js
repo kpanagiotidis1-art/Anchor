@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { imageBase64, mediaType } = req.body;
+  const { imageBase64, mediaType, userContext } = req.body;
 
   if (!imageBase64 || !mediaType) {
     return res.status(400).json({ error: "Missing imageBase64 or mediaType" });
@@ -44,8 +44,8 @@ export default async function handler(req, res) {
               },
               {
                 type: "text",
-                text: `Analyse this food image and estimate the nutritional content.
-                
+                text: `Analyse this food image and estimate the nutritional content.${userContext ? `\n\nThe user has provided this additional context: "${userContext}". Use this to improve accuracy — it may clarify the dish name, ingredients, or portion size.` : ""}
+
 Respond with ONLY a valid JSON object in exactly this format — no other text:
 {
   "meal_name": "descriptive meal name",
@@ -59,7 +59,8 @@ Respond with ONLY a valid JSON object in exactly this format — no other text:
 
 Rules:
 - All numeric values must be integers
-- confidence must be exactly "low", "medium", or "high"  
+- confidence must be exactly "low", "medium", or "high"
+- If user context is provided, prioritise it for identifying the dish
 - If you cannot identify food in the image, set confidence to "low" and use 0 for all values
 - Base estimates on typical portion sizes visible in the image
 - meal_name should be concise (2-5 words)`,

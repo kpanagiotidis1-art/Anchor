@@ -177,29 +177,44 @@ function MealFormSheet({ onAdd, onClose, prefill, initialCategory }) {
 // ── Category-first choice sheet ──
 // Step 1: pick category. Step 2: scan or manual.
 function AddMealFlow({ onAdd, onClose }) {
-  const [step, setStep] = useState("category"); // category | method | ai-scan | manual | ai-review
+  const [step, setStep] = useState("category"); // category | method | ai-scan | ai-context | manual | ai-review
   const [category, setCategory] = useState("breakfast");
   const [aiPrefill, setAiPrefill] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [userContext, setUserContext] = useState("");
   const fileInputRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
 
-  async function handleFile(file) {
+  function handleFileSelected(file) {
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) { setScanError("Please select a JPEG, PNG, or WebP image."); return; }
+    // Store file and show optional context step
+    setPendingFile(file);
+    setUserContext("");
+    setScanError("");
+    setStep("ai-context");
+  }
+
+  async function handleAnalyse() {
+    if (!pendingFile) return;
     setScanning(true); setScanError("");
     try {
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader();
         r.onload = () => res(r.result.split(",")[1]);
         r.onerror = rej;
-        r.readAsDataURL(file);
+        r.readAsDataURL(pendingFile);
       });
       const response = await fetch("/api/analyze-meal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type }),
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: pendingFile.type,
+          userContext: userContext.trim() || null,
+        }),
       });
       if (!response.ok) throw new Error("AI scan failed");
       const data = await response.json();
@@ -212,6 +227,7 @@ function AddMealFlow({ onAdd, onClose }) {
       setStep("ai-review");
     } catch (err) {
       setScanError(err.message || "Something went wrong. Try again or add manually.");
+      setStep("ai-scan");
     } finally {
       setScanning(false);
     }
@@ -269,31 +285,68 @@ function AddMealFlow({ onAdd, onClose }) {
   // Step: ai-scan
   if (step === "ai-scan") {
     return (
-      <Sheet onClose={!scanning ? onClose : undefined}>
-        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleFile(e.target.files?.[0])} />
+      <Sheet onClose={onClose}>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleFileSelected(e.target.files?.[0])} />
         <button onClick={() => setStep("method")} style={{ background: "none", border: "none", fontSize: "0.88rem", color: "var(--text-muted)", cursor: "pointer", padding: 0, marginBottom: "16px", fontFamily: "inherit" }}>← Back</button>
         <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px" }}>Scan with AI</p>
 
+        {scanError && <div style={{ background: "var(--bg-subtle)", borderRadius: "10px", padding: "12px 16px", marginBottom: "16px" }}><p style={{ fontSize: "0.85rem", color: "#e05252" }}>{scanError}</p></div>}
+        <button onClick={() => { fileInputRef.current.setAttribute("capture", "environment"); fileInputRef.current.click(); }} style={{
+          width: "100%", padding: "15px", background: "var(--text-primary)", color: "var(--bg)",
+          border: "none", borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit", marginBottom: "10px",
+        }}>📷 Take Photo</button>
+        <button onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }} style={{
+          width: "100%", padding: "15px", background: "none", color: "var(--text-primary)",
+          border: "1px solid var(--border)", borderRadius: "12px", fontSize: "0.95rem",
+          cursor: "pointer", fontFamily: "inherit", marginBottom: "14px",
+        }}>🖼 Choose from Library</button>
+        <p style={{ fontSize: "0.72rem", color: "var(--text-faint)", textAlign: "center" }}>AI estimates are approximate. Always review before saving.</p>
+      </Sheet>
+    );
+  }
+
+  // Step: ai-context — optional description after photo selected, before scanning
+  if (step === "ai-context") {
+    return (
+      <Sheet onClose={!scanning ? onClose : undefined}>
         {scanning ? (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
+          <div style={{ textAlign: "center", padding: "32px 0" }}>
             <p style={{ fontSize: "2rem", marginBottom: "12px" }}>✨</p>
             <p style={{ fontSize: "0.92rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: "6px" }}>Analysing your meal…</p>
             <p style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>This takes a few seconds</p>
           </div>
         ) : (
           <>
-            {scanError && <div style={{ background: "var(--bg-subtle)", borderRadius: "10px", padding: "12px 16px", marginBottom: "16px" }}><p style={{ fontSize: "0.85rem", color: "#e05252" }}>{scanError}</p></div>}
-            <button onClick={() => { fileInputRef.current.setAttribute("capture", "environment"); fileInputRef.current.click(); }} style={{
-              width: "100%", padding: "15px", background: "var(--text-primary)", color: "var(--bg)",
-              border: "none", borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
+            <button onClick={() => setStep("ai-scan")} style={{ background: "none", border: "none", fontSize: "0.88rem", color: "var(--text-muted)", cursor: "pointer", padding: 0, marginBottom: "16px", fontFamily: "inherit" }}>← Retake photo</button>
+            <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px" }}>Photo ready</p>
+            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "20px" }}>Add details to improve accuracy — or scan now.</p>
+
+            <input
+              type="text"
+              placeholder='e.g. "Lamb souvlaki with chips"'
+              value={userContext}
+              onChange={e => setUserContext(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAnalyse()}
+              autoFocus
+              style={{
+                width: "100%", padding: "14px", border: "1px solid var(--border)",
+                borderRadius: "10px", fontSize: "0.95rem", outline: "none",
+                background: "var(--bg-input)", color: "var(--text-primary)",
+                boxSizing: "border-box", fontFamily: "inherit", marginBottom: "12px",
+              }}
+            />
+            <p style={{ fontSize: "0.72rem", color: "var(--text-faint)", marginBottom: "20px" }}>
+              Optional — describe the dish, portion, or ingredients for a better estimate.
+            </p>
+
+            <button onClick={handleAnalyse} style={{
+              width: "100%", padding: "14px", background: "var(--text-primary)", color: "var(--bg)",
+              border: "none", borderRadius: "10px", fontSize: "0.95rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", marginBottom: "10px",
-            }}>📷 Take Photo</button>
-            <button onClick={() => { fileInputRef.current.removeAttribute("capture"); fileInputRef.current.click(); }} style={{
-              width: "100%", padding: "15px", background: "none", color: "var(--text-primary)",
-              border: "1px solid var(--border)", borderRadius: "12px", fontSize: "0.95rem",
-              cursor: "pointer", fontFamily: "inherit", marginBottom: "14px",
-            }}>🖼 Choose from Library</button>
-            <p style={{ fontSize: "0.72rem", color: "var(--text-faint)", textAlign: "center" }}>AI estimates are approximate. Always review before saving.</p>
+            }}>
+              {userContext.trim() ? "Scan with details" : "Scan now"}
+            </button>
           </>
         )}
       </Sheet>
