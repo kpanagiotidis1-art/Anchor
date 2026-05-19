@@ -551,7 +551,7 @@ function WorkoutSummary({ session, onDismiss }) {
   ];
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-10) var(--space-5) 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-10) var(--space-5) var(--scroll-pb)", boxSizing: "border-box" }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
 
         {/* Header — identity first */}
@@ -664,7 +664,7 @@ function TemplatePicker({ anchorTemplates, userTemplates, onSelect, onSkip }) {
   }
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) var(--scroll-pb)", boxSizing: "border-box" }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <div style={{ marginBottom: "var(--space-7)" }}>
           <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: "var(--space-2)" }}>Start workout</p>
@@ -747,7 +747,7 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
 
   if (view === "create" || view === "edit") {
     return (
-      <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) 100px", boxSizing: "border-box" }}>
+      <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) var(--scroll-pb)", boxSizing: "border-box" }}>
         <div style={{ width: "100%", maxWidth: "480px" }}>
           <button onClick={() => setView("list")} style={{ background: "none", border: "none", fontSize: "var(--text-body)", color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "var(--space-6)", fontFamily: "inherit" }}>← Back</button>
           <h2 style={{ fontSize: "var(--text-hero)", fontWeight: 700, color: "var(--text-primary)", marginBottom: "var(--space-6)" }}>{view === "create" ? "New Template" : "Edit Template"}</h2>
@@ -786,7 +786,7 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
   }
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) var(--space-5) var(--scroll-pb)", boxSizing: "border-box" }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", fontSize: "var(--text-body)", color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "var(--space-6)" }}>← Back</button>
         <h2 style={{ fontSize: "var(--text-hero)", fontWeight: 700, color: "var(--text-primary)", marginBottom: "var(--space-7)" }}>My Templates</h2>
@@ -1192,7 +1192,7 @@ export default function WorkoutScreen({
   }
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) 0 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) 0 var(--scroll-pb)", boxSizing: "border-box" }}>
       {showCalendar && (
         <CalendarPicker viewedDate={viewedDate} onSelectDate={date => onNavigateDay(0, date)} onClose={() => setShowCalendar(false)} />
       )}

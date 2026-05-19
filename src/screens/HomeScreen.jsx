@@ -282,12 +282,12 @@ export default function HomeScreen({
   return (
     <div style={{
       width: "100%",
-      minHeight: "100vh",
+      minHeight: "100svh",
       background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "var(--space-9) 0 100px",
+      padding: "var(--space-9) 0 var(--scroll-pb)",
       boxSizing: "border-box",
     }}>
       {showCalendar && (

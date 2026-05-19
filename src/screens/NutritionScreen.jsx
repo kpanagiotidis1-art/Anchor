@@ -752,7 +752,7 @@ export default function NutritionScreen({
   const calPct = goals.calories > 0 ? Math.min((totals.calories / goals.calories) * 100, 100) : 0;
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-deep)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-8) 0 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg-deep)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-8) 0 var(--scroll-pb)", boxSizing: "border-box" }}>
 
       {showAddFlow && (
         <AddMealFlow

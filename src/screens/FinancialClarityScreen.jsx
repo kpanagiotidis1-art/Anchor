@@ -227,9 +227,9 @@ export default function FinancialClarityScreen() {
 
   return (
     <div style={{
-      width: "100%", minHeight: "100dvh", background: "var(--bg-deep)",
+      width: "100%", minHeight: "100svh", background: "var(--bg-deep)",
       display: "flex", flexDirection: "column", alignItems: "center",
-      padding: "var(--space-8) var(--space-5) 100px",
+      padding: "var(--space-8) var(--space-5) var(--scroll-pb)",
       boxSizing: "border-box", overflowY: "auto",
     }}>
 

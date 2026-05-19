@@ -146,6 +146,23 @@
   --space-10: 64px;
 }
 
+/* ── Layout ── */
+:root {
+  /* Height of the bottom navigation bar (visual hit area only — safe area handled separately) */
+  --nav-height: 64px;
+
+  /*
+   * Bottom scroll-padding for tab screens sitting beneath the fixed navbar.
+   * = navbar visual height + iOS safe-area home-indicator inset (0 on non-notch devices) + one grid unit of breathing room
+   *
+   * Why env(safe-area-inset-bottom, 0px) and not just env(...)?
+   * Providing a fallback prevents the entire calc() from silently resolving to
+   * `initial` (i.e. 0) in browsers/webviews that don't expose the env variable,
+   * which would place content directly behind the navbar.
+   */
+  --scroll-pb: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
+}
+
 /* ── Border radius ── */
 :root {
   --radius-xs:   6px;
@@ -171,6 +188,11 @@ body {
   transition: background 0.2s ease;
 }
 
+/*
+ * svh = "small viewport height" — the viewport with ALL browser chrome visible.
+ * This is the safe minimum: content will never extend into toolbar or home-indicator
+ * regions, unlike 100vh which can exceed the visible area on iOS Safari.
+ */
 #root {
   width: 100%;
   max-width: 100%;

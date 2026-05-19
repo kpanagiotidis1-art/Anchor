@@ -773,7 +773,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)" }}>
       {activeScreen === "today" && (
         <HomeScreen
           tasks={visibleTasks}
@@ -879,8 +879,8 @@ export default function App() {
         display: "flex",
         alignItems: "stretch",
         justifyContent: "center",
-        height: "calc(64px + env(safe-area-inset-bottom))",
-        paddingBottom: "env(safe-area-inset-bottom)",
+        height: "calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
       }}>

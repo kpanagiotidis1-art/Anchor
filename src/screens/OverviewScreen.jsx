@@ -533,12 +533,12 @@ export default function OverviewScreen({
   return (
     <div style={{
       width: "100%",
-      minHeight: "100vh",
+      minHeight: "100svh",
       background: "var(--bg)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "var(--space-9) 0 calc(120px + env(safe-area-inset-bottom))",
+      padding: "var(--space-9) 0 var(--scroll-pb)",
       boxSizing: "border-box",
       position: "relative",
     }}>
