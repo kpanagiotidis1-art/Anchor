@@ -276,20 +276,19 @@ export default function App() {
   async function loadUserData(userId) {
     setTasksLoading(true);
     try {
-      const [fetchedTasks, fetchedReviews, fetchedWorkouts, fetchedHistory, fetchedTemplates, fetchedWeightLogs] = await Promise.all([
+      const [fetchedTasks, fetchedReviews, fetchedWorkouts, fetchedHistory, fetchedTemplates] = await Promise.all([
         fetchTasks(userId),
         fetchWeeklyReviews(userId),
         fetchAllSessions(userId),
         fetchExerciseHistory(userId),
         fetchUserTemplates(userId),
-        fetchWeightLogs(userId),
       ]);
       setTasks(fetchedTasks);
       setWeeklyReviewNotes(fetchedReviews);
       setWorkouts(fetchedWorkouts);
       setExerciseHistory(fetchedHistory);
       setUserTemplates(fetchedTemplates);
-      setWeightLogs(fetchedWeightLogs);
+      fetchWeightLogs(userId).then(setWeightLogs).catch(() => {});
     } catch (err) {
       console.error("Failed to load user data:", err);
     } finally {
