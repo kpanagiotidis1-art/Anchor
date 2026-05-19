@@ -81,3 +81,133 @@ h1, h2 {
 p {
   margin: 0;
 }
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ANCHOR MOTION SYSTEM
+   
+   Philosophy:
+   - Every interaction should feel physical and deliberate
+   - Nothing bounces, nothing overshoots
+   - Completion states feel earned, not celebrated
+   - Easing: cubic-bezier(0.4, 0, 0.2, 1) — same as Material/Apple standard
+   - Duration range: 150ms (snappy tap) → 550ms (state change)
+   - Disable all animation for prefers-reduced-motion users
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Checkbox tap — scales down slightly on press, releases cleanly ────────── */
+/* Applied to the checkbox div in TaskItem via .anchor-checkbox class */
+.anchor-checkbox {
+  transition:
+    background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.anchor-checkbox:active {
+  transform: scale(0.88);
+}
+
+/* ── Button press state — subtle scale for tappable cards/rows ─────────────── */
+.anchor-tap:active {
+  opacity: 0.75;
+  transition: opacity 0.08s ease;
+}
+
+/* ── Streak number pulse — fires once when streak increments ───────────────── */
+/* Add class "anchor-streak-pulse" via JS, remove after animation ends */
+@keyframes anchor-streak-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.anchor-streak-pulse {
+  animation: anchor-streak-pulse 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Progress bar fill — used on HomeScreen footer bar ─────────────────────── */
+/* Already handled inline, but this ensures the bar never transitions on mount */
+.anchor-progress-bar {
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+}
+
+/* ── Aligned day banner entrance ───────────────────────────────────────────── */
+@keyframes anchor-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Macro bar fill — for NutritionScreen MacroBar ─────────────────────────── */
+.anchor-macro-fill {
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+}
+
+/* ── Card entrance — used for sheets, modals, summary screens ──────────────── */
+@keyframes anchor-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes anchor-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Workout stat entrance — fires on WorkoutSummary mount ─────────────────── */
+@keyframes anchor-stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Water dot fill ─────────────────────────────────────────────────────────── */
+@keyframes anchor-water-fill {
+  from { transform: scale(0.7); opacity: 0.4; }
+  to   { transform: scale(1);   opacity: 1;   }
+}
+
+/* ── Nutrition goal hit — green flash on bar reaching 100% ─────────────────── */
+@keyframes anchor-goal-flash {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.anchor-goal-hit {
+  animation: anchor-goal-flash 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Reduce motion — respect system preference ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -11,8 +11,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Day state classifier ──────────────────────────────────────────────────────
-// Returns a structured read of how the user's day looks right now.
-// Everything else in the voice system derives from this.
 export function getDayState({
   completedCount,
   totalCount,
@@ -22,7 +20,6 @@ export function getDayState({
   currentStreak,
 }) {
   const proteinGoal = nutritionGoals?.protein ?? 150;
-  const calGoal = nutritionGoals?.calories ?? 2000;
   const protein = nutritionSummary?.protein ?? 0;
   const calories = nutritionSummary?.calories ?? 0;
   const proteinLeft = Math.max(0, proteinGoal - protein);
@@ -32,27 +29,91 @@ export function getDayState({
   const noTasksYet = totalCount === 0;
   const partialTasks = completedCount > 0 && !allTasksDone;
   const nothing = completedCount === 0 && !workoutDone && !caloriesLogged;
-
-  // "Complete day" = tasks done + workout logged
   const completeDay = allTasksDone && workoutDone;
-  // "Aligned day" = tasks + workout + protein
   const alignedDay = completeDay && proteinHit;
 
   return {
-    allTasksDone,
-    noTasksYet,
-    partialTasks,
-    nothing,
-    workoutDone,
-    proteinHit,
-    proteinLeft,
-    caloriesLogged,
-    completeDay,
-    alignedDay,
-    completedCount,
-    totalCount,
-    currentStreak,
+    allTasksDone, noTasksYet, partialTasks, nothing,
+    workoutDone, proteinHit, proteinLeft, caloriesLogged,
+    completeDay, alignedDay,
+    completedCount, totalCount, currentStreak,
   };
+}
+
+// ── Aligned day state — cross-pillar classifier ───────────────────────────────
+//
+// The single function that determines which "aligned" tier has been reached.
+// Drives visual state, accent colour, and identity copy in OverviewScreen.
+//
+// Tiers (highest to lowest priority):
+//   "full"     — tasks + workout + protein. Everything aligned.
+//   "complete" — tasks + workout. Protein not tracked.
+//   "fuelled"  — workout + protein. No tasks (fitness-mode natural state).
+//   "focused"  — all tasks done. Workout hasn't happened yet.
+//   "active"   — workout logged. Tasks in progress.
+//   null       — nothing earned. Normal/default state.
+//
+// Returns: { tier, line, sub, pillars, accentColor } | null
+export function getAlignedDayState(dayState) {
+  const {
+    allTasksDone, workoutDone, proteinHit,
+    completeDay, alignedDay, totalCount, noTasksYet,
+  } = dayState;
+
+  if (alignedDay) {
+    return {
+      tier: "full",
+      line: "Everything aligned today.",
+      sub: "Tasks, training, nutrition. You stayed anchored.",
+      pillars: ["tasks", "workout", "nutrition"],
+      accentColor: "#4caf50",
+    };
+  }
+
+  if (completeDay) {
+    return {
+      tier: "complete",
+      line: "Strong finish today.",
+      sub: "Tasks done. Workout logged.",
+      pillars: ["tasks", "workout"],
+      accentColor: "#4caf50",
+    };
+  }
+
+  // Workout + protein, no task system being used
+  if (workoutDone && proteinHit && noTasksYet) {
+    return {
+      tier: "fuelled",
+      line: "Trained and fuelled.",
+      sub: "Workout logged. Protein goal hit.",
+      pillars: ["workout", "nutrition"],
+      accentColor: "#4caf50",
+    };
+  }
+
+  // All tasks done, workout hasn't happened yet — partial, no accent
+  if (allTasksDone && !workoutDone && totalCount > 0) {
+    return {
+      tier: "focused",
+      line: "Routines done.",
+      sub: null,
+      pillars: ["tasks"],
+      accentColor: null,
+    };
+  }
+
+  // Workout logged, tasks still in progress — partial, no accent
+  if (workoutDone && !allTasksDone && totalCount > 0) {
+    return {
+      tier: "active",
+      line: "Session logged.",
+      sub: null,
+      pillars: ["workout"],
+      accentColor: null,
+    };
+  }
+
+  return null;
 }
 
 // ── Greetings (time-aware) ────────────────────────────────────────────────────
@@ -66,31 +127,29 @@ export function getGreeting() {
 }
 
 // ── Context line under greeting ───────────────────────────────────────────────
-// Observant, personal, never filler. Returns null if nothing meaningful to say.
-export function getContextLine(dayState, focusMode, weekStats) {
+// When alignedState is "full" or "complete", this defers — the banner
+// already owns that moment. Context line stays quiet.
+export function getContextLine(dayState, focusMode, weekStats, alignedState) {
   const h = new Date().getHours();
   const day = new Date().getDay();
   const {
     allTasksDone, workoutDone, proteinLeft, proteinHit,
-    completeDay, alignedDay, currentStreak, totalCount,
-    completedCount, nothing,
+    alignedDay, currentStreak, totalCount, completedCount, nothing,
   } = dayState;
 
-  // ── Milestone moments (always show when earned) ──
-  if (currentStreak === 7)  return "Seven days straight. That's a real habit now.";
-  if (currentStreak === 14) return "Two weeks consistent. This is who you are.";
-  if (currentStreak === 21) return "Three weeks. Identity locked in.";
-  if (currentStreak === 30) return "Thirty days. You've built something real.";
-  if (currentStreak === 60) return "Sixty days. Most people never get here.";
+  // Streak milestones always surface
+  if (currentStreak === 7)   return "Seven days straight. That's a real habit now.";
+  if (currentStreak === 14)  return "Two weeks consistent. This is who you are.";
+  if (currentStreak === 21)  return "Three weeks. Identity locked in.";
+  if (currentStreak === 30)  return "Thirty days. You've built something real.";
+  if (currentStreak === 60)  return "Sixty days. Most people never get here.";
   if (currentStreak === 100) return "One hundred days. That's exceptional.";
 
-  // ── Aligned / complete day (highest priority after milestones) ──
-  if (alignedDay && h >= 18) return "Tasks, workout, nutrition. Everything aligned today.";
-  if (completeDay && h >= 18) return "Tasks done. Workout logged. Strong day.";
+  // Defer when aligned banner owns the moment
+  if (alignedState?.tier === "full" || alignedState?.tier === "complete") return null;
 
-  // ── End of day states (after 9pm) ──
   if (h >= 21) {
-    if (alignedDay) return "Everything aligned. Rest well.";
+    if (alignedDay) return null;
     if (allTasksDone && !workoutDone) return "Tasks done. Good day.";
     if (workoutDone && !allTasksDone) return "Workout logged. That counts.";
     if (nothing) return "Tomorrow is a clean slate.";
@@ -99,7 +158,6 @@ export function getContextLine(dayState, focusMode, weekStats) {
     return null;
   }
 
-  // ── Focus-mode specific lines ──
   if (focusMode === "fitness") {
     if (workoutDone && proteinLeft > 15) return `${proteinLeft}g protein left to hit your target.`;
     if (workoutDone && proteinHit) return "Workout done. Protein on track. Good day.";
@@ -117,7 +175,6 @@ export function getContextLine(dayState, focusMode, weekStats) {
     return null;
   }
 
-  // ── Balanced ──
   if (workoutDone && proteinLeft > 20) return `${proteinLeft}g protein left to hit your target.`;
   if (allTasksDone) return "Everything done for today.";
   if (h >= 20 && totalCount > completedCount) return "Finish strong before you sleep.";
@@ -183,10 +240,12 @@ export function getWeeklyInsight(weekStats, config) {
 }
 
 // ── End-of-day summary (after 8pm, when earned) ───────────────────────────────
-// Returns an array of achievement strings, or null if nothing worth surfacing.
-export function getEndOfDaySummary(dayState) {
+// Suppressed when aligned banner is active — no double-speak.
+export function getEndOfDaySummary(dayState, alignedState) {
   const h = new Date().getHours();
   if (h < 20) return null;
+  if (alignedState?.tier === "full" || alignedState?.tier === "complete") return null;
+
   const { completedCount, totalCount, workoutDone, proteinHit, caloriesLogged } = dayState;
   const items = [];
   if (totalCount > 0 && completedCount === totalCount) items.push(`${completedCount} tasks done`);
@@ -197,7 +256,6 @@ export function getEndOfDaySummary(dayState) {
 }
 
 // ── Momentum insight ──────────────────────────────────────────────────────────
-// Surfaces the single most meaningful progression signal. No filler.
 export function getMomentumInsight(currentStreak, longestStreak, weekStats, workouts) {
   const totalWorkouts = Object.values(workouts).reduce(
     (acc, sessions) => acc + sessions.filter(s => s.status === "completed").length, 0
@@ -227,8 +285,6 @@ export function getMomentumInsight(currentStreak, longestStreak, weekStats, work
 }
 
 // ── Recovery / return states ──────────────────────────────────────────────────
-// Called when streak === 0 and the user has prior history.
-// Returns copy appropriate to a gap, not shame-based.
 export function getRecoveryCopy(daysSinceActive) {
   if (daysSinceActive <= 0) return null;
   if (daysSinceActive === 1) return "Yesterday off. Pick it back up today.";
@@ -239,7 +295,6 @@ export function getRecoveryCopy(daysSinceActive) {
 }
 
 // ── Workout summary identity lines ────────────────────────────────────────────
-// Shown on the post-workout completion screen. Calm and earned.
 export function getWorkoutIdentityLine(session) {
   const exercises = session?.exercises || [];
   const totalSets = exercises.reduce((acc, ex) => acc + (ex.sets || []).length, 0);
@@ -255,7 +310,6 @@ export function getWorkoutIdentityLine(session) {
 }
 
 // ── Nutrition screen status line ──────────────────────────────────────────────
-// Appears beneath the calorie number. Contextual, not clinical.
 export function getNutritionStatusLine(totals, goals) {
   const protein = totals?.protein ?? 0;
   const calories = totals?.calories ?? 0;
@@ -264,10 +318,10 @@ export function getNutritionStatusLine(totals, goals) {
   const proteinLeft = goalProtein - protein;
   const calLeft = goalCal - calories;
 
-  if (calories === 0) return null; // nothing to say yet
+  if (calories === 0) return null;
   if (protein >= goalProtein && calories >= goalCal * 0.9) return "Targets hit. Nutrition on point today.";
   if (protein >= goalProtein) return "Protein goal hit.";
-  if (proteinLeft > 0 && proteinLeft <= 30) return `${proteinLeft}g protein left. Almost there.`;
+  if (proteinLeft > 0 && proteinLeft <= 30) return `${Math.round(proteinLeft)}g protein left. Almost there.`;
   if (calLeft <= 0) return "Calorie target reached.";
   if (calLeft < 300) return `${calLeft} kcal remaining. Nearly there.`;
   return null;
@@ -285,14 +339,11 @@ export function getTasksFooterCopy(completedCount, totalCount) {
 }
 
 // ── Weekly review observations ────────────────────────────────────────────────
-// Returns up to 3 insight strings from the week's data.
-// Tone: reflective, observant, warm but not gushing.
-export function getWeekObservations(weekStats, weekDates, tasks, workouts) {
+export function getWeekObservations(weekStats) {
   const { activeDays, totalWorkouts, taskPct, perDay } = weekStats;
   const today = new Date().toISOString().slice(0, 10);
   const observations = [];
 
-  // Strongest day
   if (perDay) {
     const DAY_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const strongest = perDay
@@ -306,13 +357,11 @@ export function getWeekObservations(weekStats, weekDates, tasks, workouts) {
     }
   }
 
-  // Workout count
   if (totalWorkouts >= 5) observations.push(`${totalWorkouts} workouts completed — strong training week`);
   else if (totalWorkouts >= 3) observations.push(`${totalWorkouts} workouts logged this week`);
   else if (totalWorkouts === 1) observations.push("1 workout logged. More is in reach.");
   else if (totalWorkouts === 0) observations.push("No workouts this week. Next week is fresh.");
 
-  // Task rate
   if (taskPct !== null) {
     if (taskPct >= 90) observations.push(`${taskPct}% task completion. Near-perfect week.`);
     else if (taskPct >= 70) observations.push(`${taskPct}% completion. Solid consistency.`);
@@ -320,40 +369,24 @@ export function getWeekObservations(weekStats, weekDates, tasks, workouts) {
     else if (taskPct > 0) observations.push(`${taskPct}% completion. Rough week — reset and go again.`);
   }
 
-  // Active days
   if (activeDays >= 6) observations.push(`${activeDays}/7 days active. Exceptional.`);
   else if (activeDays >= 5) observations.push(`${activeDays}/7 days active.`);
 
   return observations.slice(0, 3);
 }
 
-// ── HomeScreen empty state copy ───────────────────────────────────────────────
 export const SECTION_EMPTY = {
   discipline: "Tap + to add a routine",
   fitness: "Tap + to add a task",
   balanced: "Tap + to add a task",
 };
 
-// ── Onboarding slide copy ─────────────────────────────────────────────────────
 export const ONBOARDING_SLIDES = [
-  {
-    icon: "⚓",
-    headline: "Build consistency.",
-    body: "Small daily actions compound into the person you want to become.",
-  },
-  {
-    icon: "◎",
-    headline: "Everything in one place.",
-    body: "Tasks, workouts, nutrition — connected and aware of each other.",
-  },
-  {
-    icon: "→",
-    headline: "Stay anchored.",
-    body: "Not perfect. Just consistent. That's the whole game.",
-  },
+  { icon: "⚓", headline: "Build consistency.", body: "Small daily actions compound into the person you want to become." },
+  { icon: "◎", headline: "Everything in one place.", body: "Tasks, workouts, nutrition — connected and aware of each other." },
+  { icon: "→", headline: "Stay anchored.", body: "Not perfect. Just consistent. That's the whole game." },
 ];
 
-// ── Auth screen ───────────────────────────────────────────────────────────────
 export const AUTH_COPY = {
   login: "Welcome back.",
   signup: "Build something lasting.",
