@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import HomeScreen from "./screens/HomeScreen";
 import AddTaskScreen from "./screens/AddTaskScreen";
 import WorkoutScreen from "./screens/WorkoutScreen";
@@ -45,8 +45,6 @@ import {
   getTotalsForDate,
   isNutritionSetupComplete,
 } from "./lib/nutritionService";
-
-const SCREENS = ["today", "overview", "nutrition", "workout", "finance"];
 
 function todayString() {
   const d = new Date();
@@ -236,11 +234,6 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState("overview");
   const [summarySession, setSummarySession] = useState(null);
 
-  const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
-  const SWIPE_THRESHOLD = 60;
-  const VERTICAL_LOCK = 10;
-
   // ── Auth listener ──
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -293,30 +286,6 @@ export default function App() {
       console.error("Failed to load user data:", err);
     } finally {
       setTasksLoading(false);
-    }
-  }
-
-  // ── Swipe navigation ──
-  function handleTouchStart(e) {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTouchEnd(e) {
-    if (touchStartX.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    touchStartX.current = null;
-    touchStartY.current = null;
-    if (Math.abs(deltaY) > Math.abs(deltaX) - VERTICAL_LOCK) return;
-    if (Math.abs(deltaX) < SWIPE_THRESHOLD) return;
-    const currentIndex = SCREENS.indexOf(activeScreen);
-    if (deltaX < 0) {
-      const next = SCREENS[currentIndex + 1];
-      if (next) setActiveScreen(next);
-    } else {
-      const prev = SCREENS[currentIndex - 1];
-      if (prev) setActiveScreen(prev);
     }
   }
 
@@ -804,11 +773,7 @@ export default function App() {
   }
 
   return (
-    <div
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      style={{ width: "100%", minHeight: "100vh", background: "var(--bg)" }}
-    >
+    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)" }}>
       {activeScreen === "today" && (
         <HomeScreen
           tasks={visibleTasks}
@@ -921,10 +886,10 @@ export default function App() {
       }}>
         {[
           { key: "today", label: "Tasks" },
+          { key: "finance", label: "Finance" },
           { key: "overview", label: "Overview" },
           { key: "nutrition", label: "Nutrition" },
           { key: "workout", label: "Workout" },
-          { key: "finance", label: "Finance" },
         ].map(tab => {
           const isActive = activeScreen === tab.key;
           return (

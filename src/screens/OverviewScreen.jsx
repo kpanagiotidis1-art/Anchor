@@ -538,7 +538,7 @@ export default function OverviewScreen({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "var(--space-9) 0 100px",
+      padding: "var(--space-9) 0 calc(80px + env(safe-area-inset-bottom))",
       boxSizing: "border-box",
       position: "relative",
     }}>

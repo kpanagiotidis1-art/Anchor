@@ -103,15 +103,23 @@ function computeTrainingContext(allWorkouts) {
 }
 
 // ── Training momentum header ───────────────────────────────────────────────────
-function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession }) {
+function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions }) {
   const copy = getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
   const lastIdentity = lastSession ? getSessionIdentity(lastSession.exercises || []) : null;
-  const lastLabel = lastSession && daysSinceLastSession !== null
-    ? (lastIdentity
-        ? `${lastIdentity} · ${daysSinceLastSession === 0 ? "Today" : daysSinceLastSession === 1 ? "Yesterday" : `${daysSinceLastSession}d ago`}`
-        : (daysSinceLastSession === 0 ? "Session logged today." : `Last session ${daysSinceLastSession === 1 ? "yesterday" : `${daysSinceLastSession} days ago`}.`)
-      )
-    : null;
+
+  // If the viewed date has completed sessions, surface that day's identity instead of the global last session
+  const completedViewed = (viewedSessions || []).filter(s => s.status === "completed");
+  const viewedExercises = completedViewed.flatMap(s => s.exercises || []);
+  const viewedIdentity = viewedExercises.length > 0 ? getSessionIdentity(viewedExercises) : null;
+
+  const lastLabel = viewedIdentity
+    ? viewedIdentity
+    : (lastSession && daysSinceLastSession !== null
+        ? (lastIdentity
+            ? `${lastIdentity} · ${daysSinceLastSession === 0 ? "Today" : daysSinceLastSession === 1 ? "Yesterday" : `${daysSinceLastSession}d ago`}`
+            : (daysSinceLastSession === 0 ? "Session logged today." : `Last session ${daysSinceLastSession === 1 ? "yesterday" : `${daysSinceLastSession} days ago`}.`)
+          )
+        : null);
 
   return (
     <div style={{ marginBottom: "var(--space-6)" }}>
@@ -189,7 +197,7 @@ function RecentSessionsStrip({ recentDates, onNavigateDay }) {
 }
 
 // ── Training stats panel ───────────────────────────────────────────────────────
-function TrainingStatsPanel({ allWorkouts, exerciseHistory }) {
+function TrainingStatsPanel({ allWorkouts, exerciseHistory, sessions }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!allWorkouts) return null;
@@ -200,21 +208,27 @@ function TrainingStatsPanel({ allWorkouts, exerciseHistory }) {
   let monthSessions = 0;
   let totalSessions = 0;
 
-  for (const [dateStr, sessions] of Object.entries(allWorkouts)) {
-    const completed = sessions.filter(s => s.status === "completed");
+  for (const [dateStr, daySessions] of Object.entries(allWorkouts)) {
+    const completed = daySessions.filter(s => s.status === "completed");
     totalSessions += completed.length;
     if (dateStr.startsWith(monthPrefix)) {
       monthSessions += completed.length;
     }
   }
 
-  // Find top PRs from exercise history (reps mode only)
+  // PRs are filtered to exercises in the viewed day's sessions (when sessions exist)
+  const completedSessions = (sessions || []).filter(s => s.status === "completed");
+  const sessionExerciseNames = completedSessions.length > 0
+    ? new Set(completedSessions.flatMap(s => (s.exercises || []).map(e => e.name)))
+    : null;
+
   const prs = [];
-  if (exerciseHistory) {
-    for (const [name, sessions] of Object.entries(exerciseHistory)) {
+  if (exerciseHistory && sessionExerciseNames !== null) {
+    for (const [name, entries] of Object.entries(exerciseHistory)) {
+      if (!sessionExerciseNames.has(name)) continue;
       let best = null;
-      for (const session of (sessions || [])) {
-        for (const set of (session.sets || [])) {
+      for (const entry of (entries || [])) {
+        for (const set of (entry.sets || [])) {
           if (!set.weight || !set.reps) continue;
           const score = set.weight * set.reps;
           if (!best || score > best.score) {
@@ -1190,10 +1204,11 @@ export default function WorkoutScreen({
           weekSessions={weekSessions}
           lastSession={lastSession}
           daysSinceLastSession={daysSinceLastSession}
+          viewedSessions={safeSessions}
         />
 
-        {/* ── Recent sessions strip (shown when viewing today and not in active session) ── */}
-        {isToday && !hasActiveSession && recentDates.length > 0 && (
+        {/* ── Recent sessions strip ── */}
+        {!hasActiveSession && recentDates.length > 0 && (
           <RecentSessionsStrip recentDates={recentDates} onNavigateDay={onNavigateDay} />
         )}
 
@@ -1253,7 +1268,7 @@ export default function WorkoutScreen({
           )}
 
           {/* Training stats panel */}
-          <TrainingStatsPanel allWorkouts={allWorkouts} exerciseHistory={exerciseHistory} />
+          <TrainingStatsPanel allWorkouts={allWorkouts} exerciseHistory={exerciseHistory} sessions={safeSessions} />
 
           <button onClick={() => setWorkoutView("templates")} style={{ width: "100%", padding: "12px", background: "none", color: "var(--text-muted)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-body)", cursor: "pointer" }}>
             Manage Templates
