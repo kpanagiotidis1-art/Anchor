@@ -1,44 +1,165 @@
-/* ── Anchor theme tokens ── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   ANCHOR DESIGN SYSTEM
+
+   Token layers (read this before editing):
+
+   1. Surface depth  — three levels of layering (bg → surface → elevated)
+   2. Accent system  — single accent color with opacity variants
+   3. Ambient states — near-invisible environmental washes for state-driven depth
+   4. Typography     — named scale from micro to display
+   5. Spacing        — 8pt grid from space-1 to space-10
+   6. Radius         — named scale from xs to xl
+   7. Shadow         — named scale from xs to lg
+
+   Legacy tokens (--bg-card, --bg-subtle, --bg-exercise) are kept as aliases
+   so existing screens continue to work during migration to the new tokens.
+   New screens and overhauled screens should use the new token names.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Light mode ── */
 :root,
 [data-theme="light"] {
-  --bg:           #f5f5f3;
+
+  /* ── Surface depth ── */
+  --bg:           #f4f4f1;     /* deepest: page environment */
+  --bg-deep:      #ededea;     /* deeper layer for visual separation */
+  --bg-surface:   #ffffff;     /* default card / section surface */
+  --bg-elevated:  #ffffff;     /* hero moments, prominent elements */
+  --bg-inset:     #f7f7f5;     /* recessed: inputs, nested content */
+
+  /* ── Legacy aliases (keep working during migration) ── */
   --bg-card:      #ffffff;
   --bg-input:     #ffffff;
-  --bg-subtle:    #f0f0f0;
-  --bg-exercise:  #f9f9f9;
-  --text-primary: #1a1a1a;
+  --bg-subtle:    #f0f0ee;
+  --bg-exercise:  #f7f7f5;
+
+  /* ── Text ── */
+  --text-primary:   #1a1a1a;
   --text-secondary: #555555;
-  --text-muted:   #aaaaaa;
-  --text-faint:   #cccccc;
-  --border:       #e0e0e0;
-  --border-light: #f0f0f0;
-  --divider:      #f5f5f5;
-  --shadow:       0 1px 4px rgba(0,0,0,0.08);
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06);
-  --tab-bg:       #ffffff;
-  --tab-border:   #e0e0e0;
+  --text-muted:     #999999;
+  --text-faint:     #c8c8c8;
+
+  /* ── Borders ── */
+  --border:        #e2e2e0;
+  --border-light:  #ebebea;
+  --divider:       #f2f2f0;
+
+  /* ── Accent system ── */
+  --accent:        #4caf50;
+  --accent-dim:    #3d9e43;
+  --accent-glow:   rgba(76,175,80,0.12);
+  --accent-subtle: rgba(76,175,80,0.06);
+  --accent-text:   #4caf50;
+
+  /* ── Ambient state washes (near-invisible — felt, not seen) ── */
+  --ambient-aligned:  rgba(76,175,80,0.025);
+  --ambient-active:   rgba(240,165,0,0.025);
+  --ambient-recovery: rgba(120,120,160,0.025);
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow:    0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.09);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.11);
+
+  /* ── Tab bar ── */
+  --tab-bg:     #ffffff;
+  --tab-border: #e2e2e0;
 }
 
+/* ── Dark mode ── */
 [data-theme="dark"] {
-  --bg:           #111111;
-  --bg-card:      #1c1c1e;
-  --bg-input:     #2c2c2e;
-  --bg-subtle:    #2c2c2e;
-  --bg-exercise:  #242426;
-  --text-primary: #f2f2f7;
-  --text-secondary: #ebebf0;
-  --text-muted:   #8e8e93;
-  --text-faint:   #48484a;
-  --border:       #38383a;
-  --border-light: #2c2c2e;
-  --divider:      #2c2c2e;
-  --shadow:       0 1px 4px rgba(0,0,0,0.4);
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.3);
-  --tab-bg:       #1c1c1e;
-  --tab-border:   #38383a;
+
+  /* ── Surface depth ── */
+  --bg:           #0e0e0e;
+  --bg-deep:      #080808;
+  --bg-surface:   #1a1a1c;
+  --bg-elevated:  #222224;
+  --bg-inset:     #141416;
+
+  /* ── Legacy aliases ── */
+  --bg-card:      #1a1a1c;
+  --bg-input:     #222224;
+  --bg-subtle:    #222224;
+  --bg-exercise:  #1e1e20;
+
+  /* ── Text ── */
+  --text-primary:   #f2f2f7;
+  --text-secondary: #d0d0d8;
+  --text-muted:     #8e8e93;
+  --text-faint:     #3a3a3c;
+
+  /* ── Borders ── */
+  --border:        #2c2c2e;
+  --border-light:  #242426;
+  --divider:       #1e1e20;
+
+  /* ── Accent system ── */
+  --accent:        #4caf50;
+  --accent-dim:    #3d9e43;
+  --accent-glow:   rgba(76,175,80,0.14);
+  --accent-subtle: rgba(76,175,80,0.07);
+  --accent-text:   #5bbf5f;
+
+  /* ── Ambient state washes ── */
+  --ambient-aligned:  rgba(76,175,80,0.04);
+  --ambient-active:   rgba(240,165,0,0.04);
+  --ambient-recovery: rgba(120,120,160,0.04);
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.35);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.40);
+  --shadow:    0 1px 4px rgba(0,0,0,0.45);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.55);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.65);
+
+  /* ── Tab bar ── */
+  --tab-bg:     #1a1a1c;
+  --tab-border: #2c2c2e;
 }
 
-/* ── Base ── */
+/* ── Typography scale ── */
+:root {
+  --text-micro:   0.60rem;   /* metadata, counts, micro labels */
+  --text-label:   0.68rem;   /* uppercase section labels */
+  --text-caption: 0.78rem;   /* supporting copy */
+  --text-body:    0.88rem;   /* body text, list items */
+  --text-ui:      0.95rem;   /* buttons, inputs, interactive */
+  --text-sub:     1.05rem;   /* sub-headlines, card titles */
+  --text-title:   1.3rem;    /* secondary stats, card headings */
+  --text-hero:    1.7rem;    /* screen greetings */
+  --text-display: 2.2rem;    /* dominant hero numbers and moments */
+}
+
+/* ── Spacing (8pt grid) ── */
+:root {
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  48px;
+  --space-10: 64px;
+}
+
+/* ── Border radius ── */
+:root {
+  --radius-xs:   6px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-pill: 99px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────────────────────────────────────── */
+
 * {
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -85,18 +206,17 @@ p {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    ANCHOR MOTION SYSTEM
-   
+
    Philosophy:
    - Every interaction should feel physical and deliberate
    - Nothing bounces, nothing overshoots
    - Completion states feel earned, not celebrated
    - Easing: cubic-bezier(0.4, 0, 0.2, 1) — same as Material/Apple standard
-   - Duration range: 150ms (snappy tap) → 550ms (state change)
+   - Duration range: 150ms (snappy tap) → 600ms (environmental state change)
    - Disable all animation for prefers-reduced-motion users
 ───────────────────────────────────────────────────────────────────────────── */
 
-/* ── Checkbox tap — scales down slightly on press, releases cleanly ────────── */
-/* Applied to the checkbox div in TaskItem via .anchor-checkbox class */
+/* ── Checkbox tap — scales down slightly on press, releases cleanly ── */
 .anchor-checkbox {
   transition:
     background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -108,14 +228,13 @@ p {
   transform: scale(0.88);
 }
 
-/* ── Button press state — subtle scale for tappable cards/rows ─────────────── */
+/* ── Button press state — subtle scale for tappable cards/rows ── */
 .anchor-tap:active {
   opacity: 0.75;
   transition: opacity 0.08s ease;
 }
 
-/* ── Streak number pulse — fires once when streak increments ───────────────── */
-/* Add class "anchor-streak-pulse" via JS, remove after animation ends */
+/* ── Streak number pulse — fires once when streak increments ── */
 @keyframes anchor-streak-pulse {
   0%   { transform: scale(1); }
   40%  { transform: scale(1.12); }
@@ -126,13 +245,12 @@ p {
   animation: anchor-streak-pulse 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* ── Progress bar fill — used on HomeScreen footer bar ─────────────────────── */
-/* Already handled inline, but this ensures the bar never transitions on mount */
+/* ── Progress bar fill ── */
 .anchor-progress-bar {
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
 }
 
-/* ── Aligned day banner entrance ───────────────────────────────────────────── */
+/* ── Aligned day banner entrance ── */
 @keyframes anchor-banner-in {
   from {
     opacity: 0;
@@ -144,12 +262,12 @@ p {
   }
 }
 
-/* ── Macro bar fill — for NutritionScreen MacroBar ─────────────────────────── */
+/* ── Macro bar fill ── */
 .anchor-macro-fill {
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
 }
 
-/* ── Card entrance — used for sheets, modals, summary screens ──────────────── */
+/* ── Card entrance ── */
 @keyframes anchor-sheet-in {
   from {
     opacity: 0;
@@ -161,6 +279,7 @@ p {
   }
 }
 
+/* ── Gentle fade up — cards, sections, list items ── */
 @keyframes anchor-fade-up {
   from {
     opacity: 0;
@@ -172,7 +291,7 @@ p {
   }
 }
 
-/* ── Workout stat entrance — fires on WorkoutSummary mount ─────────────────── */
+/* ── Workout stat entrance ── */
 @keyframes anchor-stat-in {
   from {
     opacity: 0;
@@ -184,13 +303,13 @@ p {
   }
 }
 
-/* ── Water dot fill ─────────────────────────────────────────────────────────── */
+/* ── Water dot fill ── */
 @keyframes anchor-water-fill {
   from { transform: scale(0.7); opacity: 0.4; }
   to   { transform: scale(1);   opacity: 1;   }
 }
 
-/* ── Nutrition goal hit — green flash on bar reaching 100% ─────────────────── */
+/* ── Nutrition goal hit — green flash on bar reaching 100% ── */
 @keyframes anchor-goal-flash {
   0%   { opacity: 1; }
   40%  { opacity: 0.6; }
@@ -201,7 +320,46 @@ p {
   animation: anchor-goal-flash 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* ── Reduce motion — respect system preference ──────────────────────────────── */
+/* ── Environmental state transition — slow, atmospheric ── */
+/* Used for background washes that signal aligned/active/recovery states */
+@keyframes anchor-env-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.anchor-env-in {
+  animation: anchor-env-in 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Value update — subtle entrance for numbers that change ── */
+@keyframes anchor-value-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anchor-value-in {
+  animation: anchor-value-in 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Section complete — fires when all tasks in a section are done ── */
+@keyframes anchor-section-complete {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Stagger helper classes (for list entrances) ── */
+.anchor-stagger-1 { animation-delay: 0.05s; }
+.anchor-stagger-2 { animation-delay: 0.10s; }
+.anchor-stagger-3 { animation-delay: 0.15s; }
+.anchor-stagger-4 { animation-delay: 0.20s; }
+
+/* ── Reduce motion — respect system preference ── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -375,6 +375,280 @@ export function getWeekObservations(weekStats) {
   return observations.slice(0, 3);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WORKOUT ENVIRONMENT VOICE
+// Functions that make the workout tab feel like a training environment
+// rather than a session logger.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Session identity — derives a human name from exercise composition ─────────
+//
+// Classifies sessions so they become chapters, not timestamps.
+// Returns: "Push Day" | "Pull Day" | "Leg Day" | "Upper Body" | "Full Body"
+//          | "Cardio" | "Core & Conditioning" | null (can't determine)
+export function getSessionIdentity(exercises) {
+  if (!exercises || exercises.length === 0) return null;
+
+  const names = exercises.map(e => (e.name || "").toLowerCase());
+
+  const PUSH_KW  = ["bench", "chest", "press", "ohp", "overhead", "tricep", "shoulder", "dip", "flye", "push"];
+  const PULL_KW  = ["row", "pull", "lat", "curl", "deadlift", "chin", "back", "bicep", "face pull", "shrug", "rdl"];
+  const LEG_KW   = ["squat", "leg", "lunge", "calf", "glute", "hamstring", "hip thrust", "hack", "quad", "split squat"];
+  const CARDIO_KW = ["run", "bike", "treadmill", "cardio", "cycling", "elliptical", "swim", "stair", "rowing", "rower", "jog", "walk", "hike"];
+  const CORE_KW  = ["plank", "ab ", "crunch", "sit-up", "situp", "core", "hollow", "l-sit", "dead bug"];
+
+  function score(kwList) {
+    return names.filter(n => kwList.some(k => n.includes(k))).length;
+  }
+
+  const push    = score(PUSH_KW);
+  const pull    = score(PULL_KW);
+  const legs    = score(LEG_KW);
+  const cardio  = score(CARDIO_KW);
+  const core    = score(CORE_KW);
+  const total   = exercises.length;
+
+  // Cardio dominant
+  if (cardio / total >= 0.6) return "Cardio";
+  if (cardio > 0 && push === 0 && pull === 0 && legs === 0) return "Cardio";
+
+  // Mostly legs
+  if (legs >= 2 && legs > push && legs > pull) return "Leg Day";
+
+  // Push dominant
+  if (push >= 2 && push > pull && push > legs) return "Push Day";
+
+  // Pull dominant
+  if (pull >= 2 && pull > push && pull > legs) return "Pull Day";
+
+  // Mixed upper (push + pull)
+  if (push >= 1 && pull >= 1 && legs === 0) return "Upper Body";
+
+  // Full body (all three present)
+  if (push >= 1 && pull >= 1 && legs >= 1) return "Full Body";
+
+  // Core focused
+  if (core >= 2 || (core >= 1 && total <= 3)) return "Core & Conditioning";
+
+  return null;
+}
+
+// ── Training momentum copy — drives the workout tab header ───────────────────
+//
+// weekSessions:  number of completed sessions this week (0–7)
+// lastSession:   the most recent completed session object, or null
+// daysSinceLastSession: computed by caller
+//
+// Returns: { headline, sub, tone }
+//   tone: "fresh" | "building" | "consistent" | "strong" | "resting"
+export function getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession) {
+  const identity = lastSession ? getSessionIdentity(lastSession.exercises || []) : null;
+  const h = new Date().getHours();
+  const isEvening = h >= 18;
+
+  // Rest day / no recent activity
+  if (weekSessions === 0) {
+    const sub = isEvening
+      ? "Still time tonight."
+      : h < 12 ? "Morning sessions build the strongest habits." : "Afternoon session?";
+    return { headline: "No sessions yet this week.", sub, tone: "fresh" };
+  }
+
+  if (daysSinceLastSession === 0) {
+    // Already trained today
+    const identityLabel = identity ? `${identity} logged.` : "Session logged.";
+    return {
+      headline: identityLabel,
+      sub: weekSessions >= 4 ? "Strong week in progress." : "Consistent.",
+      tone: "consistent",
+    };
+  }
+
+  if (daysSinceLastSession === 1) {
+    const sub = identity ? `Yesterday: ${identity}.` : "Yesterday's session is in.";
+    if (weekSessions >= 4) {
+      return { headline: `${weekSessions} sessions this week.`, sub, tone: "strong" };
+    }
+    return { headline: "Momentum is building.", sub, tone: "building" };
+  }
+
+  if (daysSinceLastSession >= 3) {
+    const sub = identity ? `Last session: ${identity}.` : "Last session is behind you.";
+    return {
+      headline: weekSessions > 0 ? `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.` : "Back to it.",
+      sub,
+      tone: "fresh",
+    };
+  }
+
+  // 2 days since last session
+  if (weekSessions >= 5) {
+    return { headline: `${weekSessions} sessions this week.`, sub: "Exceptional consistency.", tone: "strong" };
+  }
+  if (weekSessions >= 3) {
+    return { headline: `${weekSessions} sessions this week.`, sub: "Consistency is showing.", tone: "consistent" };
+  }
+
+  return {
+    headline: `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.`,
+    sub: "Keep building.",
+    tone: "building",
+  };
+}
+
+// ── Exercise progression hint ─────────────────────────────────────────────────
+//
+// Compares today's logged sets to the last session's sets to show
+// whether the user is matching, exceeding, or below their last effort.
+// Returns a short string or null.
+export function getExerciseProgressionHint(exerciseName, exerciseHistory, currentSets) {
+  const history = exerciseHistory?.[exerciseName];
+  if (!history || history.length === 0) return null;
+
+  const lastSession = history[0];
+  const lastSets = lastSession?.sets || [];
+  if (lastSets.length === 0) return null;
+
+  // Reps mode: find best set by weight × reps score
+  const lastBest = lastSets.reduce((best, set) => {
+    const score = (set.weight || 0) * (set.reps || 0);
+    const bestScore = (best?.weight || 0) * (best?.reps || 0);
+    return score > bestScore ? set : best;
+  }, null);
+
+  if (!lastBest) return null;
+
+  const weight = lastBest.weight ? `${lastBest.weight}kg` : "BW";
+  const setStr = `${weight} × ${lastBest.reps}`;
+
+  // If no current sets yet, just show last
+  if (!currentSets || currentSets.length === 0) {
+    return `Last: ${setStr}`;
+  }
+
+  // Compare current best to last best
+  const currentBest = currentSets.reduce((best, set) => {
+    const score = (set.weight || 0) * (set.reps || 0);
+    const bestScore = (best?.weight || 0) * (best?.reps || 0);
+    return score > bestScore ? set : best;
+  }, null);
+
+  if (!currentBest) return `Last: ${setStr}`;
+
+  const lastScore = (lastBest.weight || 0) * (lastBest.reps || 0);
+  const curScore  = (currentBest.weight || 0) * (currentBest.reps || 0);
+
+  if (curScore > lastScore) return "Weight increased";
+  if (curScore === lastScore && lastScore > 0) return `Matched — ${setStr}`;
+  return `Last: ${setStr}`;
+}
+
+// ── Recent sessions label ─────────────────────────────────────────────────────
+// Returns a human-readable date label for a session relative to today.
+export function getRelativeSessionLabel(dateStr) {
+  const today = new Date();
+  const date  = new Date(dateStr + "T00:00:00");
+  const diffMs   = today.setHours(0,0,0,0) - date.setHours(0,0,0,0);
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays <= 6) {
+    return date.toLocaleDateString("en-AU", { weekday: "short" });
+  }
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
+// ── Longitudinal intelligence ─────────────────────────────────────────────────
+
+export function getMultiWeekPattern(workouts) {
+  if (!workouts || Object.keys(workouts).length === 0) return null;
+  const today = new Date();
+  const counts = [];
+
+  for (let w = 0; w < 4; w++) {
+    const ref = new Date(today);
+    ref.setDate(today.getDate() - w * 7);
+    const dow = ref.getDay();
+    const diffToMon = dow === 0 ? -6 : 1 - dow;
+    const mon = new Date(ref);
+    mon.setDate(ref.getDate() + diffToMon);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    const monStr = mon.toISOString().slice(0, 10);
+    const sunStr = sun.toISOString().slice(0, 10);
+
+    let sessions = 0;
+    Object.entries(workouts).forEach(([d, s]) => {
+      if (d >= monStr && d <= sunStr) sessions += (s || []).length;
+    });
+    counts.unshift(sessions);
+  }
+
+  const [w1, w2, w3, current] = counts;
+  if (w1 === 0 && w2 === 0 && w3 === 0 && current === 0) return null;
+
+  if (current >= 3 && w3 >= 3 && w2 >= 3) return "3+ sessions per week — consistent for a month.";
+  if (current > w3 && w3 > 0) return `Training up — ${current} sessions this week vs ${w3} last.`;
+  if (w1 > 0 && w2 > 0 && w3 > 0 && current > 0) {
+    const avg = ((w1 + w2 + w3 + current) / 4).toFixed(1);
+    return `Averaging ${avg} sessions per week over 4 weeks.`;
+  }
+  return null;
+}
+
+export function getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts }) {
+  const { activeDays = 0, totalWorkouts = 0, taskPct = null } = weekStats || {};
+  const protein = nutritionSummary?.protein ?? 0;
+  const proteinGoal = nutritionGoals?.protein ?? 150;
+  const proteinHit = protein >= proteinGoal * 0.95 && protein > 0;
+  const caloriesLogged = (nutritionSummary?.calories ?? 0) > 0;
+
+  if (totalWorkouts >= 3 && taskPct >= 80) {
+    return `${totalWorkouts} workouts and ${taskPct}% of tasks done this week.`;
+  }
+  if (totalWorkouts >= 3 && proteinHit && caloriesLogged) {
+    return `Training ${totalWorkouts}× this week and hitting nutrition today.`;
+  }
+  const multiWeek = getMultiWeekPattern(workouts || {});
+  if (multiWeek) return multiWeek;
+  if (currentStreak >= 7 && totalWorkouts >= 2) {
+    return `${currentStreak}-day streak with ${totalWorkouts} workouts this week.`;
+  }
+  if (activeDays >= 5) return `Active ${activeDays} of 7 days this week.`;
+  return null;
+}
+
+// ── Physical progress narratives ──────────────────────────────────────────────
+
+export function getWeightTrendCopy(logs) {
+  if (!logs || logs.length < 2) return null;
+  const sorted = [...logs].sort((a, b) => a.date.localeCompare(b.date));
+  const first = sorted[0].weightKg;
+  const last = sorted[sorted.length - 1].weightKg;
+  const delta = last - first;
+  const abs = Math.abs(delta).toFixed(1);
+  if (Math.abs(delta) < 0.3) return "Holding steady overall.";
+  if (delta < 0) return `Down ${abs} kg since you started.`;
+  return `Up ${abs} kg since you started.`;
+}
+
+export function getRecentWeightChange(logs, days = 30) {
+  if (!logs || logs.length < 2) return null;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const recent = [...logs]
+    .filter(l => l.date >= cutoffStr)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (recent.length < 2) return null;
+  const delta = recent[recent.length - 1].weightKg - recent[0].weightKg;
+  const abs = Math.abs(delta).toFixed(1);
+  if (Math.abs(delta) < 0.3) return "Stable this month.";
+  if (delta < 0) return `-${abs} kg this month.`;
+  return `+${abs} kg this month.`;
+}
+
 export const SECTION_EMPTY = {
   discipline: "Tap + to add a routine",
   fitness: "Tap + to add a task",

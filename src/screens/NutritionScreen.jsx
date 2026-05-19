@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import HintCard from "../components/HintCard";
+import { getNutritionProfile, getRecentMeals } from "../lib/nutritionService";
 
 const CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const CATEGORY_KEYS = ["breakfast", "lunch", "dinner", "snacks"];
@@ -635,6 +635,84 @@ function CategorySection({ title, meals, onMealTap, onMealDelete }) {
   );
 }
 
+// ── Goal context strip ──
+const INTENTION_LABELS = { build: "Building", lean: "Leaning out", maintain: "Maintaining", track: "Tracking" };
+const INTENTION_SUB = {
+  build:    (cal) => `${cal?.toLocaleString() || "—"} kcal — high protein surplus`,
+  lean:     (cal) => `${cal?.toLocaleString() || "—"} kcal — controlled deficit`,
+  maintain: (cal) => `${cal?.toLocaleString() || "—"} kcal — energy balanced`,
+  track:    ()    => "Logging meals, building awareness",
+};
+
+function GoalContextStrip({ profile }) {
+  if (!profile?.intention) return null;
+  const { intention, targets } = profile;
+  return (
+    <div style={{
+      background: "var(--accent-subtle)",
+      border: "1px solid var(--accent-glow)",
+      borderRadius: "var(--radius-sm)",
+      padding: "var(--space-3) var(--space-4)",
+      marginBottom: "var(--space-4)",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+    }}>
+      <div>
+        <div style={{ fontSize: "var(--text-caption)", fontWeight: 700, color: "var(--accent-text)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {INTENTION_LABELS[intention] || "Goal"}
+        </div>
+        <div style={{ fontSize: "var(--text-caption)", color: "var(--text-secondary)", marginTop: "2px" }}>
+          {INTENTION_SUB[intention]?.(targets?.calories)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Recently logged meals strip ──
+function RecentMealsStrip({ onReLog }) {
+  const [meals] = useState(() => getRecentMeals(8));
+  if (meals.length === 0) return null;
+  return (
+    <div style={{ marginBottom: "var(--space-5)" }}>
+      <p style={{
+        fontSize: "var(--text-caption)", color: "var(--text-muted)",
+        textTransform: "uppercase", letterSpacing: "0.08em",
+        marginBottom: "var(--space-3)", fontWeight: 600,
+      }}>
+        Recently logged
+      </p>
+      <div style={{
+        display: "flex", gap: "var(--space-3)",
+        overflowX: "auto", paddingBottom: "var(--space-2)",
+        WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
+      }}>
+        {meals.map((meal, i) => (
+          <button key={i} onClick={() => onReLog(meal)} style={{
+            flexShrink: 0, width: "120px",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-sm)",
+            padding: "var(--space-3)",
+            textAlign: "left", cursor: "pointer",
+            boxShadow: "var(--shadow-xs)",
+          }}>
+            <div style={{
+              fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-primary)",
+              marginBottom: "var(--space-1)", overflow: "hidden",
+              textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {meal.name}
+            </div>
+            <div style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)" }}>
+              {meal.calories} kcal
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main NutritionScreen ──
 export default function NutritionScreen({
   nutritionData,
@@ -648,7 +726,9 @@ export default function NutritionScreen({
 }) {
   const [showAddFlow, setShowAddFlow] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState(null);
+  const [quickLogMeal, setQuickLogMeal] = useState(null);
 
+  const profile = getNutritionProfile();
   const today = todayString();
   const isToday = viewedDate === today;
   const dayData = nutritionData[viewedDate] || { meals: [], water: 0 };
@@ -672,7 +752,7 @@ export default function NutritionScreen({
   const calPct = goals.calories > 0 ? Math.min((totals.calories / goals.calories) * 100, 100) : 0;
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 0 100px", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg-deep)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-8) 0 100px", boxSizing: "border-box" }}>
 
       {showAddFlow && (
         <AddMealFlow
@@ -690,42 +770,52 @@ export default function NutritionScreen({
         />
       )}
 
-      <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
-
-        <h1 style={{ fontSize: "2rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "20px", textAlign: "center" }}>Nutrition</h1>
-
-        <HintCard
-          hintId="nutrition_ai"
-          text="Scan meals with AI or log manually."
-          sub="Track meals in seconds with AI."
+      {quickLogMeal && (
+        <MealFormSheet
+          prefill={{ ...quickLogMeal, source: "manual" }}
+          initialCategory={quickLogMeal.category}
+          onAdd={meal => { onAddMeal(viewedDate, meal); setQuickLogMeal(null); }}
+          onClose={() => setQuickLogMeal(null)}
         />
+      )}
+
+      <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box" }}>
+
+        {/* Header wordmark */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-5)" }}>
+          <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+            Nutrition
+          </span>
+        </div>
+
+        <GoalContextStrip profile={profile} />
 
         {/* Date nav */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "24px", position: "relative" }}>
-          <button onClick={() => onNavigateDay(-1)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: "6px", width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>‹</button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)", marginBottom: "var(--space-5)" }}>
+          <button onClick={() => onNavigateDay(-1)} style={{ background: "none", border: "1px solid var(--border-light)", borderRadius: "var(--radius-xs)", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>‹</button>
           <div style={{ textAlign: "center", width: "150px" }}>
-            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{formatDateLong(viewedDate)}</p>
-            <p style={{ fontSize: "0.72rem", color: isToday ? "var(--text-muted)" : "transparent", marginTop: "2px" }}>Today</p>
+            <p style={{ fontSize: "var(--text-body)", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{formatDateLong(viewedDate)}</p>
+            {isToday && <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Today</p>}
           </div>
-          <button onClick={() => onNavigateDay(1)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: "6px", width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>›</button>
+          <button onClick={() => onNavigateDay(1)} style={{ background: "none", border: "1px solid var(--border-light)", borderRadius: "var(--radius-xs)", width: "32px", height: "32px", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>›</button>
         </div>
 
         {/* Calorie summary */}
-        <div style={{ background: "var(--bg-card)", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow)", marginBottom: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+        <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", boxShadow: "var(--shadow-sm)", marginBottom: "var(--space-4)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-4)" }}>
             <div>
-              <p style={{ fontSize: "2.4rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{totals.calories}</p>
-              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "4px" }}>of {goals.calories} kcal</p>
+              <p style={{ fontSize: "var(--text-display)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{totals.calories}</p>
+              <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginTop: "var(--space-1)" }}>of {goals.calories} kcal</p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--text-primary)" }}>{Math.max(0, goals.calories - totals.calories)}</p>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>remaining</p>
+              <p style={{ fontSize: "var(--text-title)", fontWeight: 600, color: "var(--text-primary)" }}>{Math.max(0, goals.calories - totals.calories)}</p>
+              <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px", textTransform: "uppercase", letterSpacing: "0.06em" }}>remaining</p>
             </div>
           </div>
-          <div style={{ height: "6px", background: "var(--border)", borderRadius: "99px", overflow: "hidden", marginBottom: "20px" }}>
-            <div style={{ height: "100%", width: `${calPct}%`, background: calPct >= 100 ? "#4caf50" : "var(--text-primary)", borderRadius: "99px", transition: "width 0.45s cubic-bezier(0.4,0,0.2,1), background 0.4s ease" }} />
+          <div style={{ height: "5px", background: "var(--bg-inset)", borderRadius: "var(--radius-pill)", overflow: "hidden", marginBottom: "var(--space-5)" }}>
+            <div style={{ height: "100%", width: `${calPct}%`, background: calPct >= 100 ? "var(--accent)" : "var(--text-primary)", borderRadius: "var(--radius-pill)", transition: "width 0.45s cubic-bezier(0.4,0,0.2,1), background 0.4s ease" }} />
           </div>
-          <div style={{ display: "flex", gap: "16px" }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <MacroBar label="Protein" value={totals.protein} goal={goals.protein} colour="#4a90d9" />
             <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} colour="#f0a500" />
             <MacroBar label="Fats" value={totals.fats} goal={goals.fats} colour="#9b59b6" />
@@ -737,6 +827,9 @@ export default function NutritionScreen({
           onAdd={() => onSetWater(viewedDate, water + 1)}
           onRemove={() => onSetWater(viewedDate, water - 1)}
         />
+
+        {/* Recent meals re-log strip — only shown on today */}
+        {isToday && <RecentMealsStrip onReLog={setQuickLogMeal} />}
 
         {/* Meals by category */}
         {CATEGORIES.map((cat, i) => (

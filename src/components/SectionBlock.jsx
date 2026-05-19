@@ -4,28 +4,24 @@ import TaskItem from "./TaskItem";
 // ─────────────────────────────────────────────────────────────────────────────
 // SectionBlock
 //
-// Added: section-complete state
-//   When all tasks in a section are done, the section header title shifts to
-//   green and a quiet "Done" pill appears beside it. The card border also
-//   picks up a faint green tint.
+// isPrimary (Morning section): slightly stronger title weight and slightly
+// more presence. Afternoon/Night are supporting sections.
 //
-//   This is deliberate — sections complete independently, and each completion
-//   should feel earned without waiting for the whole day to be done.
+// Section-complete state: header title shifts to green, quiet "Done" pill
+// appears. The card border picks up a faint green tint. Deliberate — each
+// section completing independently should feel earned.
 //
 // Motion:
 //   - Card border-color transitions over 0.4s
 //   - Title color transitions over 0.4s
 //   - "Done" label fades in over 0.3s after the last task completes
-//   - No entrance animation for individual tasks (they're loaded from DB,
-//     not created live in this component)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate, emptyLabel }) {
+export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdit, viewedDate, emptyLabel, isPrimary }) {
   const completedCount = tasks.filter(t => t.completedDates?.includes(viewedDate)).length;
   const totalCount = tasks.length;
   const isSectionDone = totalCount > 0 && completedCount === totalCount;
 
-  // Delay the "done" label slightly so it doesn't flash during rapid toggles
   const [showDoneLabel, setShowDoneLabel] = useState(isSectionDone);
   const doneTimer = useRef(null);
   const prevDone = useRef(isSectionDone);
@@ -33,10 +29,8 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
   useEffect(() => {
     clearTimeout(doneTimer.current);
     if (isSectionDone && !prevDone.current) {
-      // Became done — short delay, then show label
       doneTimer.current = setTimeout(() => setShowDoneLabel(true), 180);
     } else if (!isSectionDone) {
-      // Un-done immediately — no delay
       setShowDoneLabel(false);
     } else {
       setShowDoneLabel(isSectionDone);
@@ -47,14 +41,13 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
 
   return (
     <div style={{
-      background: "var(--bg-card)",
-      borderRadius: "12px",
-      padding: "16px 20px",
-      // Border tints green when section is complete — 1px, subtle
+      background: "var(--bg-surface)",
+      borderRadius: "var(--radius-md)",
+      padding: isPrimary ? "var(--space-5) var(--space-5)" : "var(--space-4) var(--space-5)",
       border: isSectionDone
-        ? "1px solid rgba(76, 175, 80, 0.28)"
+        ? "1px solid var(--accent-glow)"
         : "1px solid transparent",
-      boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+      boxShadow: "var(--shadow-sm)",
       width: "100%",
       boxSizing: "border-box",
       transition: "border-color 0.4s ease",
@@ -65,28 +58,31 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: "14px",
+        marginBottom: "var(--space-4)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1, minWidth: 0 }}>
           <span style={{
-            fontSize: "1rem",
-            fontWeight: 600,
-            color: isSectionDone ? "#4caf50" : "var(--text-primary)",
+            fontSize: isPrimary ? "var(--text-body)" : "var(--text-caption)",
+            fontWeight: isPrimary ? 700 : 600,
+            color: isSectionDone
+              ? "var(--accent-text)"
+              : isPrimary ? "var(--text-primary)" : "var(--text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: isPrimary ? "0.06em" : "0.08em",
             transition: "color 0.4s ease",
           }}>
             {title}
           </span>
 
-          {/* Done pill — fades in when section completes */}
+          {/* Done pill */}
           <span style={{
-            fontSize: "0.65rem",
+            fontSize: "var(--text-micro)",
             fontWeight: 600,
-            color: "#4caf50",
-            letterSpacing: "0.06em",
+            color: "var(--accent-text)",
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
             opacity: showDoneLabel ? 1 : 0,
             transition: "opacity 0.3s ease",
-            // Reserve space even when hidden so layout doesn't shift
             display: "inline-block",
             minWidth: showDoneLabel ? "auto" : "0",
             overflow: "hidden",
@@ -96,15 +92,26 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
           </span>
         </div>
 
+        {/* Progress fraction — shown when partially done */}
+        {totalCount > 0 && !isSectionDone && completedCount > 0 && (
+          <span style={{
+            fontSize: "var(--text-micro)",
+            color: "var(--text-faint)",
+            marginRight: "var(--space-2)",
+          }}>
+            {completedCount}/{totalCount}
+          </span>
+        )}
+
         <button
           onClick={onTitleTap}
           style={{
             background: "none",
-            border: "1px solid var(--border)",
-            borderRadius: "8px",
-            width: "32px",
-            height: "32px",
-            fontSize: "1.1rem",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-xs)",
+            width: "28px",
+            height: "28px",
+            fontSize: "1rem",
             cursor: "pointer",
             color: "var(--text-muted)",
             display: "flex",
@@ -119,9 +126,9 @@ export default function SectionBlock({ title, tasks, onToggle, onTitleTap, onEdi
       </div>
 
       {/* ── Task list ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {tasks.length === 0 ? (
-          <p style={{ fontSize: "0.85rem", color: "var(--text-faint)" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)" }}>
             {emptyLabel || "Tap + to add a task"}
           </p>
         ) : (

@@ -12,10 +12,10 @@ import {
   getEndOfDaySummary,
   getMomentumInsight,
   getGreeting,
+  getCrossSystemObservation,
 } from "../lib/anchorVoice";
 
 export { getFocusMode };
-// getConfig is now in focusConfig.js — re-exported here for backward compat
 export { getConfig };
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -31,7 +31,7 @@ function formatDateFull(dateStr) {
   return new Date(y, m-1, d).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
 }
 
-// ── Pillar dots — three small indicators in the aligned banner ────────────────
+// ── Pillar dots ────────────────────────────────────────────────────────────────
 function PillarDots({ pillars, accentColor }) {
   const ALL = [
     { key: "tasks",     label: "T" },
@@ -46,7 +46,7 @@ function PillarDots({ pillars, accentColor }) {
           <div key={p.key} style={{
             width: "7px", height: "7px", borderRadius: "50%",
             background: active ? accentColor : "transparent",
-            border: `1.5px solid ${active ? accentColor : "rgba(100,100,100,0.25)"}`,
+            border: `1.5px solid ${active ? accentColor : "rgba(100,100,100,0.2)"}`,
             transition: "background 0.5s ease, border-color 0.5s ease",
           }} />
         );
@@ -55,56 +55,61 @@ function PillarDots({ pillars, accentColor }) {
   );
 }
 
-// ── Aligned Day Banner ────────────────────────────────────────────────────────
-// Only renders for full / complete / fuelled tiers.
-// Entrance: slides up and fades in when tier is first achieved.
+// ── Aligned Day Banner ─────────────────────────────────────────────────────────
 // Accent is always green — a single calm signal, never loud.
+// Entrance: slides up and fades in when tier is first achieved.
 function AlignedDayBanner({ alignedState, visible }) {
   const showTiers = ["full", "complete", "fuelled"];
   if (!alignedState || !showTiers.includes(alignedState.tier)) return null;
 
-  const accent = alignedState.accentColor || "#4caf50";
+  const accent = alignedState.accentColor || "var(--accent)";
 
   return (
     <div style={{
-      borderRadius: "14px",
-      padding: "16px 20px",
-      marginBottom: "12px",
-      background: "var(--bg-card)",
-      // Single-pixel green border + barely-there glow — premium, not loud
+      borderRadius: "var(--radius-lg)",
+      padding: "var(--space-4) var(--space-5)",
+      marginBottom: "var(--space-3)",
+      background: "var(--bg-surface)",
       border: `1px solid ${accent}`,
-      boxShadow: `0 0 0 1px ${accent}12, 0 2px 16px ${accent}0e`,
+      boxShadow: `0 0 0 1px var(--accent-glow), 0 2px 16px var(--accent-subtle)`,
       opacity: visible ? 1 : 0,
       transform: visible ? "translateY(0)" : "translateY(-8px)",
-      transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1), box-shadow 0.5s ease",
+      transition: "opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Tier label — small, uppercase, green */}
           <p style={{
-            fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.12em",
-            color: accent, textTransform: "uppercase", marginBottom: "6px",
+            fontSize: "var(--text-micro)",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            color: accent,
+            textTransform: "uppercase",
+            marginBottom: "var(--space-2)",
             transition: "color 0.4s ease",
           }}>
-            {alignedState.tier === "full"     ? "Fully aligned"     :
-             alignedState.tier === "complete" ? "Day complete"       :
+            {alignedState.tier === "full"     ? "Fully aligned"   :
+             alignedState.tier === "complete" ? "Day complete"     :
                                                 "Trained & fuelled"}
           </p>
-          {/* Identity line — the emotional payoff */}
           <p style={{
-            fontSize: "1.08rem", fontWeight: 700, color: "var(--text-primary)",
-            lineHeight: 1.25, marginBottom: alignedState.sub ? "5px" : "0",
+            fontSize: "var(--text-sub)",
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            lineHeight: 1.3,
+            marginBottom: alignedState.sub ? "var(--space-2)" : "0",
           }}>
             {alignedState.line}
           </p>
-          {/* Sub — quieter */}
           {alignedState.sub && (
-            <p style={{ fontSize: "0.80rem", color: "var(--text-muted)", lineHeight: 1.45 }}>
+            <p style={{
+              fontSize: "var(--text-caption)",
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+            }}>
               {alignedState.sub}
             </p>
           )}
         </div>
-        {/* Pillar dots — right side, minimal */}
         <div style={{ paddingTop: "2px", flexShrink: 0 }}>
           <PillarDots pillars={alignedState.pillars} accentColor={accent} />
         </div>
@@ -113,7 +118,7 @@ function AlignedDayBanner({ alignedState, visible }) {
   );
 }
 
-// ── Progress ring — accent-color aware ───────────────────────────────────────
+// ── Progress ring ──────────────────────────────────────────────────────────────
 function ProgressRing({ completed, total, accentColor }) {
   const size = 120;
   const sw = 9;
@@ -121,7 +126,7 @@ function ProgressRing({ completed, total, accentColor }) {
   const circ = 2 * Math.PI * r;
   const pct = total === 0 ? 0 : Math.min(completed / total, 1);
   const isComplete = total > 0 && completed >= total;
-  const fillColor = accentColor || (isComplete ? "#4caf50" : "var(--text-primary)");
+  const fillColor = accentColor || (isComplete ? "var(--accent)" : "var(--text-primary)");
 
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
@@ -137,15 +142,17 @@ function ProgressRing({ completed, total, accentColor }) {
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         {total === 0 ? (
-          <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", textAlign: "center", padding: "0 8px" }}>No tasks</p>
+          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", textAlign: "center", padding: "0 8px" }}>No tasks</p>
         ) : (
           <>
             <p style={{
-              fontSize: "1.6rem", fontWeight: 700, lineHeight: 1,
+              fontSize: "var(--text-display)",
+              fontWeight: 700,
+              lineHeight: 1,
               color: fillColor,
               transition: "color 0.5s ease",
             }}>{completed}</p>
-            <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "2px" }}>of {total}</p>
+            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", marginTop: "2px" }}>of {total}</p>
           </>
         )}
       </div>
@@ -153,36 +160,38 @@ function ProgressRing({ completed, total, accentColor }) {
   );
 }
 
-// ── Protein bar — accent-aware ────────────────────────────────────────────────
+// ── Protein bar ────────────────────────────────────────────────────────────────
 function ProteinBar({ current, goal, isAligned }) {
   const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
   const left = Math.max(0, goal - current);
   const isHit = current >= goal;
-  const barColor = (isHit || isAligned) ? "#4caf50" : "#4a90d9";
+  const barColor = (isHit || isAligned) ? "var(--accent)" : "#4a90d9";
 
   return (
     <div style={{ flex: 1 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "var(--space-2)" }}>
         <p style={{
-          fontSize: "1.8rem", fontWeight: 700, lineHeight: 1,
-          color: isHit ? "#4caf50" : "var(--text-primary)",
+          fontSize: "var(--text-hero)",
+          fontWeight: 700,
+          lineHeight: 1,
+          color: isHit ? "var(--accent-text)" : "var(--text-primary)",
           transition: "color 0.5s ease",
         }}>
           {current}g
         </p>
-        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>/ {goal}g protein</p>
+        <p style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)" }}>/ {goal}g protein</p>
       </div>
-      <div style={{ height: "6px", background: "var(--border)", borderRadius: "99px", overflow: "hidden", marginBottom: "6px" }}>
-        <div style={{
-          height: "100%", width: `${pct}%`,
+      <div style={{ height: "5px", background: "var(--border)", borderRadius: "var(--radius-pill)", overflow: "hidden", marginBottom: "var(--space-2)" }}>
+        <div className="anchor-macro-fill" style={{
+          height: "100%",
+          width: `${pct}%`,
           background: barColor,
-          borderRadius: "99px",
-          transition: "width 0.55s cubic-bezier(0.4,0,0.2,1), background 0.5s ease",
+          borderRadius: "var(--radius-pill)",
         }} />
       </div>
       <p style={{
-        fontSize: "0.78rem",
-        color: isHit ? "#4caf50" : "var(--text-muted)",
+        fontSize: "var(--text-caption)",
+        color: isHit ? "var(--accent-text)" : "var(--text-muted)",
         transition: "color 0.4s ease",
       }}>
         {isHit ? "Protein goal hit." : `${left}g left to hit your target`}
@@ -191,7 +200,31 @@ function ProteinBar({ current, goal, isAligned }) {
   );
 }
 
-// ── Fitness Hero Card ─────────────────────────────────────────────────────────
+// ── Weekly dots row ────────────────────────────────────────────────────────────
+function WeeklyDots({ weeklyDots, accent, onOpenReview }) {
+  return (
+    <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "var(--space-1)" }}>
+      {(weeklyDots || []).map((dot, i) => (
+        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+          <div style={{
+            width: "14px",
+            height: "14px",
+            borderRadius: "50%",
+            background: dot.active ? (accent || "var(--text-primary)") : "var(--border)",
+            transition: "background 0.4s ease",
+          }} />
+          <span style={{
+            fontSize: "var(--text-micro)",
+            color: dot.active ? "var(--text-secondary)" : "var(--text-faint)",
+            fontWeight: dot.active ? 600 : 400,
+          }}>{DAY_LABELS[i]}</span>
+        </div>
+      ))}
+    </button>
+  );
+}
+
+// ── Fitness hero card ──────────────────────────────────────────────────────────
 function FitnessHeroCard({
   nutritionSummary, nutritionGoals, workoutCopy, weeklyDots,
   onOpenReview, onGoToWorkout, onGoToNutrition, alignedState,
@@ -201,25 +234,27 @@ function FitnessHeroCard({
   const cal = nutritionSummary?.calories ?? 0;
   const goalCal = nutritionGoals?.calories ?? 2000;
   const isAligned = alignedState?.tier === "full" || alignedState?.tier === "fuelled";
-  const accent = isAligned ? (alignedState.accentColor || "#4caf50") : null;
+  const accent = isAligned ? (alignedState.accentColor || "var(--accent)") : null;
 
   return (
     <div style={{
-      background: "var(--bg-card)", borderRadius: "16px", padding: "20px",
+      background: "var(--bg-surface)",
+      borderRadius: "var(--radius-lg)",
+      padding: "var(--space-6)",
       boxShadow: isAligned
-        ? `var(--shadow), 0 0 0 1px ${accent}18`
+        ? `var(--shadow), 0 0 0 1px var(--accent-glow)`
         : "var(--shadow)",
-      marginBottom: "12px",
+      marginBottom: "var(--space-3)",
       transition: "box-shadow 0.5s ease",
     }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-4)", marginBottom: "var(--space-4)" }}>
         <ProteinBar current={protein} goal={goalProtein} isAligned={isAligned} />
       </div>
 
-      <div style={{ display: "flex", borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
+      <div style={{ display: "flex", borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-4)" }}>
         <button onClick={onGoToNutrition} style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{cal}</p>
-          <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <p style={{ fontSize: "var(--text-sub)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{cal}</p>
+          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             of {goalCal} kcal
           </p>
         </button>
@@ -228,32 +263,21 @@ function FitnessHeroCard({
 
         <button
           onClick={workoutCopy.tappable ? onGoToWorkout : undefined}
-          style={{ flex: 1, paddingLeft: "16px", background: "none", border: "none", cursor: workoutCopy.tappable ? "pointer" : "default", textAlign: "left" }}
+          style={{ flex: 1, paddingLeft: "var(--space-4)", background: "none", border: "none", cursor: workoutCopy.tappable ? "pointer" : "default", textAlign: "left" }}
         >
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: workoutCopy.color, lineHeight: 1, transition: "color 0.3s" }}>{workoutCopy.label}</p>
-          <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Workout</p>
+          <p style={{ fontSize: "var(--text-sub)", fontWeight: 700, color: workoutCopy.color, lineHeight: 1, transition: "color 0.3s" }}>{workoutCopy.label}</p>
+          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Workout</p>
         </button>
       </div>
 
-      <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px", marginTop: "12px" }}>
-        <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
-          {(weeklyDots || []).map((dot, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-              <div style={{
-                width: "16px", height: "16px", borderRadius: "50%",
-                background: dot.active ? (accent || "var(--text-primary)") : "var(--border)",
-                transition: "background 0.4s ease",
-              }} />
-              <span style={{ fontSize: "0.5rem", color: dot.active ? "var(--text-primary)" : "var(--text-faint)", fontWeight: dot.active ? 600 : 400 }}>{DAY_LABELS[i]}</span>
-            </div>
-          ))}
-        </button>
+      <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-3)", marginTop: "var(--space-3)" }}>
+        <WeeklyDots weeklyDots={weeklyDots} accent={accent} onOpenReview={onOpenReview} />
       </div>
     </div>
   );
 }
 
-// ── Task Hero Card ────────────────────────────────────────────────────────────
+// ── Task hero card ─────────────────────────────────────────────────────────────
 function TaskHeroCard({
   completedCount, totalCount, remainingToday, taskCopy, config,
   weeklyDots, onOpenReview, onGoToTasks, onGoToWorkout, onShowRemaining,
@@ -262,67 +286,60 @@ function TaskHeroCard({
   const isComplete = totalCount > 0 && completedCount === totalCount;
   const isAligned = alignedState?.tier === "full" || alignedState?.tier === "complete";
   const accent = isAligned
-    ? (alignedState.accentColor || "#4caf50")
-    : isComplete ? "#4caf50" : null;
+    ? (alignedState.accentColor || "var(--accent)")
+    : isComplete ? "var(--accent)" : null;
 
   return (
     <div style={{
-      background: "var(--bg-card)", borderRadius: "16px", padding: "20px",
+      background: "var(--bg-surface)",
+      borderRadius: "var(--radius-lg)",
+      padding: "var(--space-6)",
       boxShadow: isAligned
-        ? `var(--shadow), 0 0 0 1px ${accent}18`
+        ? `var(--shadow), 0 0 0 1px var(--accent-glow)`
         : "var(--shadow)",
-      marginBottom: "12px",
+      marginBottom: "var(--space-3)",
       transition: "box-shadow 0.5s ease",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: (remainingToday.length > 0 || totalCount > 0) ? "16px" : "0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", marginBottom: (remainingToday.length > 0 || totalCount > 0) ? "var(--space-4)" : "0" }}>
         <ProgressRing completed={completedCount} total={totalCount} accentColor={accent} />
         <div style={{ flex: 1 }}>
           <p style={{
-            fontSize: "1.05rem", fontWeight: 700, marginBottom: "4px",
+            fontSize: "var(--text-sub)",
+            fontWeight: 700,
+            marginBottom: "var(--space-1)",
             color: accent || "var(--text-primary)",
             transition: "color 0.5s ease",
           }}>
             {taskCopy.headline}
           </p>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "12px" }}>
+          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)", marginBottom: "var(--space-3)" }}>
             {taskCopy.sub}
           </p>
-          <button onClick={onOpenReview} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", gap: "4px" }}>
-            {(weeklyDots || []).map((dot, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-                <div style={{
-                  width: "16px", height: "16px", borderRadius: "50%",
-                  background: dot.active ? (accent || "var(--text-primary)") : "var(--border)",
-                  transition: "background 0.4s ease",
-                }} />
-                <span style={{ fontSize: "0.5rem", color: dot.active ? "var(--text-primary)" : "var(--text-faint)", fontWeight: dot.active ? 600 : 400 }}>{DAY_LABELS[i]}</span>
-              </div>
-            ))}
-          </button>
+          <WeeklyDots weeklyDots={weeklyDots} accent={accent} onOpenReview={onOpenReview} />
         </div>
       </div>
 
-      {/* Remaining tasks — hidden when aligned (banner owns that moment) */}
+      {/* Remaining tasks — hidden when aligned */}
       {remainingToday.length > 0 && !isAligned && (
         <button onClick={onShowRemaining} style={{ width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-          <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "14px" }}>
+          <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-4)" }}>
             {remainingToday.slice(0, 3).map((task) => (
-              <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "5px 0" }}>
-                <div style={{ width: "14px", height: "14px", borderRadius: "4px", border: "1.5px solid var(--border)", flexShrink: 0 }} />
-                <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{task.name}</p>
+              <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "5px 0" }}>
+                <div style={{ width: "14px", height: "14px", borderRadius: "var(--radius-xs)", border: "1.5px solid var(--border)", flexShrink: 0 }} />
+                <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{task.name}</p>
               </div>
             ))}
             {remainingToday.length > 3 && (
-              <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "6px" }}>+{remainingToday.length - 3} more</p>
+              <p style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)", marginTop: "var(--space-2)" }}>+{remainingToday.length - 3} more</p>
             )}
           </div>
         </button>
       )}
 
-      {/* Quiet all-done line — only when complete but NOT fully aligned (banner handles that) */}
+      {/* Quiet all-done line — only when complete but NOT fully aligned */}
       {isComplete && !isAligned && (
-        <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px" }}>
-          <p style={{ fontSize: "0.82rem", color: "#4caf50", fontWeight: 500 }}>
+        <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-3)" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--accent-text)", fontWeight: 500 }}>
             All tasks complete. Stay consistent.
           </p>
         </div>
@@ -330,10 +347,10 @@ function TaskHeroCard({
 
       {/* Empty CTA */}
       {totalCount === 0 && (
-        <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "12px" }}>
+        <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-3)" }}>
           <button
             onClick={config.emptyTaskCTATarget === "workout" ? onGoToWorkout : onGoToTasks}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "0.82rem", color: "var(--text-muted)", fontFamily: "inherit", textDecoration: "underline", textDecorationColor: "var(--border)" }}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "var(--text-body)", color: "var(--text-muted)", fontFamily: "inherit", textDecoration: "underline", textDecorationColor: "var(--border)" }}
           >
             {config.emptyTaskCTA}
           </button>
@@ -343,7 +360,7 @@ function TaskHeroCard({
   );
 }
 
-// ── Remaining tasks sheet ─────────────────────────────────────────────────────
+// ── Remaining tasks sheet ──────────────────────────────────────────────────────
 function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
   const grouped = {};
   SECTIONS.forEach(s => { grouped[s] = []; });
@@ -352,30 +369,30 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
       <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
-      <div style={{ position: "relative", background: "var(--bg)", borderRadius: "20px 20px 0 0", padding: "24px 20px 48px", zIndex: 301, maxHeight: "80vh", overflowY: "auto" }}>
-        <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "99px", margin: "0 auto 20px" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>Still to do</p>
+      <div style={{ position: "relative", background: "var(--bg)", borderRadius: "var(--radius-xl) var(--radius-xl) 0 0", padding: "var(--space-6) var(--space-5) var(--space-10)", zIndex: 301, maxHeight: "80vh", overflowY: "auto" }}>
+        <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "var(--radius-pill)", margin: "0 auto var(--space-5)" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-5)" }}>
+          <p style={{ fontSize: "var(--text-sub)", fontWeight: 700, color: "var(--text-primary)" }}>Still to do</p>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         {SECTIONS.map(section => {
           const sectionTasks = grouped[section];
           if (sectionTasks.length === 0) return null;
           return (
-            <div key={section} style={{ marginBottom: "20px" }}>
-              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>{section}</p>
-              <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
+            <div key={section} style={{ marginBottom: "var(--space-5)" }}>
+              <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>{section}</p>
+              <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow)", overflow: "hidden" }}>
                 {sectionTasks.map((task, i) => (
-                  <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 16px", borderBottom: i < sectionTasks.length - 1 ? "1px solid var(--border-light)" : "none" }}>
+                  <div key={task.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) var(--space-4)", borderBottom: i < sectionTasks.length - 1 ? "1px solid var(--border-light)" : "none" }}>
                     <div style={{ width: "18px", height: "18px", borderRadius: "5px", border: "2px solid var(--border)", flexShrink: 0 }} />
-                    <p style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>{task.name}</p>
+                    <p style={{ fontSize: "var(--text-body)", color: "var(--text-primary)" }}>{task.name}</p>
                   </div>
                 ))}
               </div>
             </div>
           );
         })}
-        <button onClick={() => { onClose(); onGoToTasks(); }} style={{ width: "100%", padding: "13px", background: "var(--text-primary)", color: "var(--bg)", border: "none", borderRadius: "10px", fontSize: "0.92rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={() => { onClose(); onGoToTasks(); }} style={{ width: "100%", padding: "13px", background: "var(--text-primary)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-ui)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
           Go to Tasks
         </button>
       </div>
@@ -383,39 +400,50 @@ function RemainingTasksSheet({ tasks, onClose, onGoToTasks }) {
   );
 }
 
-// ── Tertiary row ──────────────────────────────────────────────────────────────
+// ── Tertiary row ───────────────────────────────────────────────────────────────
 function TertiaryRow({ label, value, onClick, isLast }) {
   return (
-    <button onClick={onClick} style={{ width: "100%", background: "none", border: "none", padding: "14px 20px", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: isLast ? "none" : "1px solid var(--border-light)" }}>
-      <div style={{ flex: 1, minWidth: 0, paddingRight: "12px" }}>
-        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{label}</p>
-        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</p>
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%",
+        background: "none",
+        border: "none",
+        padding: "var(--space-4) var(--space-5)",
+        cursor: "pointer",
+        textAlign: "left",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottom: isLast ? "none" : "1px solid var(--border-light)",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0, paddingRight: "var(--space-3)" }}>
+        <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{label}</p>
+        <p style={{ fontSize: "var(--text-body)", fontWeight: 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{value}</p>
       </div>
-      <span style={{ fontSize: "0.75rem", color: "var(--text-faint)", flexShrink: 0 }}>→</span>
     </button>
   );
 }
 
-// ── Momentum row ──────────────────────────────────────────────────────────────
+// ── Momentum row ───────────────────────────────────────────────────────────────
 function MomentumRow({ insight }) {
   if (!insight) return null;
   return (
-    <div style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div>
-        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{insight.label}</p>
-        <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)" }}>{insight.value}</p>
-      </div>
-      <span style={{ fontSize: "0.9rem", color: "var(--text-faint)" }}>↑</span>
+    <div style={{ padding: "var(--space-4) var(--space-5)" }}>
+      <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "2px" }}>{insight.label}</p>
+      <p style={{ fontSize: "var(--text-body)", fontWeight: 500, color: "var(--text-primary)" }}>{insight.value}</p>
     </div>
   );
 }
 
-// ── MAIN EXPORT ───────────────────────────────────────────────────────────────
+// ── MAIN EXPORT ────────────────────────────────────────────────────────────────
 export default function OverviewScreen({
   tasks, workouts, currentStreak, longestStreak,
   weeklyDots, weekStats, viewedDate,
   onGoToTasks, onGoToWorkout, onOpenSettings, onOpenReview,
   nutritionSummary, nutritionGoals, onGoToNutrition,
+  onGoToProgress,
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -435,7 +463,7 @@ export default function OverviewScreen({
   const todaySessions = workouts[today] || [];
   const workoutDone = todaySessions.some(s => s.status === "completed");
 
-  // ── Voice system — single call stack ──
+  // ── Voice system ──
   const dayState = getDayState({
     completedCount, totalCount, workoutDone,
     nutritionSummary, nutritionGoals, currentStreak,
@@ -448,9 +476,9 @@ export default function OverviewScreen({
   const weeklyText    = getWeeklyInsight(weekStats, config);
   const eodItems      = getEndOfDaySummary(dayState, alignedState);
   const momentum      = getMomentumInsight(currentStreak, longestStreak, weekStats, workouts);
+  const crossSystem   = getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts });
 
-  // ── Banner entrance — animates in the first time a tier is achieved ──
-  // Uses a 80ms delay so it never renders fully visible on first paint
+  // ── Banner entrance ──
   useEffect(() => {
     const SHOW = ["full", "complete", "fuelled"];
     const tier = alignedState?.tier ?? null;
@@ -468,8 +496,7 @@ export default function OverviewScreen({
     prevTier.current = tier;
   }, [alignedState?.tier]);
 
-  // ── Streak pulse — fires once when streak increments ──
-  // Only pulses upward (new day earned), never on decrement
+  // ── Streak pulse ──
   useEffect(() => {
     if (currentStreak > prevStreak.current && currentStreak > 0) {
       clearTimeout(streakPulseTimer.current);
@@ -480,213 +507,239 @@ export default function OverviewScreen({
     return () => clearTimeout(streakPulseTimer.current);
   }, [currentStreak]);
 
-  // ── Secondary row — streak accent on aligned days ──
   const accent = alignedState?.accentColor || null;
+
+  // Secondary row — positional emphasis kept via flex, font size equalized
   const streakStat  = { label: "Day streak", value: currentStreak, color: accent || "var(--text-primary)", onClick: onOpenReview };
   const workoutStat = { label: workoutCopy.sub || "Workout", value: workoutCopy.label, color: workoutCopy.color, onClick: workoutCopy.tappable ? onGoToWorkout : undefined };
   const [leftStat, rightStat] = config.secondaryLeft === "workout"
     ? [workoutStat, streakStat]
     : [streakStat, workoutStat];
 
-  // ── Tertiary rows — no duplicates ──
-  const tertiaryRows = focusMode === "fitness"
-    ? [
-        { label: "Tasks",     value: totalCount === 0 ? "None added yet" : `${completedCount} of ${totalCount} complete`, onClick: onGoToTasks },
-        { label: "This week", value: weeklyText, onClick: onOpenReview },
-        { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
-      ]
-    : [
-        { label: "This week", value: weeklyText, onClick: onOpenReview },
-        { label: "Nutrition", value: nutritionCopy, onClick: onGoToNutrition },
-      ];
+  // Tertiary rows
+  const tertiaryRows = [
+    ...(focusMode === "fitness"
+      ? [{ label: "Tasks", value: totalCount === 0 ? "None added yet" : `${completedCount} of ${totalCount} complete`, onClick: onGoToTasks }]
+      : []),
+    { label: "This week", value: weeklyText, onClick: onOpenReview },
+    { label: "Nutrition",  value: nutritionCopy, onClick: onGoToNutrition },
+    ...(onGoToProgress
+      ? [{ label: "Progress", value: crossSystem || "Log weight · track your body", onClick: onGoToProgress }]
+      : []),
+  ];
+
+  const isAlignedEnv = !!(alignedState?.accentColor);
 
   return (
-    <>
-      <style>{`
-        @keyframes anchorFadeUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+    <div style={{
+      width: "100%",
+      minHeight: "100vh",
+      background: "var(--bg)",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "var(--space-9) 0 100px",
+      boxSizing: "border-box",
+      position: "relative",
+    }}>
 
-      <div style={{
-        width: "100%", minHeight: "100vh", background: "var(--bg)",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        padding: "48px 0 100px", boxSizing: "border-box",
-      }}>
+      {showRemaining && (
+        <RemainingTasksSheet
+          tasks={remainingToday}
+          onClose={() => setShowRemaining(false)}
+          onGoToTasks={onGoToTasks}
+        />
+      )}
 
-        {showRemaining && (
-          <RemainingTasksSheet
-            tasks={remainingToday}
-            onClose={() => setShowRemaining(false)}
+      {/* ── Ambient environmental wash — aligned days only ── */}
+      {isAlignedEnv && (
+        <div
+          className="anchor-env-in"
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0,
+            height: "50vh",
+            background: "linear-gradient(180deg, var(--ambient-aligned) 0%, transparent 100%)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      )}
+
+      <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box", position: "relative", zIndex: 1 }}>
+
+        {/* ── Header ── */}
+        <div style={{ marginBottom: "var(--space-7)", position: "relative" }}>
+          {/* Date — ambient context, not navigation */}
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
+            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", fontWeight: 500 }}>
+              {formatDateFull(today)}
+            </p>
+            {config.focusLabel && (
+              <span style={{
+                fontSize: "var(--text-micro)",
+                fontWeight: 600,
+                color: "var(--text-faint)",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                paddingLeft: "var(--space-2)",
+                borderLeft: "1px solid var(--border)",
+              }}>
+                {config.focusLabel}
+              </span>
+            )}
+          </div>
+
+          {/* Greeting — dominant hierarchy moment */}
+          <h1 style={{
+            fontSize: "var(--text-display)",
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            lineHeight: 1.1,
+            marginBottom: contextLine ? "var(--space-2)" : "var(--space-1)",
+          }}>
+            {getGreeting()}
+          </h1>
+
+          {contextLine && (
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", lineHeight: 1.45 }}>
+              {contextLine}
+            </p>
+          )}
+
+          {/* Settings — quiet, top right */}
+          <button
+            onClick={onOpenSettings}
+            style={{ position: "absolute", right: 0, top: 0, background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text-faint)", display: "flex", alignItems: "center" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Aligned Day Banner ── */}
+        <AlignedDayBanner alignedState={alignedState} visible={bannerVisible} />
+
+        {/* ── End-of-day summary — suppressed when banner is active ── */}
+        {eodItems && !bannerVisible && (
+          <div style={{
+            background: "var(--accent-subtle)",
+            borderRadius: "var(--radius-md)",
+            padding: "var(--space-4) var(--space-5)",
+            marginBottom: "var(--space-3)",
+          }}>
+            <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>Today</p>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-primary)", fontWeight: 500 }}>
+              {eodItems.join(" · ")}
+            </p>
+          </div>
+        )}
+
+        {/* ── Primary hero ── */}
+        {focusMode === "fitness" ? (
+          <FitnessHeroCard
+            nutritionSummary={nutritionSummary}
+            nutritionGoals={nutritionGoals}
+            workoutCopy={workoutCopy}
+            weeklyDots={weeklyDots}
+            onOpenReview={onOpenReview}
+            onGoToWorkout={onGoToWorkout}
+            onGoToNutrition={onGoToNutrition}
+            alignedState={alignedState}
+          />
+        ) : (
+          <TaskHeroCard
+            completedCount={completedCount}
+            totalCount={totalCount}
+            remainingToday={remainingToday}
+            taskCopy={taskCopy}
+            config={config}
+            weeklyDots={weeklyDots}
+            onOpenReview={onOpenReview}
             onGoToTasks={onGoToTasks}
+            onGoToWorkout={onGoToWorkout}
+            onShowRemaining={() => setShowRemaining(true)}
+            alignedState={alignedState}
           />
         )}
 
-        <div style={{ width: "100%", maxWidth: "480px", padding: "0 20px", boxSizing: "border-box" }}>
-
-          {/* ── Header ── */}
-          <div style={{ marginBottom: "24px", position: "relative" }}>
-            {/* Date line — with optional focus label beside it */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
-              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                {formatDateFull(today)}
-              </p>
-              {/* Focus label — quiet persistent indicator, balanced mode shows nothing */}
-              {config.focusLabel && (
-                <span style={{
-                  fontSize: "0.65rem",
-                  fontWeight: 600,
-                  color: "var(--text-faint)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  // Faint separator before the label
-                  paddingLeft: "8px",
-                  borderLeft: "1px solid var(--border)",
-                }}>
-                  {config.focusLabel}
-                </span>
-              )}
-            </div>
-            <h1 style={{
-              fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)",
-              lineHeight: 1.15, marginBottom: contextLine ? "6px" : "0",
-            }}>
-              {getGreeting()}
-            </h1>
-            {contextLine && (
-              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
-                {contextLine}
-              </p>
-            )}
-            <button
-              onClick={onOpenSettings}
-              style={{ position: "absolute", right: 0, top: 0, background: "none", border: "none", cursor: "pointer", padding: "4px", color: "var(--text-muted)", display: "flex", alignItems: "center" }}
+        {/* ── Secondary row — supporting context, lighter visual weight ── */}
+        <div style={{
+          background: "var(--bg-surface)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-3) var(--space-5)",
+          boxShadow: "var(--shadow-sm)",
+          marginBottom: "var(--space-3)",
+          display: "flex",
+          alignItems: "center",
+        }}>
+          <button
+            onClick={leftStat.onClick}
+            style={{ flex: config.primaryStatEmphasis ? 1.4 : 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
+          >
+            <p
+              className={leftStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
+              style={{
+                fontSize: "var(--text-title)",
+                fontWeight: 700,
+                color: leftStat.color,
+                lineHeight: 1,
+                transition: "color 0.5s ease",
+              }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </button>
-          </div>
+              {leftStat.value}
+            </p>
+            <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {leftStat.label}
+            </p>
+          </button>
 
-          {/* ── Aligned Day Banner ── */}
-          <AlignedDayBanner alignedState={alignedState} visible={bannerVisible} />
+          <div style={{ width: "1px", height: "28px", background: "var(--border-light)", flexShrink: 0 }} />
 
-          {/* ── End-of-day summary — suppressed when banner is active ── */}
-          {eodItems && !bannerVisible && (
-            <div style={{
-              background: "var(--bg-card)", borderRadius: "12px", padding: "14px 18px",
-              boxShadow: "var(--shadow)", marginBottom: "12px", borderLeft: "3px solid #4caf50",
-            }}>
-              <p style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>Today</p>
-              <p style={{ fontSize: "0.88rem", color: "var(--text-primary)", fontWeight: 500 }}>
-                {eodItems.join(" · ")}
-              </p>
-            </div>
-          )}
-
-          {/* ── Primary Hero ── */}
-          {focusMode === "fitness" ? (
-            <FitnessHeroCard
-              nutritionSummary={nutritionSummary}
-              nutritionGoals={nutritionGoals}
-              workoutCopy={workoutCopy}
-              weeklyDots={weeklyDots}
-              onOpenReview={onOpenReview}
-              onGoToWorkout={onGoToWorkout}
-              onGoToNutrition={onGoToNutrition}
-              alignedState={alignedState}
-            />
-          ) : (
-            <TaskHeroCard
-              completedCount={completedCount}
-              totalCount={totalCount}
-              remainingToday={remainingToday}
-              taskCopy={taskCopy}
-              config={config}
-              weeklyDots={weeklyDots}
-              onOpenReview={onOpenReview}
-              onGoToTasks={onGoToTasks}
-              onGoToWorkout={onGoToWorkout}
-              onShowRemaining={() => setShowRemaining(true)}
-              alignedState={alignedState}
-            />
-          )}
-
-          {/* ── Secondary row ── */}
-          {/* primaryStatEmphasis: left stat is rendered larger when mode has a clear primary pillar */}
-          <div style={{
-            background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px",
-            boxShadow: accent
-              ? `var(--shadow), 0 0 0 1px ${accent}12`
-              : "var(--shadow)",
-            marginBottom: "12px", display: "flex", alignItems: "center",
-            transition: "box-shadow 0.5s ease",
-          }}>
-            <button
-              onClick={leftStat.onClick}
-              style={{ flex: config.primaryStatEmphasis ? 1.4 : 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
+          <button
+            onClick={rightStat.onClick}
+            style={{ flex: 1, paddingLeft: "var(--space-5)", background: "none", border: "none", cursor: rightStat.onClick ? "pointer" : "default", textAlign: "left" }}
+          >
+            <p
+              className={rightStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
+              style={{
+                fontSize: "var(--text-title)",
+                fontWeight: 600,
+                color: rightStat.color,
+                lineHeight: 1,
+                transition: "color 0.5s ease",
+              }}
             >
-              <p
-                className={leftStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
-                style={{
-                  fontSize: config.primaryStatEmphasis ? "1.55rem" : "1.3rem",
-                  fontWeight: 700, color: leftStat.color, lineHeight: 1,
-                  transition: "color 0.5s ease, font-size 0.4s ease",
-                }}
-              >
-                {leftStat.value}
-              </p>
-              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {leftStat.label}
-              </p>
-            </button>
-
-            <div style={{ width: "1px", height: "32px", background: "var(--border-light)", flexShrink: 0 }} />
-
-            <button
-              onClick={rightStat.onClick}
-              style={{ flex: 1, paddingLeft: "20px", background: "none", border: "none", cursor: rightStat.onClick ? "pointer" : "default", textAlign: "left" }}
-            >
-              <p
-                className={rightStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
-                style={{
-                  fontSize: config.primaryStatEmphasis ? "1.1rem" : "1.3rem",
-                  fontWeight: config.primaryStatEmphasis ? 600 : 700,
-                  color: rightStat.color, lineHeight: 1,
-                  transition: "color 0.5s ease, font-size 0.4s ease",
-                }}
-              >
-                {rightStat.value}
-              </p>
-              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {rightStat.label}
-              </p>
-            </button>
-          </div>
-
-          {/* ── Tertiary strip ── */}
-          <div style={{ background: "var(--bg-card)", borderRadius: "12px", boxShadow: "var(--shadow)", overflow: "hidden" }}>
-            {tertiaryRows.map((row, i) => (
-              <TertiaryRow
-                key={row.label}
-                label={row.label}
-                value={row.value}
-                onClick={row.onClick}
-                isLast={i === tertiaryRows.length - 1 && !momentum}
-              />
-            ))}
-            {momentum && (
-              <>
-                <div style={{ height: "1px", background: "var(--border-light)" }} />
-                <MomentumRow insight={momentum} />
-              </>
-            )}
-          </div>
-
+              {rightStat.value}
+            </p>
+            <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {rightStat.label}
+            </p>
+          </button>
         </div>
+
+        {/* ── Tertiary strip ── */}
+        <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+          {tertiaryRows.map((row, i) => (
+            <TertiaryRow
+              key={row.label}
+              label={row.label}
+              value={row.value}
+              onClick={row.onClick}
+              isLast={i === tertiaryRows.length - 1 && !momentum}
+            />
+          ))}
+          {momentum && (
+            <>
+              <div style={{ height: "1px", background: "var(--border-light)" }} />
+              <MomentumRow insight={momentum} />
+            </>
+          )}
+        </div>
+
       </div>
-    </>
+    </div>
   );
 }

@@ -30,7 +30,10 @@ import {
   deleteUserTemplate,
 } from "./lib/workoutService";
 import OverviewScreen from "./screens/OverviewScreen";
+import ProgressScreen from "./screens/ProgressScreen";
+import FinancialClarityScreen from "./screens/FinancialClarityScreen";
 import NutritionScreen from "./screens/NutritionScreen";
+import NutritionOnboarding from "./screens/NutritionOnboarding";
 import OnboardingScreen, { isOnboardingComplete, markOnboardingComplete, getFocusMode } from "./screens/OnboardingScreen";
 import { setFocusMode } from "./lib/focusConfig";
 import {
@@ -40,9 +43,10 @@ import {
   updateMealInDate,
   setWaterForDate,
   getTotalsForDate,
+  isNutritionSetupComplete,
 } from "./lib/nutritionService";
 
-const SCREENS = ["today", "overview", "nutrition", "workout"];
+const SCREENS = ["today", "overview", "nutrition", "workout", "finance"];
 
 function todayString() {
   const d = new Date();
@@ -223,6 +227,7 @@ export default function App() {
 
   // ── Nutrition state (localStorage) ──
   const [nutritionData, setNutritionData] = useState({});
+  const [nutritionSetupDone, setNutritionSetupDone] = useState(isNutritionSetupComplete);
 
   // ── UI state ──
   const [screen, setScreen] = useState("home");
@@ -772,6 +777,15 @@ export default function App() {
     );
   }
 
+  if (screen === "progress") {
+    return (
+      <ProgressScreen
+        userId={user?.id}
+        onBack={() => setScreen("home")}
+      />
+    );
+  }
+
   if (screen === "settings") {
     return (
       <SettingsScreen
@@ -826,10 +840,26 @@ export default function App() {
           nutritionSummary={todayNutritionTotals}
           nutritionGoals={settings.nutritionGoals}
           onGoToNutrition={() => setActiveScreen("nutrition")}
+          onGoToProgress={() => setScreen("progress")}
         />
       )}
 
-      {activeScreen === "nutrition" && (
+      {activeScreen === "nutrition" && !nutritionSetupDone && (
+        <NutritionOnboarding
+          onComplete={({ targets }) => {
+            updateSetting("nutritionGoals", {
+              calories: targets.calories,
+              protein: targets.protein,
+              carbs: targets.carbs,
+              fats: targets.fats,
+              water: targets.waterGlasses,
+            });
+            setNutritionSetupDone(true);
+          }}
+        />
+      )}
+
+      {activeScreen === "nutrition" && nutritionSetupDone && (
         <NutritionScreen
           nutritionData={nutritionData}
           goals={settings.nutritionGoals || { calories: 2000, protein: 150, carbs: 200, fats: 65, water: 8 }}
@@ -840,6 +870,10 @@ export default function App() {
           viewedDate={viewedDate}
           onNavigateDay={navigateDay}
         />
+      )}
+
+      {activeScreen === "finance" && (
+        <FinancialClarityScreen />
       )}
 
       {activeScreen === "workout" && (
@@ -867,6 +901,7 @@ export default function App() {
           restTimerEnabled={settings.restTimerEnabled}
           restTimerDuration={settings.restTimerDuration}
           smartSuggestionsEnabled={settings.smartSuggestionsEnabled}
+          allWorkouts={workouts}
         />
       )}
 
@@ -889,6 +924,7 @@ export default function App() {
           { key: "overview", label: "Overview" },
           { key: "nutrition", label: "Nutrition" },
           { key: "workout", label: "Workout" },
+          { key: "finance", label: "Finance" },
         ].map(tab => {
           const isActive = activeScreen === tab.key;
           return (

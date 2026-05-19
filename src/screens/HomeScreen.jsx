@@ -5,12 +5,13 @@ import HintCard from "../components/HintCard";
 import { getFocusMode, getConfig } from "./OverviewScreen";
 import { getTasksFooterCopy, getRecoveryCopy } from "../lib/anchorVoice";
 
+const DAY_LABELS     = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SECTIONS = ["Morning", "Afternoon", "Night"];
 
 function formatDate(dateStr) {
   const [year, month, day] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-AU", {
+  return new Date(year, month - 1, day).toLocaleDateString("en-AU", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -19,13 +20,10 @@ function formatDate(dateStr) {
 
 function todayString() {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// ── Edit Task Sheet ──
+// ── Edit Task Sheet ────────────────────────────────────────────────────────────
 function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   const [name, setName] = useState(task.name);
   const [frequency, setFrequency] = useState(task.frequency);
@@ -55,12 +53,12 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
 
   const inputStyle = {
     width: "100%",
-    padding: "12px 14px",
+    padding: "var(--space-3) var(--space-4)",
     border: "1px solid var(--border)",
-    borderRadius: "10px",
-    fontSize: "0.95rem",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "var(--text-ui)",
     outline: "none",
-    background: "var(--bg-card)",
+    background: "var(--bg-surface)",
     color: "var(--text-primary)",
     boxSizing: "border-box",
     fontFamily: "inherit",
@@ -75,76 +73,46 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
       flexDirection: "column",
       justifyContent: "flex-end",
     }}>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.35)",
-        }}
-      />
-
-      {/* Sheet */}
+      <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
       <div style={{
         position: "relative",
         background: "var(--bg)",
-        borderRadius: "20px 20px 0 0",
-        padding: "24px 20px 48px",
+        borderRadius: "var(--radius-xl) var(--radius-xl) 0 0",
+        padding: "var(--space-6) var(--space-5) var(--space-10)",
         zIndex: 301,
         maxHeight: "85vh",
         overflowY: "auto",
       }}>
-        {/* Handle */}
-        <div style={{
-          width: "36px", height: "4px", background: "#ddd",
-          borderRadius: "99px", margin: "0 auto 20px",
-        }} />
+        <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "var(--radius-pill)", margin: "0 auto var(--space-5)" }} />
 
-        {/* Header */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "20px",
-        }}>
-          <p style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>
-            Edit Task
-          </p>
-          <button onClick={onClose} style={{
-            background: "none", border: "none",
-            fontSize: "1.4rem", color: "var(--text-muted)",
-            cursor: "pointer", padding: "4px", lineHeight: 1,
-          }}>×</button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-5)" }}>
+          <p style={{ fontSize: "var(--text-sub)", fontWeight: 700, color: "var(--text-primary)" }}>Edit Task</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", padding: "4px", lineHeight: 1 }}>×</button>
         </div>
 
-        {/* Name */}
         <input
           autoFocus
           type="text"
           value={name}
           onChange={e => { setName(e.target.value); setError(""); }}
           onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
-          style={{ ...inputStyle, marginBottom: "16px" }}
+          style={{ ...inputStyle, marginBottom: "var(--space-4)" }}
         />
 
-        {/* Frequency */}
-        <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "8px" }}>
-          Frequency
-        </p>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+        <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Frequency</p>
+        <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
           {["daily", "weekly", "one-time"].map(opt => (
             <button
               key={opt}
               onClick={() => { setFrequency(opt); setError(""); }}
               style={{
                 padding: "6px 14px",
-                borderRadius: "20px",
+                borderRadius: "var(--radius-pill)",
                 border: "1px solid",
                 borderColor: frequency === opt ? "var(--text-primary)" : "var(--border)",
                 background: frequency === opt ? "var(--text-primary)" : "none",
                 color: frequency === opt ? "var(--bg)" : "var(--text-secondary)",
-                fontSize: "0.82rem",
+                fontSize: "var(--text-caption)",
                 cursor: "pointer",
                 fontFamily: "inherit",
               }}
@@ -154,25 +122,22 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
           ))}
         </div>
 
-        {/* Weekly day picker */}
         {frequency === "weekly" && (
-          <div style={{ marginBottom: "14px" }}>
-            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "8px" }}>
-              Repeat on
-            </p>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Repeat on</p>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
               {DAY_FULL_LABELS.map((label, dow) => (
                 <button
                   key={dow}
                   onClick={() => toggleDay(dow)}
                   style={{
                     padding: "5px 10px",
-                    borderRadius: "20px",
+                    borderRadius: "var(--radius-pill)",
                     border: "1px solid",
                     borderColor: selectedDays.includes(dow) ? "var(--text-primary)" : "var(--border)",
                     background: selectedDays.includes(dow) ? "var(--text-primary)" : "none",
                     color: selectedDays.includes(dow) ? "var(--bg)" : "var(--text-secondary)",
-                    fontSize: "0.78rem",
+                    fontSize: "var(--text-caption)",
                     cursor: "pointer",
                     fontFamily: "inherit",
                   }}
@@ -184,9 +149,8 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
           </div>
         )}
 
-        {/* One-time label */}
         {frequency === "one-time" && (
-          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "14px" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", marginBottom: "var(--space-4)" }}>
             Appears on{" "}
             <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
               {formatDate(task.date || viewedDate)}
@@ -194,36 +158,26 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
           </p>
         )}
 
-        {error && (
-          <p style={{ color: "#e05252", fontSize: "0.82rem", marginBottom: "12px" }}>{error}</p>
-        )}
+        {error && <p style={{ color: "#e05252", fontSize: "var(--text-body)", marginBottom: "var(--space-3)" }}>{error}</p>}
 
-        {/* Save */}
-        <button
-          onClick={handleSave}
-          style={{
-            width: "100%", padding: "14px",
-            background: "var(--text-primary)", color: "var(--bg)",
-            border: "none", borderRadius: "10px",
-            fontSize: "0.95rem", fontWeight: 600,
-            cursor: "pointer", marginBottom: "10px",
-            fontFamily: "inherit",
-          }}
-        >
+        <button onClick={handleSave} style={{
+          width: "100%", padding: "14px",
+          background: "var(--text-primary)", color: "var(--bg)",
+          border: "none", borderRadius: "var(--radius-sm)",
+          fontSize: "var(--text-ui)", fontWeight: 600,
+          cursor: "pointer", marginBottom: "var(--space-3)",
+          fontFamily: "inherit",
+        }}>
           Save
         </button>
 
-        {/* Delete */}
-        <button
-          onClick={() => { onDelete(task.section, task.id); onClose(); }}
-          style={{
-            width: "100%", padding: "12px",
-            background: "none", color: "#e05252",
-            border: "1px solid #e05252", borderRadius: "10px",
-            fontSize: "0.88rem", cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
+        <button onClick={() => { onDelete(task.section, task.id); onClose(); }} style={{
+          width: "100%", padding: "12px",
+          background: "none", color: "#e05252",
+          border: "1px solid #e05252", borderRadius: "var(--radius-sm)",
+          fontSize: "var(--text-body)", cursor: "pointer",
+          fontFamily: "inherit",
+        }}>
           Delete Task
         </button>
       </div>
@@ -231,153 +185,76 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   );
 }
 
-// ── Stats Modal ──
+// ── Stats modal ────────────────────────────────────────────────────────────────
 function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClose, onOpenReview }) {
   return (
-    <div style={{
-      position: "fixed",
-      top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "flex-end",
-    }}>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.35)",
-        }}
-      />
-
-      {/* Sheet */}
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+      <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
       <div style={{
         position: "relative",
         background: "var(--bg)",
-        borderRadius: "20px 20px 0 0",
-        padding: "24px 24px 48px",
+        borderRadius: "var(--radius-xl) var(--radius-xl) 0 0",
+        padding: "var(--space-6) var(--space-6) var(--space-10)",
         zIndex: 201,
         maxHeight: "85vh",
         overflowY: "auto",
       }}>
-        {/* Handle */}
-        <div style={{
-          width: "36px", height: "4px", background: "#ddd",
-          borderRadius: "99px", margin: "0 auto 24px",
-        }} />
+        <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "var(--radius-pill)", margin: "0 auto var(--space-6)" }} />
 
-        {/* Title */}
-        <p style={{
-          fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)",
-          textTransform: "uppercase", letterSpacing: "0.08em",
-          marginBottom: "20px",
-        }}>This Week</p>
+        <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-5)" }}>This Week</p>
 
-        {/* Weekly dots — larger in modal */}
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "28px",
-          gap: "6px",
-        }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-7)", gap: "var(--space-2)" }}>
           {weeklyDots.map((dot, i) => (
-            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-              <div style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: dot.active ? "var(--text-primary)" : "var(--border)",
-              }} />
-              <span style={{
-                fontSize: "0.68rem",
-                color: dot.active ? "var(--text-primary)" : "var(--text-faint)",
-                fontWeight: dot.active ? 600 : 400,
-              }}>
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: dot.active ? "var(--text-primary)" : "var(--border)" }} />
+              <span style={{ fontSize: "var(--text-label)", color: dot.active ? "var(--text-primary)" : "var(--text-faint)", fontWeight: dot.active ? 600 : 400 }}>
                 {DAY_LABELS[i]}
               </span>
             </div>
           ))}
         </div>
 
-        {/* Stats grid */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "10px",
-          marginBottom: "20px",
-        }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-5)" }}>
           {[
             { label: "Current Streak", value: `${currentStreak} day${currentStreak !== 1 ? "s" : ""}` },
-            { label: "Best Streak", value: `${longestStreak} day${longestStreak !== 1 ? "s" : ""}` },
-            { label: "Active Days", value: `${weekStats.activeDays} / 7` },
-            { label: "Workouts", value: weekStats.totalWorkouts },
-            {
-              label: "Task Completion",
-              value: weekStats.taskPct !== null ? `${weekStats.taskPct}%` : "—",
-              wide: weekStats.taskPct !== null,
-            },
+            { label: "Best Streak",    value: `${longestStreak} day${longestStreak !== 1 ? "s" : ""}` },
+            { label: "Active Days",    value: `${weekStats.activeDays} / 7` },
+            { label: "Workouts",       value: weekStats.totalWorkouts },
+            { label: "Task Completion", value: weekStats.taskPct !== null ? `${weekStats.taskPct}%` : "—" },
           ].map((stat, i) => (
-            <div
-              key={i}
-              style={{
-                background: "var(--bg-card)",
-                borderRadius: "12px",
-                padding: "16px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              }}
-            >
-              <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
-                {stat.value}
-              </p>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "5px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {stat.label}
-              </p>
+            <div key={i} style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-4)", boxShadow: "var(--shadow-sm)" }}>
+              <p style={{ fontSize: "var(--text-title)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{stat.value}</p>
+              <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", marginTop: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{stat.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Insight line */}
         {weekStats.taskPct !== null && (
-          <div style={{
-            background: weekStats.taskPct >= 80 ? "#f0faf0" : weekStats.taskPct >= 50 ? "#fafaf0" : "#faf5f0",
-            borderRadius: "10px",
-            padding: "14px 16px",
-            marginBottom: "20px",
-          }}>
-            <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+          <div style={{ background: "var(--bg-inset)", borderRadius: "var(--radius-sm)", padding: "var(--space-4)", marginBottom: "var(--space-5)" }}>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
               {weekStats.taskPct >= 80
-                ? "Strong week. You're showing up consistently — keep the momentum."
+                ? "Strong week. Consistency is showing."
                 : weekStats.taskPct >= 50
-                ? "Solid effort. A few more completions and this becomes a strong week."
-                : "Every day is a chance to reset. Tomorrow is fresh."}
+                ? "Solid progress. A few more days and this becomes a strong week."
+                : "Every day is a reset. Tomorrow is fresh."}
             </p>
           </div>
         )}
 
-        {/* Weekly review link */}
-        <button
-          onClick={() => { onClose(); onOpenReview(); }}
-          style={{
-            width: "100%",
-            padding: "14px",
-            background: "var(--text-primary)",
-            color: "var(--bg)",
-            border: "none",
-            borderRadius: "10px",
-            fontSize: "0.95rem",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          Weekly Review →
+        <button onClick={() => { onClose(); onOpenReview(); }} style={{
+          width: "100%", padding: "14px",
+          background: "var(--text-primary)", color: "var(--bg)",
+          border: "none", borderRadius: "var(--radius-sm)",
+          fontSize: "var(--text-ui)", fontWeight: 600, cursor: "pointer",
+        }}>
+          Weekly Review
         </button>
       </div>
     </div>
   );
 }
 
+// ── Main ───────────────────────────────────────────────────────────────────────
 export default function HomeScreen({
   tasks, onToggle, onSectionTap, onResetDay,
   viewedDate, onNavigateDay,
@@ -388,6 +265,7 @@ export default function HomeScreen({
 }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+
   const isToday = viewedDate === todayString();
   const allTasks = Object.values(tasks).flat();
   const completedCount = allTasks.filter(t => t.completedDates.includes(viewedDate)).length;
@@ -409,7 +287,7 @@ export default function HomeScreen({
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "40px 0 100px",
+      padding: "var(--space-9) 0 100px",
       boxSizing: "border-box",
     }}>
       {showCalendar && (
@@ -436,120 +314,105 @@ export default function HomeScreen({
         />
       )}
 
-      <div style={{
-        width: "100%",
-        maxWidth: "480px",
-        padding: "0 20px",
-        boxSizing: "border-box",
-      }}>
+      <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box" }}>
 
-        {/* App title */}
-        <h1 style={{
-          fontSize: "2rem",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-          textAlign: "center",
-          marginBottom: config.tasksSubtitle ? "4px" : "20px",
-        }}>
-          Anchor
-        </h1>
-        {config.tasksSubtitle && (
+        {/* ── Wordmark — ambient identity, not dominant title ── */}
+        <div style={{ textAlign: "center", marginBottom: "var(--space-7)" }}>
           <p style={{
-            fontSize: "0.82rem",
-            color: "var(--text-muted)",
-            textAlign: "center",
-            marginBottom: "16px",
+            fontSize: "var(--text-micro)",
+            fontWeight: 700,
+            color: "var(--text-faint)",
+            letterSpacing: "0.22em",
+            textTransform: "uppercase",
           }}>
-            {config.tasksSubtitle}
+            Anchor
           </p>
-        )}
+        </div>
 
-        {/* Recovery state — shown when streak=0 and there's prior history */}
+        {/* ── Recovery message ── */}
         {recoveryCopy && (
           <div style={{
-            background: "var(--bg-card)",
-            borderRadius: "10px",
-            padding: "12px 16px",
-            marginBottom: "16px",
-            borderLeft: "3px solid var(--border)",
+            background: "var(--bg-inset)",
+            borderRadius: "var(--radius-sm)",
+            padding: "var(--space-3) var(--space-4)",
+            marginBottom: "var(--space-4)",
           }}>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.5 }}>
               {recoveryCopy}
             </p>
           </div>
         )}
 
-        {/* Date navigation */}
+        {/* ── Date navigation ── */}
         <div style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "8px",
-          marginBottom: "20px",
+          gap: "var(--space-2)",
+          marginBottom: "var(--space-6)",
           position: "relative",
         }}>
-          <button
-            onClick={() => onNavigateDay(-1)}
-            style={{
-              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
-              fontSize: "1.1rem", display: "flex", alignItems: "center",
-              justifyContent: "center", padding: 0, flexShrink: 0,
-            }}
-          >‹</button>
+          <button onClick={() => onNavigateDay(-1)} style={{
+            background: "none",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-xs)",
+            width: "32px", height: "32px",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            fontSize: "1rem",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 0, flexShrink: 0,
+          }}>‹</button>
 
-          <div style={{ textAlign: "center", width: "150px" }}>
-            <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
+          <div style={{ textAlign: "center", width: "160px" }}>
+            <p style={{ fontSize: "var(--text-body)", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
               {formatDate(viewedDate)}
             </p>
-            <p style={{
-              fontSize: "0.72rem",
-              color: isToday ? "var(--text-muted)" : "transparent",
-              marginTop: "2px",
-            }}>Today</p>
+            {isToday && (
+              <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px" }}>Today</p>
+            )}
           </div>
 
-          <button
-            onClick={() => onNavigateDay(1)}
-            style={{
-              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-secondary)",
-              fontSize: "1.1rem", display: "flex", alignItems: "center",
-              justifyContent: "center", padding: 0, flexShrink: 0,
-            }}
-          >›</button>
+          <button onClick={() => onNavigateDay(1)} style={{
+            background: "none",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-xs)",
+            width: "32px", height: "32px",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            fontSize: "1rem",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 0, flexShrink: 0,
+          }}>›</button>
 
-          <button
-            onClick={() => setShowCalendar(true)}
-            style={{
-              position: "absolute", right: 0,
-              background: "none", border: "1px solid var(--border)", borderRadius: "6px",
-              width: "36px", height: "36px", cursor: "pointer", color: "var(--text-muted)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              padding: 0,
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="3" width="14" height="12" rx="2" stroke="var(--text-muted)" strokeWidth="1.5"/>
-              <path d="M1 7h14" stroke="var(--text-muted)" strokeWidth="1.5"/>
-              <path d="M5 1v4M11 1v4" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
+          {/* Calendar — absolute so it doesn't break centering */}
+          <button onClick={() => setShowCalendar(true)} style={{
+            position: "absolute", right: 0,
+            background: "none",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-xs)",
+            width: "32px", height: "32px",
+            cursor: "pointer",
+            color: "var(--text-faint)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 0,
+          }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M1 7h14" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M5 1v4M11 1v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
         </div>
 
-        {/* Sections */}
-        <div style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          gap: "16px",
-        }}>
+        {/* ── Task sections ── */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <HintCard
             hintId="tasks_first"
             text="Build your daily structure here."
             sub="Add tasks to Morning, Afternoon, or Night — they repeat on your schedule."
           />
-          {["Morning", "Afternoon", "Night"].map(section => (
+          {SECTIONS.map(section => (
             <SectionBlock
               key={section}
               title={section}
@@ -559,62 +422,51 @@ export default function HomeScreen({
               onEdit={task => setEditingTask(task)}
               viewedDate={viewedDate}
               emptyLabel={config.sectionEmptyLabel}
+              isPrimary={section === "Morning"}
             />
           ))}
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div style={{
           width: "100%",
-          marginTop: "32px",
-          paddingTop: "20px",
-          borderTop: "1px solid var(--border)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "10px",
+          marginTop: "var(--space-7)",
+          paddingTop: "var(--space-5)",
+          borderTop: "1px solid var(--border-light)",
         }}>
-          {/* Progress bar */}
-          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          {/* Count + copy */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "var(--space-2)" }}>
+            <p style={{
+              fontSize: "var(--text-caption)",
+              fontWeight: 600,
+              color: isAllDone ? "var(--accent-text)" : "var(--text-secondary)",
+              transition: "color 0.4s ease",
+            }}>
+              {completedCount} / {totalCount}
+            </p>
+            {footerCopy && (
               <p style={{
-                fontSize: "0.82rem",
-                fontWeight: 600,
-                color: isAllDone ? "#4caf50" : "var(--text-secondary)",
+                fontSize: "var(--text-caption)",
+                color: isAllDone ? "var(--accent-text)" : "var(--text-muted)",
+                fontWeight: isAllDone ? 600 : 400,
                 transition: "color 0.4s ease",
               }}>
-                {completedCount} / {totalCount}
+                {footerCopy}
               </p>
-              {/* Identity line — replaces static "complete" label */}
-              {footerCopy && (
-                <p style={{
-                  fontSize: "0.78rem",
-                  color: isAllDone ? "#4caf50" : "var(--text-muted)",
-                  fontWeight: isAllDone ? 600 : 400,
-                  transition: "color 0.4s ease",
-                }}>
-                  {footerCopy}
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
-            <div style={{
-              width: "100%",
-              height: "5px",
-              background: "var(--border)",
-              borderRadius: "999px",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                height: "100%",
-                width: `${percentage}%`,
-                background: isAllDone ? "#4caf50" : "var(--text-primary)",
-                borderRadius: "999px",
-                transition: "width 0.4s cubic-bezier(0.4,0,0.2,1), background 0.5s ease",
-              }} />
-            </div>
+          {/* Progress bar */}
+          <div style={{ width: "100%", height: "5px", background: "var(--border)", borderRadius: "var(--radius-pill)", overflow: "hidden" }}>
+            <div className="anchor-progress-bar" style={{
+              height: "100%",
+              width: `${percentage}%`,
+              background: isAllDone ? "var(--accent)" : "var(--text-primary)",
+              borderRadius: "var(--radius-pill)",
+            }} />
           </div>
         </div>
+
       </div>
     </div>
   );
