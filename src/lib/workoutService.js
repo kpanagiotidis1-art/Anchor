@@ -39,6 +39,7 @@ export async function fetchAllSessions(userId) {
 function rowToSession(row) {
   return {
     id: row.id,
+    title: row.title || null,
     startTime: row.start_time,
     startTimestamp: row.start_timestamp,
     endTime: row.end_time,
@@ -57,6 +58,7 @@ export async function createSession(userId, dateStr, session) {
       id: session.id,
       user_id: userId,
       workout_date: dateStr,
+      title: session.title || null,
       start_time: session.startTime,
       start_timestamp: session.startTimestamp,
       end_time: session.endTime,
@@ -75,6 +77,7 @@ export async function updateSession(sessionId, updates) {
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.endTime !== undefined) dbUpdates.end_time = updates.endTime;
   if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
+  if (updates.title !== undefined) dbUpdates.title = updates.title;
   if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
   if (updates.exercises !== undefined) dbUpdates.exercises = updates.exercises;
 

@@ -565,6 +565,19 @@ export default function App() {
     }
   }
 
+  async function updateWorkoutTitle(sessionId, title) {
+    if (!user) return;
+    setWorkouts(prev => ({
+      ...prev,
+      [viewedDate]: (prev[viewedDate] || []).map(s => s.id === sessionId ? { ...s, title: title || null } : s),
+    }));
+    try {
+      await updateSession(sessionId, { title: title || null });
+    } catch (err) {
+      console.error("Failed to update workout title:", err);
+    }
+  }
+
   // For exercise mutations (add/delete/rename/set changes),
   // we update local state then sync the full exercises array to Supabase
   function mutateSession(sessionId, mutateFn) {
@@ -863,6 +876,7 @@ export default function App() {
           onRenameExercise={renameExercise}
           onDeleteWorkout={deleteWorkout}
           onUpdateNotes={updateWorkoutNotes}
+          onUpdateTitle={updateWorkoutTitle}
           exerciseHistory={exerciseHistory}
           summarySession={summarySession}
           onDismissSummary={() => setSummarySession(null)}

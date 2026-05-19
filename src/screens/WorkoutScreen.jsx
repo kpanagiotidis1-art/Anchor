@@ -30,6 +30,20 @@ function formatDuration(seconds) {
   return m > 0 ? `${m}m ${s > 0 ? s + "s" : ""}`.trim() : `${s}s`;
 }
 
+function getRelativeDayLabel(dateStr) {
+  const today = todayString();
+  if (dateStr === today) return "Today";
+  const [ty, tm, td] = today.split("-").map(Number);
+  const [vy, vm, vd] = dateStr.split("-").map(Number);
+  const diffDays = Math.round(
+    (new Date(vy, vm - 1, vd) - new Date(ty, tm - 1, td)) / 86400000
+  );
+  if (diffDays === -1) return "Yesterday";
+  if (diffDays === 1) return "Tomorrow";
+  if (diffDays < 0) return `${Math.abs(diffDays)}d ago`;
+  return `In ${diffDays}d`;
+}
+
 function formatSetDisplay(set, mode) {
   mode = mode || "reps";
   if (mode === "time") return formatDuration(set.duration);
@@ -116,23 +130,20 @@ function computeTrainingContext(allWorkouts) {
 }
 
 // ── Training momentum header ───────────────────────────────────────────────────
-function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions, precomputedCopy }) {
+function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions, viewedDate, precomputedCopy }) {
   const copy = precomputedCopy || getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
-  const lastIdentity = lastSession ? getSessionIdentity(lastSession.exercises || []) : null;
 
-  // If the viewed date has completed sessions, surface that day's identity instead of the global last session
+  // Derive identity strictly from the viewed date's sessions — never from global state
   const completedViewed = (viewedSessions || []).filter(s => s.status === "completed");
   const viewedExercises = completedViewed.flatMap(s => s.exercises || []);
   const viewedIdentity = viewedExercises.length > 0 ? getSessionIdentity(viewedExercises) : null;
+  const viewedTitle = completedViewed.length > 0 ? completedViewed[completedViewed.length - 1].title : null;
 
+  // Only show a sub-label if the viewed date itself has a completed session.
+  // Never fall back to a session from a different date.
   const lastLabel = viewedIdentity
-    ? viewedIdentity
-    : (lastSession && daysSinceLastSession !== null
-        ? (lastIdentity
-            ? `${lastIdentity} · ${daysSinceLastSession === 0 ? "Today" : daysSinceLastSession === 1 ? "Yesterday" : `${daysSinceLastSession}d ago`}`
-            : (daysSinceLastSession === 0 ? "Logged today." : `Last session ${daysSinceLastSession === 1 ? "yesterday" : `${daysSinceLastSession} days ago`}.`)
-          )
-        : null);
+    ? `${viewedTitle || viewedIdentity} · ${getRelativeDayLabel(viewedDate)}`
+    : null;
 
   return (
     <div style={{ marginBottom: "var(--space-6)" }}>
@@ -169,6 +180,7 @@ function RecentSessionsStrip({ recentDates, onNavigateDay, viewedDate }) {
       <div style={{ display: "flex", gap: "var(--space-2)", overflowX: "auto", paddingBottom: "var(--space-1)", scrollbarWidth: "none" }}>
         {recentDates.map(({ dateStr, sessions }) => {
           const identity = getSessionIdentity(sessions[0]?.exercises || []);
+          const displayName = sessions[0]?.title || identity;
           const dateLabel = getRelativeSessionLabel(dateStr);
           const duration = sessions[0]?.duration;
           const isViewed = dateStr === viewedDate;
@@ -194,7 +206,7 @@ function RecentSessionsStrip({ recentDates, onNavigateDay, viewedDate }) {
                 {dateLabel}
               </p>
               <p style={{ fontSize: "var(--text-caption)", fontWeight: isViewed ? 600 : 500, color: isViewed ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.25 }}>
-                {identity || "Session"}
+                {displayName || "Session"}
               </p>
               {duration && (
                 <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "3px" }}>{duration}m</p>
@@ -574,7 +586,7 @@ function WorkoutSummary({ session, onDismiss, allWorkouts, gapBeforeSession }) {
             </p>
           )}
           <h1 style={{ fontSize: "var(--text-display)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.1, marginBottom: progressionObs ? "var(--space-2)" : "var(--space-3)" }}>
-            {identityLine}
+            {session.title || identityLine}
           </h1>
           {progressionObs && (
             <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", marginBottom: "var(--space-3)" }}>
@@ -1067,22 +1079,25 @@ function ExerciseCard({ exercise, sessionActive, onAddSet, onDeleteSet, onDelete
 }
 
 // ── Session card ───────────────────────────────────────────────────────────────
-function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, exerciseHistory, restTimerEnabled, restTimerDuration, smartSuggestionsEnabled }) {
+function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, onUpdateTitle, onCreateTemplate, exerciseHistory, restTimerEnabled, restTimerDuration, smartSuggestionsEnabled }) {
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateSaved, setTemplateSaved] = useState(false);
 
   const sessionActive = session.status === "active";
   const isEditable    = sessionActive || isEditing;
   const exercises     = session.exercises || [];
   const identity      = getSessionIdentity(exercises);
+  const displayName   = session.title || identity || "Workout";
 
   return (
     <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", boxShadow: "var(--shadow-sm)", width: "100%", boxSizing: "border-box", outline: isEditing ? `2px solid var(--accent-glow)` : "none" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
         <div>
-          {/* Session identity — chapter name, not just "Workout" */}
           <span style={{ fontSize: "var(--text-body)", fontWeight: 700, color: "var(--text-primary)" }}>
-            {identity || "Workout"}
+            {displayName}
           </span>
           <span style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)", marginLeft: "var(--space-2)" }}>
             {session.startTime}{session.endTime ? ` → ${session.endTime}` : ""}
@@ -1103,6 +1118,71 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
           </button>
         )}
       </div>
+
+      {isEditing && (
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "var(--space-2)" }}>Session name</p>
+          <input
+            type="text"
+            placeholder={identity || "Workout"}
+            defaultValue={session.title || ""}
+            onBlur={e => onUpdateTitle && onUpdateTitle(session.id, e.target.value.trim())}
+            onKeyDown={e => { if (e.key === "Enter") e.target.blur(); }}
+            style={{ width: "100%", padding: "var(--space-3) var(--space-4)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-body)", background: "var(--bg-surface)", color: "var(--text-primary)", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+          />
+        </div>
+      )}
+
+      {isEditing && (
+        <div style={{ marginBottom: "var(--space-4)" }}>
+          {!savingTemplate && !templateSaved && (
+            <button
+              onClick={() => { setTemplateName(session.title || identity || ""); setSavingTemplate(true); setTemplateSaved(false); }}
+              style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "var(--text-caption)", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" }}>
+              Save as template
+            </button>
+          )}
+          {savingTemplate && (
+            <div style={{ background: "var(--bg-inset)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
+              <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)" }}>Template name</p>
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <input
+                  autoFocus
+                  type="text"
+                  value={templateName}
+                  onChange={e => setTemplateName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && templateName.trim()) {
+                      onCreateTemplate && onCreateTemplate(templateName.trim(), exercises.map(ex => ({ name: ex.name, tracking_mode: ex.tracking_mode || "reps" })));
+                      setSavingTemplate(false); setTemplateSaved(true);
+                    }
+                    if (e.key === "Escape") setSavingTemplate(false);
+                  }}
+                  placeholder={identity || "Workout"}
+                  style={{ flex: 1, padding: "var(--space-2) var(--space-3)", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", fontSize: "var(--text-body)", background: "var(--bg-surface)", color: "var(--text-primary)", outline: "none", fontFamily: "inherit" }}
+                />
+                <button
+                  onClick={() => {
+                    if (!templateName.trim()) return;
+                    onCreateTemplate && onCreateTemplate(templateName.trim(), exercises.map(ex => ({ name: ex.name, tracking_mode: ex.tracking_mode || "reps" })));
+                    setSavingTemplate(false); setTemplateSaved(true);
+                  }}
+                  style={{ padding: "var(--space-2) var(--space-3)", background: "var(--text-primary)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-xs)", fontSize: "var(--text-caption)", cursor: "pointer", fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  Save
+                </button>
+                <button
+                  onClick={() => setSavingTemplate(false)}
+                  style={{ padding: "var(--space-2) var(--space-3)", background: "none", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", fontSize: "var(--text-caption)", cursor: "pointer", color: "var(--text-muted)", fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {templateSaved && (
+            <p style={{ fontSize: "var(--text-caption)", color: "var(--accent-text)", padding: "var(--space-1) 0" }}>Template saved.</p>
+          )}
+        </div>
+      )}
 
       {isEditing && (
         <button onClick={() => onDeleteWorkout(session.id)} style={{ width: "100%", padding: "10px", marginBottom: "var(--space-4)", borderRadius: "var(--radius-sm)", border: "1px solid #e05252", background: "none", color: "#e05252", fontSize: "var(--text-body)", cursor: "pointer" }}>
@@ -1169,11 +1249,11 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
 export default function WorkoutScreen({
   viewedDate, onNavigateDay, sessions,
   onStartWorkout, onEndWorkout, onAddExercise, onAddSet,
-  onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes,
+  onDeleteSet, onDeleteExercise, onRenameExercise, onDeleteWorkout, onUpdateNotes, onUpdateTitle,
   exerciseHistory, summarySession, onDismissSummary,
   anchorTemplates, userTemplates, onCreateTemplate, onUpdateTemplate, onDeleteTemplate,
   restTimerEnabled, restTimerDuration, smartSuggestionsEnabled,
-  allWorkouts,  // full workouts object for training context
+  allWorkouts,
 }) {
   const [workoutView, setWorkoutView] = useState("main");
   const [showCalendar, setShowCalendar] = useState(false);
@@ -1245,6 +1325,7 @@ export default function WorkoutScreen({
           lastSession={lastSession}
           daysSinceLastSession={daysSinceLastSession}
           viewedSessions={safeSessions}
+          viewedDate={viewedDate}
           precomputedCopy={momentumCopy}
         />
 
@@ -1295,6 +1376,8 @@ export default function WorkoutScreen({
               onRenameExercise={onRenameExercise}
               onDeleteWorkout={onDeleteWorkout}
               onUpdateNotes={onUpdateNotes}
+              onUpdateTitle={onUpdateTitle}
+              onCreateTemplate={onCreateTemplate}
               exerciseHistory={exerciseHistory}
               restTimerEnabled={restTimerEnabled}
               restTimerDuration={restTimerDuration}
