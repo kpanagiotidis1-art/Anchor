@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getFocusMode, getConfig } from "../lib/focusConfig";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WeeklyReviewScreen
@@ -118,7 +119,9 @@ function computeWeekData(tasks, workouts, weekDates) {
 // Returns { headline, observations[], tone }
 // tone: "strong" | "solid" | "quiet" | "off"
 
-function getWeekNarrative(weekData, isCurrentWeek) {
+// narrativeLead: "consistency" | "training" | "balanced"
+// Determines which axis the headline prioritises when the week data is ambiguous
+function getWeekNarrative(weekData, isCurrentWeek, narrativeLead = "balanced") {
   const { activeDays, totalWorkouts, taskPct, strongestDay } = weekData;
 
   // Tone
@@ -128,15 +131,26 @@ function getWeekNarrative(weekData, isCurrentWeek) {
   else if (activeDays === 0 && !isCurrentWeek) tone = "off";
 
   // Headline — one complete statement, no percentages, no fragments
+  // narrativeLead shifts which axis wins when both are equal
   let headline;
   if (isCurrentWeek && activeDays === 0) {
     headline = "The week is still open.";
+  } else if (tone === "strong" && totalWorkouts >= 4 && narrativeLead === "training") {
+    headline = `${totalWorkouts} sessions this week. Strong training.`;
+  } else if (tone === "strong" && taskPct !== null && taskPct >= 85 && narrativeLead === "consistency") {
+    headline = `You showed up ${activeDays} out of 7 days.`;
   } else if (tone === "strong" && totalWorkouts >= 4) {
     headline = "Strong week. Training and consistency both showed up.";
   } else if (tone === "strong" && taskPct !== null && taskPct >= 85) {
     headline = `You showed up ${activeDays} out of 7 days.`;
   } else if (tone === "strong") {
-    headline = "Solid consistency this week.";
+    headline = narrativeLead === "training" ? "Consistent training week." : "Solid consistency this week.";
+  } else if (totalWorkouts >= 3 && narrativeLead === "training") {
+    headline = `You trained ${totalWorkouts} times this week.`;
+  } else if (taskPct !== null && taskPct >= 60 && narrativeLead === "consistency") {
+    headline = activeDays >= 5
+      ? `${activeDays} days active. You stayed consistent.`
+      : "More than half the week complete.";
   } else if (totalWorkouts >= 3) {
     headline = `You trained ${totalWorkouts} times this week.`;
   } else if (taskPct !== null && taskPct >= 60) {
@@ -400,7 +414,9 @@ export default function WeeklyReviewScreen({ tasks, workouts, weeklyReviewNotes,
   }, [weekKey]);
 
   const weekData  = computeWeekData(tasks, workouts, weekDates);
-  const narrative = getWeekNarrative(weekData, isCurrentWeek);
+  const focusMode = getFocusMode();
+  const focusCfg  = getConfig(focusMode);
+  const narrative = getWeekNarrative(weekData, isCurrentWeek, focusCfg.weeklyNarrativeLead || "balanced");
   const accent    = toneAccent(narrative.tone);
 
   function prevWeek() { setAnchorDate(prev => offsetDate(prev, -7)); }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { getFocusMode } from "./OnboardingScreen";
+import { getConfig } from "../lib/focusConfig";
 import {
   getDayState,
   getAlignedDayState,
@@ -14,6 +15,8 @@ import {
 } from "../lib/anchorVoice";
 
 export { getFocusMode };
+// getConfig is now in focusConfig.js — re-exported here for backward compat
+export { getConfig };
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const SECTIONS = ["Morning", "Afternoon", "Night"];
@@ -26,65 +29,6 @@ function todayString() {
 function formatDateFull(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m-1, d).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
-}
-
-// ── Focus configuration ────────────────────────────────────────────────────────
-const FOCUS_CONFIG = {
-  discipline: {
-    heroMode: "tasks",
-    emptyTaskHeadline: "Build your routine.",
-    emptyTaskSub: "Structure is the foundation of everything.",
-    emptyTaskCTA: "Add your first routine →",
-    emptyTaskCTATarget: "tasks",
-    allDoneSub: "Discipline compounds. Keep the streak going.",
-    workoutEmptyLabel: "Not yet",
-    workoutEmptySub: "Recovery counts too.",
-    tertiaryOrder: ["weekly", "nutrition"],
-    nutritionEmptyCopy: null,
-    weeklyPrefix: "Consistency is everything.",
-    tasksSubtitle: "Stay on track.",
-    sectionEmptyLabel: "Tap + to add a routine",
-    workoutNudge: null,
-    secondaryLeft: "streak",
-  },
-  fitness: {
-    heroMode: "fitness",
-    emptyTaskHeadline: "Track today's training.",
-    emptyTaskSub: "Add tasks to structure your day around your goals.",
-    emptyTaskCTA: "Start a workout →",
-    emptyTaskCTATarget: "workout",
-    allDoneSub: "Fuelled and focused. Nice work.",
-    workoutEmptyLabel: "Ready?",
-    workoutEmptySub: "Start today's session →",
-    tertiaryOrder: ["tasks", "weekly"],
-    nutritionEmptyCopy: "Nothing logged — tap to add your first meal",
-    weeklyPrefix: null,
-    tasksSubtitle: "Structure your day.",
-    sectionEmptyLabel: "Tap + to add a task",
-    workoutNudge: "Ready for today's session?",
-    secondaryLeft: "workout",
-  },
-  balanced: {
-    heroMode: "tasks",
-    emptyTaskHeadline: "No tasks today",
-    emptyTaskSub: "Add tasks to get started.",
-    emptyTaskCTA: "Add your first task →",
-    emptyTaskCTATarget: "tasks",
-    allDoneSub: "Stay consistent. That's the whole game.",
-    workoutEmptyLabel: "Not yet",
-    workoutEmptySub: null,
-    tertiaryOrder: ["weekly", "nutrition"],
-    nutritionEmptyCopy: null,
-    weeklyPrefix: null,
-    tasksSubtitle: null,
-    sectionEmptyLabel: "Tap + to add a task",
-    workoutNudge: null,
-    secondaryLeft: "streak",
-  },
-};
-
-export function getConfig(focusMode) {
-  return FOCUS_CONFIG[focusMode] || FOCUS_CONFIG.balanced;
 }
 
 // ── Pillar dots — three small indicators in the aligned banner ────────────────
@@ -583,9 +527,27 @@ export default function OverviewScreen({
 
           {/* ── Header ── */}
           <div style={{ marginBottom: "24px", position: "relative" }}>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "3px", fontWeight: 500 }}>
-              {formatDateFull(today)}
-            </p>
+            {/* Date line — with optional focus label beside it */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                {formatDateFull(today)}
+              </p>
+              {/* Focus label — quiet persistent indicator, balanced mode shows nothing */}
+              {config.focusLabel && (
+                <span style={{
+                  fontSize: "0.65rem",
+                  fontWeight: 600,
+                  color: "var(--text-faint)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  // Faint separator before the label
+                  paddingLeft: "8px",
+                  borderLeft: "1px solid var(--border)",
+                }}>
+                  {config.focusLabel}
+                </span>
+              )}
+            </div>
             <h1 style={{
               fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)",
               lineHeight: 1.15, marginBottom: contextLine ? "6px" : "0",
@@ -653,6 +615,7 @@ export default function OverviewScreen({
           )}
 
           {/* ── Secondary row ── */}
+          {/* primaryStatEmphasis: left stat is rendered larger when mode has a clear primary pillar */}
           <div style={{
             background: "var(--bg-card)", borderRadius: "12px", padding: "14px 20px",
             boxShadow: accent
@@ -663,11 +626,15 @@ export default function OverviewScreen({
           }}>
             <button
               onClick={leftStat.onClick}
-              style={{ flex: 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
+              style={{ flex: config.primaryStatEmphasis ? 1.4 : 1, background: "none", border: "none", padding: 0, cursor: leftStat.onClick ? "pointer" : "default", textAlign: "left" }}
             >
               <p
                 className={leftStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
-                style={{ fontSize: "1.3rem", fontWeight: 700, color: leftStat.color, lineHeight: 1, transition: "color 0.5s ease" }}
+                style={{
+                  fontSize: config.primaryStatEmphasis ? "1.55rem" : "1.3rem",
+                  fontWeight: 700, color: leftStat.color, lineHeight: 1,
+                  transition: "color 0.5s ease, font-size 0.4s ease",
+                }}
               >
                 {leftStat.value}
               </p>
@@ -684,7 +651,12 @@ export default function OverviewScreen({
             >
               <p
                 className={rightStat.label === "Day streak" && streakPulsing ? "anchor-streak-pulse" : ""}
-                style={{ fontSize: "1.3rem", fontWeight: 700, color: rightStat.color, lineHeight: 1, transition: "color 0.5s ease" }}
+                style={{
+                  fontSize: config.primaryStatEmphasis ? "1.1rem" : "1.3rem",
+                  fontWeight: config.primaryStatEmphasis ? 600 : 700,
+                  color: rightStat.color, lineHeight: 1,
+                  transition: "color 0.5s ease, font-size 0.4s ease",
+                }}
               >
                 {rightStat.value}
               </p>

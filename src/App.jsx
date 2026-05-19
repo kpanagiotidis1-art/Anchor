@@ -31,7 +31,8 @@ import {
 } from "./lib/workoutService";
 import OverviewScreen from "./screens/OverviewScreen";
 import NutritionScreen from "./screens/NutritionScreen";
-import OnboardingScreen, { isOnboardingComplete, markOnboardingComplete } from "./screens/OnboardingScreen";
+import OnboardingScreen, { isOnboardingComplete, markOnboardingComplete, getFocusMode } from "./screens/OnboardingScreen";
+import { setFocusMode } from "./lib/focusConfig";
 import {
   getNutritionForDate,
   addMealToDate,
@@ -204,6 +205,9 @@ export default function App() {
 
   // ── Onboarding ──
   const [onboardingDone, setOnboardingDone] = useState(isOnboardingComplete);
+  // focusMode drives focus-aware UI across all screens. Stored in localStorage,
+  // mirrored in state so SettingsScreen changes re-render immediately.
+  const [focusMode, setFocusModeState] = useState(getFocusMode);
 
   // ── Task state (Supabase) ──
   const [tasks, setTasks] = useState({ Morning: [], Afternoon: [], Night: [] });
@@ -776,6 +780,11 @@ export default function App() {
         userEmail={user?.email}
         onLogout={handleLogout}
         onBack={() => setScreen("home")}
+        focusMode={focusMode}
+        onFocusChange={mode => {
+          setFocusMode(mode);       // persist to localStorage via focusConfig
+          setFocusModeState(mode);  // trigger re-render
+        }}
       />
     );
   }
