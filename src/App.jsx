@@ -874,7 +874,7 @@ export default function App() {
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
-        zIndex: 10,
+        zIndex: 50,
         background: "var(--tab-bg)",
         borderTop: "1px solid var(--tab-border)",
         display: "flex",

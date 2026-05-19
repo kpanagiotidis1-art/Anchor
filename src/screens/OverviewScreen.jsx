@@ -566,7 +566,7 @@ export default function OverviewScreen({
         />
       )}
 
-      <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box", position: "relative", zIndex: 1 }}>
+      <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box" }}>
 
         {/* ── Header ── */}
         <div style={{ marginBottom: "var(--space-7)", position: "relative" }}>
