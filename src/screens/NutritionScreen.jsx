@@ -577,7 +577,7 @@ function CategorySection({ title, meals, onMealTap, onMealDelete }) {
       <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>{title}</p>
       {meals.length === 0 ? (
         <div style={{ background: "var(--bg-card)", borderRadius: "12px", padding: "12px 16px", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontSize: "0.82rem", color: "var(--text-faint)" }}>Nothing logged yet</p>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-faint)" }}>Nothing logged</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -669,16 +669,56 @@ export default function NutritionScreen({
         <div style={{ background: "var(--bg-card)", borderRadius: "16px", padding: "20px", boxShadow: "var(--shadow)", marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
             <div>
-              <p style={{ fontSize: "2.4rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{totals.calories}</p>
+              <p style={{
+                fontSize: "2.4rem", fontWeight: 700,
+                color: calPct >= 100 ? "#4caf50" : "var(--text-primary)",
+                lineHeight: 1, transition: "color 0.4s ease",
+              }}>{totals.calories}</p>
               <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "4px" }}>of {goals.calories} kcal</p>
             </div>
             <div style={{ textAlign: "right" }}>
-              <p style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--text-primary)" }}>{Math.max(0, goals.calories - totals.calories)}</p>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>remaining</p>
+              {calPct >= 100 ? (
+                <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "#4caf50", lineHeight: 1.3 }}>Goal reached</p>
+              ) : (
+                <>
+                  <p style={{ fontSize: "1.1rem", fontWeight: 600, color: "var(--text-primary)" }}>{Math.max(0, goals.calories - totals.calories)}</p>
+                  <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>remaining</p>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Status line — contextual, not clinical */}
+          {(() => {
+            const protein = totals.protein;
+            const goalProtein = goals.protein ?? 150;
+            const proteinLeft = goalProtein - protein;
+            if (totals.calories === 0) return null;
+            if (protein >= goalProtein && calPct >= 90) return (
+              <p style={{ fontSize: "0.82rem", color: "#4caf50", fontWeight: 500, marginBottom: "14px" }}>
+                Targets hit. Nutrition on point today.
+              </p>
+            );
+            if (protein >= goalProtein) return (
+              <p style={{ fontSize: "0.82rem", color: "#4caf50", fontWeight: 500, marginBottom: "14px" }}>
+                Protein goal hit.
+              </p>
+            );
+            if (proteinLeft > 0 && proteinLeft <= 30) return (
+              <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "14px" }}>
+                {Math.round(proteinLeft)}g protein left. Almost there.
+              </p>
+            );
+            return null;
+          })()}
+
           <div style={{ height: "6px", background: "var(--border)", borderRadius: "99px", overflow: "hidden", marginBottom: "20px" }}>
-            <div style={{ height: "100%", width: `${calPct}%`, background: calPct >= 100 ? "#e05252" : "var(--text-primary)", borderRadius: "99px", transition: "width 0.3s ease" }} />
+            <div style={{
+              height: "100%", width: `${calPct}%`,
+              background: calPct >= 100 ? "#4caf50" : "var(--text-primary)",
+              borderRadius: "99px",
+              transition: "width 0.4s cubic-bezier(0.4,0,0.2,1), background 0.4s ease",
+            }} />
           </div>
           <div style={{ display: "flex", gap: "16px" }}>
             <MacroBar label="Protein" value={totals.protein} goal={goals.protein} colour="#4a90d9" />

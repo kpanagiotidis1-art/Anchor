@@ -3,6 +3,7 @@ import SectionBlock from "../components/SectionBlock";
 import CalendarPicker from "../components/CalendarPicker";
 import HintCard from "../components/HintCard";
 import { getFocusMode, getConfig } from "./OverviewScreen";
+import { getTasksFooterCopy, getRecoveryCopy } from "../lib/anchorVoice";
 
 const DAY_FULL_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -382,6 +383,8 @@ export default function HomeScreen({
   viewedDate, onNavigateDay,
   onEditTask,
   onDeleteTask,
+  currentStreak,
+  daysSinceActive,
 }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
@@ -390,8 +393,13 @@ export default function HomeScreen({
   const completedCount = allTasks.filter(t => t.completedDates.includes(viewedDate)).length;
   const totalCount = allTasks.length;
   const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  const isAllDone = totalCount > 0 && completedCount === totalCount;
 
   const config = getConfig(getFocusMode());
+  const footerCopy = isToday ? getTasksFooterCopy(completedCount, totalCount) : null;
+  const recoveryCopy = isToday && currentStreak === 0 && daysSinceActive > 1
+    ? getRecoveryCopy(daysSinceActive)
+    : null;
 
   return (
     <div style={{
@@ -456,6 +464,21 @@ export default function HomeScreen({
           </p>
         )}
 
+        {/* Recovery state — shown when streak=0 and there's prior history */}
+        {recoveryCopy && (
+          <div style={{
+            background: "var(--bg-card)",
+            borderRadius: "10px",
+            padding: "12px 16px",
+            marginBottom: "16px",
+            borderLeft: "3px solid var(--border)",
+          }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+              {recoveryCopy}
+            </p>
+          </div>
+        )}
+
         {/* Date navigation */}
         <div style={{
           display: "flex",
@@ -506,7 +529,7 @@ export default function HomeScreen({
               padding: 0,
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="3" width="14" height="12" rx="2" stroke="var(--text-muted)" strokeWidth="1.5"/>
               <path d="M1 7h14" stroke="var(--text-muted)" strokeWidth="1.5"/>
               <path d="M5 1v4M11 1v4" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round"/>
@@ -524,7 +547,7 @@ export default function HomeScreen({
           <HintCard
             hintId="tasks_first"
             text="Build your daily structure here."
-            sub="Build routines that repeat automatically each day."
+            sub="Add tasks to Morning, Afternoon, or Night — they repeat on your schedule."
           />
           {["Morning", "Afternoon", "Night"].map(section => (
             <SectionBlock
@@ -549,26 +572,47 @@ export default function HomeScreen({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "12px",
+          gap: "10px",
         }}>
-          <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-secondary)" }}>
-            {completedCount} / {totalCount} complete
-          </p>
+          {/* Progress bar */}
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <p style={{
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                color: isAllDone ? "#4caf50" : "var(--text-secondary)",
+                transition: "color 0.4s ease",
+              }}>
+                {completedCount} / {totalCount}
+              </p>
+              {/* Identity line — replaces static "complete" label */}
+              {footerCopy && (
+                <p style={{
+                  fontSize: "0.78rem",
+                  color: isAllDone ? "#4caf50" : "var(--text-muted)",
+                  fontWeight: isAllDone ? 600 : 400,
+                  transition: "color 0.4s ease",
+                }}>
+                  {footerCopy}
+                </p>
+              )}
+            </div>
 
-          <div style={{
-            width: "100%",
-            height: "6px",
-            background: "var(--border)",
-            borderRadius: "999px",
-            overflow: "hidden",
-          }}>
             <div style={{
-              height: "100%",
-              width: `${percentage}%`,
-              background: percentage === 100 ? "#4caf50" : "var(--text-primary)",
+              width: "100%",
+              height: "5px",
+              background: "var(--border)",
               borderRadius: "999px",
-              transition: "width 0.3s ease",
-            }} />
+              overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%",
+                width: `${percentage}%`,
+                background: isAllDone ? "#4caf50" : "var(--text-primary)",
+                borderRadius: "999px",
+                transition: "width 0.4s cubic-bezier(0.4,0,0.2,1), background 0.5s ease",
+              }} />
+            </div>
           </div>
         </div>
       </div>

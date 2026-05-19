@@ -390,7 +390,6 @@ function WorkoutSummary({ session, onDismiss }) {
   const exercises = session.exercises || [];
   const totalSets = exercises.reduce((acc, ex) => acc + (ex.sets || []).length, 0);
 
-  // Volume only counts reps exercises
   const totalVolume = exercises.reduce((acc, ex) => {
     if ((ex.tracking_mode || "reps") !== "reps") return acc;
     return acc + (ex.sets || []).reduce((s, set) =>
@@ -398,11 +397,20 @@ function WorkoutSummary({ session, onDismiss }) {
     );
   }, 0);
 
-  // Total cardio time
   const totalCardioSecs = exercises.reduce((acc, ex) => {
     if ((ex.tracking_mode || "reps") !== "cardio") return acc;
     return acc + (ex.sets || []).reduce((s, set) => s + (set.duration || 0), 0);
   }, 0);
+
+  // Identity line — calm and earned, not hypey
+  function getIdentityLine() {
+    if (session.duration >= 60) return "Long session. You earned the rest.";
+    if (totalSets >= 20) return "High volume. Recovery matters now.";
+    if (totalCardioSecs > 0 && exercises.length > 3) return "Cardio and strength. Complete session.";
+    if (totalSets >= 10) return "Solid work. Consistency builds results.";
+    if (totalSets >= 1) return "You showed up. That's what matters.";
+    return "Session logged.";
+  }
 
   return (
     <div style={{
@@ -411,21 +419,27 @@ function WorkoutSummary({ session, onDismiss }) {
       padding: "60px 20px 100px", boxSizing: "border-box",
     }}>
       <div style={{ width: "100%", maxWidth: "480px" }}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <p style={{ fontSize: "2rem", marginBottom: "8px" }}>💪</p>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
-            Workout Complete
+
+        {/* Header — identity-first, no emoji */}
+        <div style={{ marginBottom: "32px" }}>
+          <p style={{
+            fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)",
+            textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px",
+          }}>Workout logged</p>
+          <h1 style={{ fontSize: "1.7rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.2, marginBottom: "6px" }}>
+            {getIdentityLine()}
           </h1>
-          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
             {session.startTime}
             {session.endTime ? ` → ${session.endTime}` : ""}
             {session.duration ? ` · ${session.duration} min` : ""}
           </p>
         </div>
 
+        {/* Stats */}
         <div style={{
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "12px", marginBottom: "28px",
+          gap: "10px", marginBottom: "20px",
         }}>
           {[
             { label: "Exercises", value: exercises.length },
@@ -439,23 +453,24 @@ function WorkoutSummary({ session, onDismiss }) {
               textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
             }}>
               <p style={{ fontSize: "1.3rem", fontWeight: 700, color: "var(--text-primary)" }}>{stat.value}</p>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>{stat.label}</p>
+              <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.05em" }}>{stat.label}</p>
             </div>
           ))}
         </div>
 
+        {/* Exercise list */}
         <div style={{
           background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "16px",
         }}>
           <p style={{
-            fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
-            textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "12px",
+            fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)",
+            textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "12px",
           }}>Exercises</p>
           {exercises.length === 0 ? (
             <p style={{ fontSize: "0.88rem", color: "var(--text-faint)" }}>No exercises logged.</p>
           ) : (
-            exercises.map(ex => {
+            exercises.map((ex, i) => {
               const mode = ex.tracking_mode || "reps";
               const setCount = (ex.sets || []).length;
               const label = mode === "cardio"
@@ -464,7 +479,8 @@ function WorkoutSummary({ session, onDismiss }) {
               return (
                 <div key={ex.id} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 0", borderBottom: "1px solid var(--divider)",
+                  padding: "9px 0",
+                  borderBottom: i < exercises.length - 1 ? "1px solid var(--border-light)" : "none",
                 }}>
                   <span style={{ fontSize: "0.92rem", color: "var(--text-primary)", fontWeight: 500 }}>{ex.name}</span>
                   <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{label}</span>
@@ -474,18 +490,18 @@ function WorkoutSummary({ session, onDismiss }) {
           )}
         </div>
 
-        {session.notes ? (
+        {session.notes && (
           <div style={{
             background: "var(--bg-card)", borderRadius: "12px", padding: "16px 20px",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "20px",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "16px",
           }}>
             <p style={{
-              fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)",
-              textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px",
+              fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)",
+              textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px",
             }}>Notes</p>
             <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{session.notes}</p>
           </div>
-        ) : null}
+        )}
 
         <button
           onClick={onDismiss}
@@ -494,7 +510,13 @@ function WorkoutSummary({ session, onDismiss }) {
             color: "var(--bg)", border: "none", borderRadius: "10px",
             fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
           }}
-        >Done</button>
+        >Back to Workout</button>
+
+        {/* Quiet close footer */}
+        <p style={{
+          textAlign: "center", fontSize: "0.75rem", color: "var(--text-faint)",
+          marginTop: "16px",
+        }}>Momentum builds quietly.</p>
       </div>
     </div>
   );
@@ -1551,9 +1573,15 @@ export default function WorkoutScreen({
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}>
           {safeSessions.length === 0 && (() => {
             const wConfig = getConfig(getFocusMode());
+            const h = new Date().getHours();
+            const defaultNudge = h >= 20
+              ? "Rest day. Recovery is part of the process."
+              : h >= 12
+              ? "Afternoon session? Start when you're ready."
+              : "No session logged yet.";
             return (
-              <p style={{ fontSize: "0.9rem", color: "var(--text-faint)", textAlign: "center" }}>
-                {wConfig.workoutNudge || "No workouts logged for this day."}
+              <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", textAlign: "center", lineHeight: 1.5 }}>
+                {wConfig.workoutNudge || defaultNudge}
               </p>
             );
           })()}

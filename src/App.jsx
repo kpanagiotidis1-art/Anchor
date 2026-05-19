@@ -697,6 +697,19 @@ export default function App() {
   const weekStats = getWeekStats(tasks, workouts, currentWeekDates);
   const todayNutritionTotals = getTotalsForDate(today);
 
+  // Days since last active — for recovery copy in HomeScreen
+  const daysSinceActive = (() => {
+    if (currentStreak > 0) return 0;
+    let cursor = offsetDate(today, -1);
+    for (let i = 1; i <= 60; i++) {
+      const hasTask = Object.values(tasks).some(s => s.some(t => t.completedDates.includes(cursor)));
+      const hasWorkout = (workouts[cursor] || []).length > 0;
+      if (hasTask || hasWorkout) return i;
+      cursor = offsetDate(cursor, -1);
+    }
+    return 0; // no prior history found
+  })();
+
   // ── Loading states ──
   if (authLoading) {
     return (
@@ -783,6 +796,8 @@ export default function App() {
           onNavigateDay={navigateDay}
           onEditTask={updateTask}
           onDeleteTask={deleteTask}
+          currentStreak={currentStreak}
+          daysSinceActive={daysSinceActive}
         />
       )}
 
@@ -847,12 +862,6 @@ export default function App() {
       )}
 
       {/* Tab bar */}
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
