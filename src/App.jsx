@@ -29,6 +29,7 @@ import {
   updateUserTemplate,
   deleteUserTemplate,
 } from "./lib/workoutService";
+import { fetchWeightLogs } from "./lib/progressService";
 import OverviewScreen from "./screens/OverviewScreen";
 import ProgressScreen from "./screens/ProgressScreen";
 import FinancialClarityScreen from "./screens/FinancialClarityScreen";
@@ -223,6 +224,9 @@ export default function App() {
   const [exerciseHistory, setExerciseHistory] = useState({});
   const [userTemplates, setUserTemplates] = useState([]);
 
+  // ── Weight logs (Supabase) ──
+  const [weightLogs, setWeightLogs] = useState([]);
+
   // ── Nutrition state (localStorage) ──
   const [nutritionData, setNutritionData] = useState({});
   const [nutritionSetupDone, setNutritionSetupDone] = useState(isNutritionSetupComplete);
@@ -251,6 +255,7 @@ export default function App() {
         setWorkouts({});
         setExerciseHistory({});
         setUserTemplates([]);
+        setWeightLogs([]);
       }
     });
 
@@ -264,24 +269,27 @@ export default function App() {
       setWorkouts({});
       setExerciseHistory({});
       setUserTemplates([]);
+      setWeightLogs([]);
     }
   }, [user]);
 
   async function loadUserData(userId) {
     setTasksLoading(true);
     try {
-      const [fetchedTasks, fetchedReviews, fetchedWorkouts, fetchedHistory, fetchedTemplates] = await Promise.all([
+      const [fetchedTasks, fetchedReviews, fetchedWorkouts, fetchedHistory, fetchedTemplates, fetchedWeightLogs] = await Promise.all([
         fetchTasks(userId),
         fetchWeeklyReviews(userId),
         fetchAllSessions(userId),
         fetchExerciseHistory(userId),
         fetchUserTemplates(userId),
+        fetchWeightLogs(userId),
       ]);
       setTasks(fetchedTasks);
       setWeeklyReviewNotes(fetchedReviews);
       setWorkouts(fetchedWorkouts);
       setExerciseHistory(fetchedHistory);
       setUserTemplates(fetchedTemplates);
+      setWeightLogs(fetchedWeightLogs);
     } catch (err) {
       console.error("Failed to load user data:", err);
     } finally {
@@ -806,6 +814,7 @@ export default function App() {
           nutritionGoals={settings.nutritionGoals}
           onGoToNutrition={() => setActiveScreen("nutrition")}
           onGoToProgress={() => setScreen("progress")}
+          weightLogs={weightLogs}
         />
       )}
 

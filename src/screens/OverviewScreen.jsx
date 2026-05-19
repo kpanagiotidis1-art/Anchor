@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getFocusMode } from "./OnboardingScreen";
 import { getConfig } from "../lib/focusConfig";
+import { getNutritionProfile } from "../lib/nutritionService";
 import {
   getDayState,
   getAlignedDayState,
@@ -13,6 +14,7 @@ import {
   getMomentumInsight,
   getGreeting,
   getCrossSystemObservation,
+  getProgressRowCopy,
 } from "../lib/anchorVoice";
 
 export { getFocusMode };
@@ -443,7 +445,7 @@ export default function OverviewScreen({
   weeklyDots, weekStats, viewedDate,
   onGoToTasks, onGoToWorkout, onOpenSettings, onOpenReview,
   nutritionSummary, nutritionGoals, onGoToNutrition,
-  onGoToProgress,
+  onGoToProgress, weightLogs,
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -477,6 +479,8 @@ export default function OverviewScreen({
   const eodItems      = getEndOfDaySummary(dayState, alignedState);
   const momentum      = getMomentumInsight(currentStreak, longestStreak, weekStats, workouts);
   const crossSystem   = getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts });
+  const nutritionIntention = getNutritionProfile()?.intention;
+  const progressCopy  = getProgressRowCopy({ weightLogs: weightLogs || [], workouts, weekStats, nutritionSummary, nutritionGoals, currentStreak, longestStreak, nutritionIntention });
 
   // ── Banner entrance ──
   useEffect(() => {
@@ -524,7 +528,7 @@ export default function OverviewScreen({
     { label: "This week", value: weeklyText, onClick: onOpenReview },
     { label: "Nutrition",  value: nutritionCopy, onClick: onGoToNutrition },
     ...(onGoToProgress
-      ? [{ label: "Progress", value: crossSystem || "Log weight · track your body", onClick: onGoToProgress }]
+      ? [{ label: "Progress", value: progressCopy || "Your timeline starts with the first entry.", onClick: onGoToProgress }]
       : []),
   ];
 

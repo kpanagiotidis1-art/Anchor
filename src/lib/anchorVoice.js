@@ -287,26 +287,68 @@ export function getMomentumInsight(currentStreak, longestStreak, weekStats, work
 // ── Recovery / return states ──────────────────────────────────────────────────
 export function getRecoveryCopy(daysSinceActive) {
   if (daysSinceActive <= 0) return null;
-  if (daysSinceActive === 1) return "Yesterday off. Pick it back up today.";
+  if (daysSinceActive === 1) return "Yesterday off. Today is a new one.";
   if (daysSinceActive === 2) return "Two days off. Momentum isn't lost.";
-  if (daysSinceActive <= 5) return "It happens. One session resets everything.";
+  if (daysSinceActive <= 5) return "A quiet stretch. One session resets the rhythm.";
   if (daysSinceActive <= 14) return "Welcome back. Start where you are.";
-  return "Pick it back up. No guilt — just consistency from here.";
+  return "No guilt — just consistency from here.";
 }
 
 // ── Workout summary identity lines ────────────────────────────────────────────
-export function getWorkoutIdentityLine(session) {
+export function getWorkoutIdentityLine(session, context = {}) {
+  const { daysSincePrevSession = 0 } = context;
   const exercises = session?.exercises || [];
   const totalSets = exercises.reduce((acc, ex) => acc + (ex.sets || []).length, 0);
   const hasCardio = exercises.some(e => e.tracking_mode === "cardio");
   const duration = session?.duration;
 
-  if (duration >= 60) return "Long session. You earned the rest.";
-  if (totalSets >= 20) return "High volume. Recovery matters now.";
-  if (hasCardio && exercises.length > 3) return "Cardio and strength. Complete session.";
-  if (totalSets >= 10) return "Solid work. Consistency builds results.";
+  if (daysSincePrevSession >= 4) return "First session back. That counts.";
+  if (duration >= 60) return "Long session. Recovery matters.";
+  if (totalSets >= 20) return "High volume. Let it absorb.";
+  if (hasCardio && exercises.length > 3) return "Strength and cardio. Full session.";
+  if (totalSets >= 10) return "Solid work. Momentum builds quietly.";
   if (totalSets >= 1) return "You showed up. That's what matters.";
   return "Session logged.";
+}
+
+// ── Session progression observation ──────────────────────────────────────────
+// Compares this session's total lifting volume to all previous sessions
+// of the same identity type. Returns a quiet observation or null.
+function sessionVolume(session) {
+  return (session?.exercises || []).reduce((acc, ex) => {
+    if ((ex.tracking_mode || "reps") !== "reps") return acc;
+    return acc + (ex.sets || []).reduce((s, set) => s + (set.weight ? set.reps * set.weight : 0), 0);
+  }, 0);
+}
+
+export function getSessionProgressionObservation(session, allWorkouts) {
+  if (!allWorkouts || !session) return null;
+  const identity = getSessionIdentity(session.exercises || []);
+  if (!identity) return null;
+
+  const thisVol = sessionVolume(session);
+  if (thisVol === 0) return null;
+
+  let bestPrev = 0;
+  let prevCount = 0;
+
+  for (const daySessions of Object.values(allWorkouts)) {
+    for (const s of daySessions) {
+      if (s.id === session.id || s.status !== "completed") continue;
+      if (getSessionIdentity(s.exercises || []) !== identity) continue;
+      prevCount++;
+      const vol = sessionVolume(s);
+      if (vol > bestPrev) bestPrev = vol;
+    }
+  }
+
+  if (prevCount === 0) return null;
+  if (bestPrev === 0) return null;
+
+  if (thisVol > bestPrev * 1.01) return `Strongest ${identity} yet.`;
+  if (thisVol >= bestPrev * 0.97) return "Matched previous best.";
+  if (thisVol >= bestPrev * 0.88) return "Small progress. Still progress.";
+  return null;
 }
 
 // ── Nutrition screen status line ──────────────────────────────────────────────
@@ -357,19 +399,19 @@ export function getWeekObservations(weekStats) {
     }
   }
 
-  if (totalWorkouts >= 5) observations.push(`${totalWorkouts} workouts completed — strong training week`);
-  else if (totalWorkouts >= 3) observations.push(`${totalWorkouts} workouts logged this week`);
-  else if (totalWorkouts === 1) observations.push("1 workout logged. More is in reach.");
-  else if (totalWorkouts === 0) observations.push("No workouts this week. Next week is fresh.");
+  if (totalWorkouts >= 5) observations.push(`${totalWorkouts} sessions — consistent week.`);
+  else if (totalWorkouts >= 3) observations.push(`${totalWorkouts} sessions this week.`);
+  else if (totalWorkouts === 1) observations.push("1 session this week.");
+  else if (totalWorkouts === 0) observations.push("No sessions this week. Next week is ready.");
 
   if (taskPct !== null) {
     if (taskPct >= 90) observations.push(`${taskPct}% task completion. Near-perfect week.`);
     else if (taskPct >= 70) observations.push(`${taskPct}% completion. Solid consistency.`);
     else if (taskPct >= 50) observations.push(`${taskPct}% completion. More than halfway.`);
-    else if (taskPct > 0) observations.push(`${taskPct}% completion. Rough week — reset and go again.`);
+    else if (taskPct > 0) observations.push(`${taskPct}% completion. A quieter week — reset from here.`);
   }
 
-  if (activeDays >= 6) observations.push(`${activeDays}/7 days active. Exceptional.`);
+  if (activeDays >= 6) observations.push(`${activeDays}/7 days active.`);
   else if (activeDays >= 5) observations.push(`${activeDays}/7 days active.`);
 
   return observations.slice(0, 3);
@@ -450,8 +492,8 @@ export function getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLast
   if (weekSessions === 0) {
     const sub = isEvening
       ? "Still time tonight."
-      : h < 12 ? "Morning sessions build the strongest habits." : "Afternoon session?";
-    return { headline: "No sessions yet this week.", sub, tone: "fresh" };
+      : h < 12 ? "Morning is a good time to start." : "Ready when you are.";
+    return { headline: "Training when you're ready.", sub, tone: "fresh" };
   }
 
   if (daysSinceLastSession === 0) {
@@ -459,7 +501,7 @@ export function getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLast
     const identityLabel = identity ? `${identity} logged.` : "Session logged.";
     return {
       headline: identityLabel,
-      sub: weekSessions >= 4 ? "Strong week in progress." : "Consistent.",
+      sub: weekSessions >= 4 ? "Strong week building." : "Consistent.",
       tone: "consistent",
     };
   }
@@ -473,17 +515,17 @@ export function getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLast
   }
 
   if (daysSinceLastSession >= 3) {
-    const sub = identity ? `Last session: ${identity}.` : "Last session is behind you.";
+    const sub = identity ? `Last: ${identity}.` : "A quieter stretch. Rest is part of it.";
     return {
-      headline: weekSessions > 0 ? `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.` : "Back to it.",
+      headline: weekSessions > 0 ? `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.` : "Training when you're ready.",
       sub,
-      tone: "fresh",
+      tone: "resting",
     };
   }
 
   // 2 days since last session
   if (weekSessions >= 5) {
-    return { headline: `${weekSessions} sessions this week.`, sub: "Exceptional consistency.", tone: "strong" };
+    return { headline: `${weekSessions} sessions this week.`, sub: "Consistency is compounding.", tone: "strong" };
   }
   if (weekSessions >= 3) {
     return { headline: `${weekSessions} sessions this week.`, sub: "Consistency is showing.", tone: "consistent" };
@@ -491,7 +533,7 @@ export function getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLast
 
   return {
     headline: `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.`,
-    sub: "Keep building.",
+    sub: "Building steadily.",
     tone: "building",
   };
 }
@@ -538,9 +580,9 @@ export function getExerciseProgressionHint(exerciseName, exerciseHistory, curren
   const lastScore = (lastBest.weight || 0) * (lastBest.reps || 0);
   const curScore  = (currentBest.weight || 0) * (currentBest.reps || 0);
 
-  if (curScore > lastScore) return "Weight increased";
-  if (curScore === lastScore && lastScore > 0) return `Matched — ${setStr}`;
-  return `Last: ${setStr}`;
+  if (curScore > lastScore) return "Up from last session.";
+  if (curScore === lastScore && lastScore > 0) return `Matched · ${setStr}`;
+  return `Last · ${setStr}`;
 }
 
 // ── Recent sessions label ─────────────────────────────────────────────────────
@@ -580,7 +622,8 @@ export function getMultiWeekPattern(workouts) {
 
     let sessions = 0;
     Object.entries(workouts).forEach(([d, s]) => {
-      if (d >= monStr && d <= sunStr) sessions += (s || []).length;
+      if (d >= monStr && d <= sunStr)
+        sessions += (s || []).filter(sess => sess.status === "completed").length;
     });
     counts.unshift(sessions);
   }
@@ -589,8 +632,12 @@ export function getMultiWeekPattern(workouts) {
   if (w1 === 0 && w2 === 0 && w3 === 0 && current === 0) return null;
 
   if (current >= 3 && w3 >= 3 && w2 >= 3) return "3+ sessions per week — consistent for a month.";
+  // Steady upward trend across 3+ weeks
+  if (current > w3 && w3 > w2 && w2 > 0) return "Consistency is improving week over week.";
   if (current > w3 && w3 > 0) return `Training up — ${current} sessions this week vs ${w3} last.`;
+  // Stable rhythm — training in all 4 windows
   if (w1 > 0 && w2 > 0 && w3 > 0 && current > 0) {
+    if (Math.abs(current - w3) <= 1 && Math.abs(w3 - w2) <= 1) return "Training rhythm is stabilizing.";
     const avg = ((w1 + w2 + w3 + current) / 4).toFixed(1);
     return `Averaging ${avg} sessions per week over 4 weeks.`;
   }
@@ -599,16 +646,9 @@ export function getMultiWeekPattern(workouts) {
 
 export function getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts }) {
   const { activeDays = 0, totalWorkouts = 0, taskPct = null } = weekStats || {};
-  const protein = nutritionSummary?.protein ?? 0;
-  const proteinGoal = nutritionGoals?.protein ?? 150;
-  const proteinHit = protein >= proteinGoal * 0.95 && protein > 0;
-  const caloriesLogged = (nutritionSummary?.calories ?? 0) > 0;
 
   if (totalWorkouts >= 3 && taskPct >= 80) {
     return `${totalWorkouts} workouts and ${taskPct}% of tasks done this week.`;
-  }
-  if (totalWorkouts >= 3 && proteinHit && caloriesLogged) {
-    return `Training ${totalWorkouts}× this week and hitting nutrition today.`;
   }
   const multiWeek = getMultiWeekPattern(workouts || {});
   if (multiWeek) return multiWeek;
@@ -647,6 +687,58 @@ export function getRecentWeightChange(logs, days = 30) {
   if (Math.abs(delta) < 0.3) return "Stable this month.";
   if (delta < 0) return `-${abs} kg this month.`;
   return `+${abs} kg this month.`;
+}
+
+export function getStreakObservation(currentStreak, longestStreak) {
+  if (!currentStreak || currentStreak <= 0) return null;
+  if (currentStreak >= longestStreak && longestStreak >= 4) {
+    return `${currentStreak}-day streak — your longest yet.`;
+  }
+  return null;
+}
+
+// Returns copy when the user's weight direction matches their stated goal.
+// intention: "build" | "lean" | "maintain" | "track"
+function getWeightGoalAlignment(weightLogs, intention) {
+  if (!intention || intention === "track" || !weightLogs || weightLogs.length < 2) return null;
+  const sorted = [...weightLogs].sort((a, b) => a.date.localeCompare(b.date));
+  const delta = sorted[sorted.length - 1].weightKg - sorted[0].weightKg;
+  if (Math.abs(delta) < 0.3) {
+    if (intention === "maintain") return "Weight trend aligns with your goal.";
+    return null;
+  }
+  if (intention === "build" && delta > 0) return "Weight trend aligns with your goal.";
+  if (intention === "lean"  && delta < 0) return "Weight trend aligns with your goal.";
+  return null;
+}
+
+export function getProgressRowCopy({ weightLogs, workouts, weekStats, nutritionSummary, nutritionGoals, currentStreak, longestStreak, nutritionIntention }) {
+  // Priority 1: Streak personal best — most immediate proof of becoming
+  const streakObs = getStreakObservation(currentStreak, longestStreak ?? 0);
+  if (streakObs) return streakObs;
+
+  // Priority 2: Recent weight movement
+  const recentChange = getRecentWeightChange(weightLogs, 30);
+  if (recentChange) return recentChange;
+
+  // Priority 3: Overall weight trajectory
+  const trend = getWeightTrendCopy(weightLogs);
+
+  // Priority 3a: Weight direction aligns with stated goal
+  const goalAlignment = getWeightGoalAlignment(weightLogs, nutritionIntention);
+  if (goalAlignment) return goalAlignment;
+
+  // Priority 3b: Weight moving AND training consistent — surface the convergence
+  const pattern = getMultiWeekPattern(workouts);
+  if (trend && pattern) return "Momentum is becoming visible.";
+
+  if (trend) return trend;
+
+  // Priority 4: Multi-week training pattern alone
+  if (pattern) return pattern;
+
+  // Priority 5: Cross-system fallback
+  return getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts });
 }
 
 export const SECTION_EMPTY = {

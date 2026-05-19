@@ -19,6 +19,35 @@ function formatDateShort(dateStr) {
   return new Date(y, m-1, d).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
+function getPhotoFramingCopy(photos) {
+  if (!photos || photos.length < 2) return null;
+  const sorted = [...photos].sort((a, b) => a.date.localeCompare(b.date));
+  const [ey, em, ed] = sorted[0].date.split("-").map(Number);
+  const [ly, lm, ld] = sorted[sorted.length - 1].date.split("-").map(Number);
+  const spanDays = Math.round((new Date(ly, lm-1, ld) - new Date(ey, em-1, ed)) / 86400000);
+  if (spanDays >= 112) return "The work is becoming visible.";
+  if (spanDays >= 56)  return "Consistency changed this.";
+  if (spanDays >= 21)  return "Momentum started here.";
+  return null;
+}
+
+function getRelativeTimeLabel(dateStr) {
+  const now = new Date();
+  const date = new Date(dateStr + "T00:00:00");
+  const diffDays = Math.round((now.setHours(0,0,0,0) - date.setHours(0,0,0,0)) / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays <= 6) return `${diffDays} days ago`;
+  const weeks = Math.round(diffDays / 7);
+  if (weeks === 1) return "1 week ago";
+  if (weeks < 5) return `${weeks} weeks ago`;
+  const months = Math.round(diffDays / 30.5);
+  if (months === 1) return "1 month ago";
+  if (months < 12) return `${months} months ago`;
+  const years = Math.round(diffDays / 365);
+  return `${years} year${years !== 1 ? "s" : ""} ago`;
+}
+
 // ── Weight chart (hand-rolled SVG) ────────────────────────────────────────────
 
 function WeightChart({ logs, onSelectEntry }) {
@@ -199,12 +228,13 @@ function LogWeightSheet({ initialDate, existingLog, onSave, onClose }) {
 function PhotoGrid({ photos, onDelete, onAdd, uploading }) {
   const fileInputRef = useRef(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const framingCopy = getPhotoFramingCopy(photos);
 
   return (
     <div style={{ marginTop: "var(--space-6)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
-        <p style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
-          Progress photos
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: framingCopy ? "var(--space-2)" : "var(--space-3)" }}>
+        <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", letterSpacing: "0.06em" }}>
+          Visual record
         </p>
         <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{
           background: "none", border: "1px solid var(--border-light)", borderRadius: "var(--radius-xs)",
@@ -217,10 +247,16 @@ function PhotoGrid({ photos, onDelete, onAdd, uploading }) {
           onChange={e => { if (e.target.files?.[0]) onAdd(e.target.files[0]); e.target.value = ""; }} />
       </div>
 
+      {framingCopy && (
+        <p style={{ fontSize: "var(--text-caption)", color: "var(--text-secondary)", marginBottom: "var(--space-4)", fontStyle: "italic", letterSpacing: "0.02em" }}>
+          {framingCopy}
+        </p>
+      )}
+
       {photos.length === 0 ? (
-        <div style={{ background: "var(--bg-surface)", border: "1px dashed var(--border-light)", borderRadius: "var(--radius-md)", padding: "var(--space-8)", textAlign: "center" }}>
-          <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)" }}>No photos yet</p>
-          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginTop: "var(--space-1)" }}>Add check-in photos to track your physical progress</p>
+        <div style={{ background: "var(--bg-inset)", borderRadius: "var(--radius-md)", padding: "var(--space-8)", textAlign: "center" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Your timeline starts here.</p>
+          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)" }}>Consistency leaves evidence.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
@@ -236,7 +272,10 @@ function PhotoGrid({ photos, onDelete, onAdd, uploading }) {
                   border: "1px solid var(--border-light)",
                 }}
               />
-              <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "var(--space-1)", textAlign: "center" }}>
+              <p style={{ fontSize: "var(--text-micro)", color: "var(--text-secondary)", marginTop: "var(--space-1)", textAlign: "center" }}>
+                {getRelativeTimeLabel(photo.date)}
+              </p>
+              <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", textAlign: "center" }}>
                 {formatDateShort(photo.date)}
               </p>
             </div>
@@ -248,9 +287,12 @@ function PhotoGrid({ photos, onDelete, onAdd, uploading }) {
         <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "var(--space-5)" }}
           onClick={() => setSelectedPhoto(null)}>
           <img src={selectedPhoto.url} alt="" style={{ maxWidth: "100%", maxHeight: "80dvh", borderRadius: "var(--radius-sm)", objectFit: "contain" }} />
-          <p style={{ fontSize: "var(--text-body)", color: "rgba(255,255,255,0.7)", marginTop: "var(--space-3)" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "rgba(255,255,255,0.85)", marginTop: "var(--space-3)" }}>
+            {getRelativeTimeLabel(selectedPhoto.date)}
+          </p>
+          <p style={{ fontSize: "var(--text-caption)", color: "rgba(255,255,255,0.45)", marginTop: "var(--space-1)" }}>
             {formatDateShort(selectedPhoto.date)}
-            {selectedPhoto.caption && ` — ${selectedPhoto.caption}`}
+            {selectedPhoto.caption && ` · ${selectedPhoto.caption}`}
           </p>
           <button onClick={e => { e.stopPropagation(); onDelete(selectedPhoto); setSelectedPhoto(null); }} style={{
             marginTop: "var(--space-4)", background: "none", border: "1px solid rgba(255,255,255,0.2)",
@@ -329,9 +371,25 @@ export default function ProgressScreen({ userId, onBack }) {
   const trendCopy = getWeightTrendCopy(weightLogs);
   const recentCopy = getRecentWeightChange(weightLogs, 30);
 
+  // Atmosphere: subtle warmth when there is a meaningful journey to reflect on
+  const hasJourney = weightLogs.length >= 3 || photos.length >= 2;
+  const atmosphereTint = hasJourney ? "rgba(76,175,80,0.014)" : "transparent";
+
+  // Journey framing — shown at the top when data runs deep enough
+  function getJourneyFramingCopy() {
+    if (weightLogs.length >= 2 && photos.length >= 2) {
+      return trendCopy ? "Consistency is leaving evidence." : "Your record is building.";
+    }
+    if (weightLogs.length >= 5) return trendCopy ? "The pattern is becoming clear." : "Your timeline is building.";
+    if (weightLogs.length >= 2) return "Your record is building.";
+    return null;
+  }
+  const journeyFraming = getJourneyFramingCopy();
+
   return (
     <div style={{
-      width: "100%", minHeight: "100dvh", background: "var(--bg-deep)",
+      width: "100%", minHeight: "100dvh",
+      background: `linear-gradient(to bottom, ${atmosphereTint} 0%, transparent 200px), var(--bg-deep)`,
       display: "flex", flexDirection: "column", alignItems: "center",
       padding: "var(--space-8) var(--space-5) calc(var(--space-8) + 64px)",
       boxSizing: "border-box", overflowY: "auto",
@@ -365,6 +423,12 @@ export default function ProgressScreen({ userId, onBack }) {
           </button>
         </div>
 
+        {journeyFraming && !loading && (
+          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", textAlign: "center", marginBottom: "var(--space-5)", letterSpacing: "0.04em", fontStyle: "italic" }}>
+            {journeyFraming}
+          </p>
+        )}
+
         {loading ? (
           <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)", textAlign: "center", padding: "var(--space-8) 0" }}>Loading…</p>
         ) : (
@@ -378,8 +442,8 @@ export default function ProgressScreen({ userId, onBack }) {
               }}>
                 <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
                   <div>
-                    <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "var(--space-1)" }}>
-                      Current weight
+                    <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
+                      Latest
                     </p>
                     <p style={{ fontSize: "var(--text-display)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
                       {currentWeight.toFixed(1)}
@@ -399,25 +463,25 @@ export default function ProgressScreen({ userId, onBack }) {
                 )}
 
                 <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "var(--space-2)" }}>
-                  {weightLogs.length} {weightLogs.length === 1 ? "entry" : "entries"} · Tap a dot to edit
+                  {weightLogs.length} {weightLogs.length === 1 ? "entry" : "entries"} · Tap any point to edit
                 </p>
               </div>
             ) : (
               <div style={{
-                background: "var(--bg-surface)", border: "1px dashed var(--border-light)",
+                background: "var(--bg-inset)",
                 borderRadius: "var(--radius-md)", padding: "var(--space-8)",
                 marginBottom: "var(--space-4)", textAlign: "center",
               }}>
-                <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>No weight logged yet</p>
-                <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)" }}>Tap + Log to start your timeline.</p>
+                <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Your record starts with the first entry.</p>
+                <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)" }}>Tap + Log above to begin.</p>
               </div>
             )}
 
             {/* Recent entries list */}
             {weightLogs.length > 0 && (
               <div style={{ marginBottom: "var(--space-6)" }}>
-                <p style={{ fontSize: "var(--text-caption)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, marginBottom: "var(--space-3)" }}>
-                  History
+                <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", letterSpacing: "0.06em", marginBottom: "var(--space-3)" }}>
+                  Log
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {[...weightLogs].reverse().slice(0, 10).map(log => (
@@ -431,15 +495,16 @@ export default function ProgressScreen({ userId, onBack }) {
                           {log.weightKg.toFixed(1)} kg
                         </span>
                         {log.notes && (
-                          <span style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginLeft: "var(--space-2)" }}>
+                          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-secondary)", marginTop: "2px", fontStyle: "italic" }}>
                             {log.notes}
-                          </span>
+                          </p>
                         )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                        <span style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)" }}>
-                          {formatDateShort(log.date)}
-                        </span>
+                        <div style={{ textAlign: "right" }}>
+                          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-secondary)" }}>{getRelativeTimeLabel(log.date)}</p>
+                          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)" }}>{formatDateShort(log.date)}</p>
+                        </div>
                         <button onClick={() => handleDeleteWeight(log)} style={{
                           background: "none", border: "none", color: "var(--text-faint)",
                           fontSize: "var(--text-caption)", cursor: "pointer", padding: 0, lineHeight: 1,

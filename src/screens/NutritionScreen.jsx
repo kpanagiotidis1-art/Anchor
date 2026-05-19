@@ -550,7 +550,12 @@ function WaterTracker({ glasses, goal, onAdd, onRemove }) {
             transition: "color 0.4s ease",
           }}>Water</p>
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px" }}>
-            {glasses} / {goal} glasses · {glasses * 250}ml
+            {glasses === 0
+              ? "Hydration sets the tone."
+              : isGoalHit
+                ? `${glasses} / ${goal} glasses · ${glasses * 250}ml`
+                : `${glasses} / ${goal} glasses · ${glasses * 250}ml`
+            }
           </p>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -622,7 +627,7 @@ function CategorySection({ title, meals, onMealTap, onMealDelete }) {
       <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "8px" }}>{title}</p>
       {meals.length === 0 ? (
         <div style={{ background: "var(--bg-card)", borderRadius: "12px", padding: "12px 16px", boxShadow: "var(--shadow)" }}>
-          <p style={{ fontSize: "0.82rem", color: "var(--text-faint)" }}>Nothing logged yet</p>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-faint)" }}>Start with one meal.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -820,6 +825,11 @@ export default function NutritionScreen({
             <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} colour="#f0a500" />
             <MacroBar label="Fats" value={totals.fats} goal={goals.fats} colour="#9b59b6" />
           </div>
+          {totals.calories > 0 && goals.protein > 0 && totals.protein < goals.protein * 0.5 && (
+            <p style={{ fontSize: "0.72rem", color: "var(--text-faint)", marginTop: "var(--space-3)", fontStyle: "italic" }}>
+              Fuel supports recovery.
+            </p>
+          )}
         </div>
 
         {/* Water */}

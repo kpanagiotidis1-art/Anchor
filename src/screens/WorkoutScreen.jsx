@@ -7,6 +7,7 @@ import {
   getExerciseProgressionHint,
   getRelativeSessionLabel,
   getWorkoutIdentityLine,
+  getSessionProgressionObservation,
 } from "../lib/anchorVoice";
 
 // ── Date helpers ───────────────────────────────────────────────────────────────
@@ -94,17 +95,29 @@ function computeTrainingContext(allWorkouts) {
     daysSinceLastSession = Math.round((todayMs - lastMs) / (1000 * 60 * 60 * 24));
   }
 
+  // Gap between the two most recent sessions (used for "first session back" copy)
+  let gapBeforeLatestSession = null;
+  if (recentDates.length >= 2) {
+    const [a, b] = recentDates;
+    const [ay, am, ad] = a.dateStr.split("-").map(Number);
+    const [by, bm, bd] = b.dateStr.split("-").map(Number);
+    gapBeforeLatestSession = Math.round(
+      (new Date(ay, am - 1, ad) - new Date(by, bm - 1, bd)) / 86400000
+    );
+  }
+
   return {
     weekSessions,
     lastSession,
     daysSinceLastSession,
     recentDates: recentDates.slice(0, 8),
+    gapBeforeLatestSession,
   };
 }
 
 // ── Training momentum header ───────────────────────────────────────────────────
-function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions }) {
-  const copy = getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
+function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions, precomputedCopy }) {
+  const copy = precomputedCopy || getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
   const lastIdentity = lastSession ? getSessionIdentity(lastSession.exercises || []) : null;
 
   // If the viewed date has completed sessions, surface that day's identity instead of the global last session
@@ -117,7 +130,7 @@ function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSessio
     : (lastSession && daysSinceLastSession !== null
         ? (lastIdentity
             ? `${lastIdentity} · ${daysSinceLastSession === 0 ? "Today" : daysSinceLastSession === 1 ? "Yesterday" : `${daysSinceLastSession}d ago`}`
-            : (daysSinceLastSession === 0 ? "Session logged today." : `Last session ${daysSinceLastSession === 1 ? "yesterday" : `${daysSinceLastSession} days ago`}.`)
+            : (daysSinceLastSession === 0 ? "Logged today." : `Last session ${daysSinceLastSession === 1 ? "yesterday" : `${daysSinceLastSession} days ago`}.`)
           )
         : null);
 
@@ -147,21 +160,18 @@ function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSessio
 }
 
 // ── Recent sessions strip ──────────────────────────────────────────────────────
-// Horizontal scrollable row showing the last 6 sessions.
-function RecentSessionsStrip({ recentDates, onNavigateDay }) {
+// Memory strip — a quiet record of recent training, not navigation.
+function RecentSessionsStrip({ recentDates, onNavigateDay, viewedDate }) {
   if (!recentDates || recentDates.length === 0) return null;
 
   return (
     <div style={{ marginBottom: "var(--space-5)" }}>
-      <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
-        Recent
-      </p>
       <div style={{ display: "flex", gap: "var(--space-2)", overflowX: "auto", paddingBottom: "var(--space-1)", scrollbarWidth: "none" }}>
         {recentDates.map(({ dateStr, sessions }) => {
           const identity = getSessionIdentity(sessions[0]?.exercises || []);
           const dateLabel = getRelativeSessionLabel(dateStr);
           const duration = sessions[0]?.duration;
-          const isToday = dateStr === todayString();
+          const isViewed = dateStr === viewedDate;
 
           return (
             <button
@@ -169,24 +179,25 @@ function RecentSessionsStrip({ recentDates, onNavigateDay }) {
               onClick={() => onNavigateDay(0, dateStr)}
               style={{
                 flexShrink: 0,
-                background: "var(--bg-surface)",
+                background: isViewed ? "var(--bg-surface)" : "var(--bg-inset)",
                 border: "1px solid var(--border-light)",
                 borderRadius: "var(--radius-md)",
                 padding: "var(--space-3) var(--space-4)",
                 cursor: "pointer",
                 textAlign: "left",
-                minWidth: "90px",
-                outline: isToday ? "2px solid var(--accent-glow)" : "none",
+                minWidth: "80px",
+                boxShadow: isViewed ? "inset 2px 0 0 var(--accent)" : "none",
+                transition: "box-shadow 0.15s ease, background 0.15s ease",
               }}
             >
-              <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: isToday ? "var(--accent-text)" : "var(--text-muted)", marginBottom: "3px" }}>
+              <p style={{ fontSize: "var(--text-micro)", color: isViewed ? "var(--accent-text)" : "var(--text-faint)", marginBottom: "4px", letterSpacing: "0.03em" }}>
                 {dateLabel}
               </p>
-              <p style={{ fontSize: "var(--text-body)", fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.2 }}>
-                {identity || (duration ? `${duration}m` : "Session")}
+              <p style={{ fontSize: "var(--text-caption)", fontWeight: isViewed ? 600 : 500, color: isViewed ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.25 }}>
+                {identity || "Session"}
               </p>
-              {duration && identity && (
-                <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px" }}>{duration}m</p>
+              {duration && (
+                <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "3px" }}>{duration}m</p>
               )}
             </button>
           );
@@ -263,12 +274,12 @@ function TrainingStatsPanel({ allWorkouts, exerciseHistory, sessions }) {
         <div style={{ display: "flex", gap: "var(--space-6)", alignItems: "center" }}>
           <div>
             <p style={{ fontSize: "var(--text-title)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{monthSessions}</p>
-            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>This month</p>
+            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px" }}>this month</p>
           </div>
           <div style={{ width: "1px", height: "28px", background: "var(--border-light)" }} />
           <div>
             <p style={{ fontSize: "var(--text-title)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>{totalSessions}</p>
-            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginTop: "2px" }}>All time</p>
+            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "2px" }}>all time</p>
           </div>
         </div>
         <span style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease" }}>
@@ -286,8 +297,8 @@ function TrainingStatsPanel({ allWorkouts, exerciseHistory, sessions }) {
           boxShadow: "var(--shadow-sm)",
         }}>
           <div style={{ padding: "var(--space-4) var(--space-5) var(--space-3)" }}>
-            <p style={{ fontSize: "var(--text-label)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-3)" }}>
-              Personal records
+            <p style={{ fontSize: "var(--text-label)", color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-3)" }}>
+              Session bests
             </p>
             {topPrs.map((pr, i) => (
               <div key={i} style={{
@@ -298,8 +309,8 @@ function TrainingStatsPanel({ allWorkouts, exerciseHistory, sessions }) {
                 borderBottom: i < topPrs.length - 1 ? "1px solid var(--border-light)" : "none",
               }}>
                 <p style={{ fontSize: "var(--text-body)", color: "var(--text-primary)", fontWeight: 500 }}>{pr.name}</p>
-                <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", fontWeight: 600 }}>
-                  {pr.weight}kg × {pr.reps}
+                <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", fontWeight: 500 }}>
+                  Personal best · {pr.weight}kg × {pr.reps}
                 </p>
               </div>
             ))}
@@ -475,8 +486,8 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
             {pr && prDisplay() && (
               <div style={{ background: "var(--accent-subtle)", border: "1px solid var(--accent-glow)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", marginBottom: "var(--space-4)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <p style={{ fontSize: "var(--text-label)", color: "var(--accent-text)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
-                    Personal record
+                  <p style={{ fontSize: "var(--text-label)", color: "var(--accent-text)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
+                    Personal best
                   </p>
                   <p style={{ fontSize: "var(--text-title)", fontWeight: 700, color: "var(--text-primary)" }}>{prDisplay()}</p>
                 </div>
@@ -527,7 +538,7 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
 
 // ── Workout summary ────────────────────────────────────────────────────────────
 // The emotional payoff screen. Identity line is dominant.
-function WorkoutSummary({ session, onDismiss }) {
+function WorkoutSummary({ session, onDismiss, allWorkouts, gapBeforeSession }) {
   const exercises = session.exercises || [];
   const totalSets = exercises.reduce((acc, ex) => acc + (ex.sets || []).length, 0);
   const totalVolume = exercises.reduce((acc, ex) => {
@@ -539,8 +550,9 @@ function WorkoutSummary({ session, onDismiss }) {
     return acc + (ex.sets || []).reduce((s, set) => s + (set.duration || 0), 0);
   }, 0);
 
-  const identityLine = getWorkoutIdentityLine(session);
+  const identityLine = getWorkoutIdentityLine(session, { daysSincePrevSession: gapBeforeSession ?? 0 });
   const sessionIdentity = getSessionIdentity(exercises);
+  const progressionObs = getSessionProgressionObservation(session, allWorkouts);
 
   const statItems = [
     { label: "Exercises", value: exercises.length },
@@ -556,13 +568,20 @@ function WorkoutSummary({ session, onDismiss }) {
 
         {/* Header — identity first */}
         <div style={{ marginBottom: "var(--space-7)" }}>
-          <p style={{ fontSize: "var(--text-label)", fontWeight: 700, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: "var(--space-3)" }}>
-            {sessionIdentity || "Workout logged"}
-          </p>
-          <h1 style={{ fontSize: "var(--text-display)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.1, marginBottom: "var(--space-3)" }}>
+          {sessionIdentity && (
+            <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--accent-text)", textTransform: "uppercase", letterSpacing: "0.10em", marginBottom: "var(--space-3)" }}>
+              {sessionIdentity}
+            </p>
+          )}
+          <h1 style={{ fontSize: "var(--text-display)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.1, marginBottom: progressionObs ? "var(--space-2)" : "var(--space-3)" }}>
             {identityLine}
           </h1>
-          <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)" }}>
+          {progressionObs && (
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", marginBottom: "var(--space-3)" }}>
+              {progressionObs}
+            </p>
+          )}
+          <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)" }}>
             {session.startTime}
             {session.endTime ? ` → ${session.endTime}` : ""}
             {session.duration ? ` · ${session.duration} min` : ""}
@@ -593,7 +612,6 @@ function WorkoutSummary({ session, onDismiss }) {
 
         {/* Exercise list */}
         <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", boxShadow: "var(--shadow-sm)", marginBottom: "var(--space-4)" }}>
-          <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-3)" }}>Exercises</p>
           {exercises.length === 0 ? (
             <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)" }}>No exercises logged.</p>
           ) : (
@@ -606,7 +624,7 @@ function WorkoutSummary({ session, onDismiss }) {
               return (
                 <div key={ex.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-2) 0", borderBottom: i < exercises.length - 1 ? "1px solid var(--border-light)" : "none" }}>
                   <span style={{ fontSize: "var(--text-body)", color: "var(--text-primary)", fontWeight: 500 }}>{ex.name}</span>
-                  <span style={{ fontSize: "var(--text-body)", color: "var(--text-muted)" }}>{label}</span>
+                  <span style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)" }}>{label}</span>
                 </div>
               );
             })
@@ -614,9 +632,8 @@ function WorkoutSummary({ session, onDismiss }) {
         </div>
 
         {session.notes && (
-          <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", boxShadow: "var(--shadow-sm)", marginBottom: "var(--space-4)" }}>
-            <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>Notes</p>
-            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.5 }}>{session.notes}</p>
+          <div style={{ padding: "var(--space-4) var(--space-5)", marginBottom: "var(--space-4)", borderLeft: "2px solid var(--border-light)" }}>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.6, fontStyle: "italic" }}>{session.notes}</p>
           </div>
         )}
 
@@ -1127,7 +1144,12 @@ function SessionCard({ session, onEnd, onAddExercise, onAddSet, onDeleteSet, onD
           <textarea placeholder="How did it go?" value={session.notes || ""} onChange={e => onUpdateNotes(session.id, e.target.value)} rows={3} style={{ width: "100%", padding: "var(--space-3)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-body)", color: "var(--text-primary)", background: "var(--bg-input)", outline: "none", resize: "none", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }} />
         </div>
       )}
-      {!sessionActive && (session.notes || isEditing) && (
+      {!sessionActive && session.notes && !isEditing && (
+        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-3) var(--space-4)", background: "var(--bg-inset)", borderRadius: "var(--radius-sm)", borderLeft: "2px solid var(--border)" }}>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.6, fontStyle: "italic" }}>{session.notes}</p>
+        </div>
+      )}
+      {!sessionActive && isEditing && (
         <div style={{ marginTop: "var(--space-3)" }}>
           <p style={{ fontSize: "var(--text-label)", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "var(--space-2)" }}>Notes</p>
           <textarea placeholder="Add notes..." value={session.notes || ""} onChange={e => onUpdateNotes(session.id, e.target.value)} rows={3} style={{ width: "100%", padding: "var(--space-3)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-body)", color: "var(--text-primary)", background: "var(--bg-input)", outline: "none", resize: "none", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }} />
@@ -1161,11 +1183,29 @@ export default function WorkoutScreen({
   const hasActiveSession = safeSessions.some(s => s.status === "active");
 
   // Training context from full workouts history
-  const { weekSessions, lastSession, daysSinceLastSession, recentDates } =
+  const { weekSessions, lastSession, daysSinceLastSession, recentDates, gapBeforeLatestSession } =
     computeTrainingContext(allWorkouts);
 
+  // Tone drives the ambient atmosphere of the screen
+  const momentumCopy = getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
+  const TONE_WASH = {
+    strong:     "rgba(76,175,80,0.025)",
+    consistent: "rgba(76,175,80,0.015)",
+    building:   "rgba(240,165,0,0.018)",
+    resting:    "rgba(120,120,160,0.020)",
+    fresh:      "transparent",
+  };
+  const toneWash = TONE_WASH[momentumCopy.tone] || "transparent";
+
   if (summarySession) {
-    return <WorkoutSummary session={summarySession} onDismiss={onDismissSummary} />;
+    return (
+      <WorkoutSummary
+        session={summarySession}
+        onDismiss={onDismissSummary}
+        allWorkouts={allWorkouts}
+        gapBeforeSession={gapBeforeLatestSession}
+      />
+    );
   }
 
   if (workoutView === "picker") {
@@ -1192,7 +1232,7 @@ export default function WorkoutScreen({
   }
 
   return (
-    <div style={{ width: "100%", minHeight: "100svh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) 0 var(--scroll-pb)", boxSizing: "border-box" }}>
+    <div style={{ width: "100%", minHeight: "100svh", background: `linear-gradient(to bottom, ${toneWash} 0%, transparent 280px), var(--bg)`, display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-9) 0 var(--scroll-pb)", boxSizing: "border-box" }}>
       {showCalendar && (
         <CalendarPicker viewedDate={viewedDate} onSelectDate={date => onNavigateDay(0, date)} onClose={() => setShowCalendar(false)} />
       )}
@@ -1205,11 +1245,12 @@ export default function WorkoutScreen({
           lastSession={lastSession}
           daysSinceLastSession={daysSinceLastSession}
           viewedSessions={safeSessions}
+          precomputedCopy={momentumCopy}
         />
 
         {/* ── Recent sessions strip ── */}
         {!hasActiveSession && recentDates.length > 0 && (
-          <RecentSessionsStrip recentDates={recentDates} onNavigateDay={onNavigateDay} />
+          <RecentSessionsStrip recentDates={recentDates} onNavigateDay={onNavigateDay} viewedDate={viewedDate} />
         )}
 
         {/* ── Date navigation ── */}
@@ -1237,9 +1278,9 @@ export default function WorkoutScreen({
           {safeSessions.length === 0 && (() => {
             const h = new Date().getHours();
             const nudge = isToday
-              ? (h >= 20 ? "Rest day. Recovery is part of the process." : h >= 12 ? "Afternoon session?" : "No session logged yet.")
-              : "No sessions logged on this day.";
-            return <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", textAlign: "center", lineHeight: 1.5 }}>{nudge}</p>;
+              ? (h >= 20 ? "Rest day. Recovery is part of the process." : h >= 12 ? "Ready when you are." : "Training when you're ready.")
+              : "Nothing logged on this day.";
+            return <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)", textAlign: "center", lineHeight: 1.5 }}>{nudge}</p>;
           })()}
 
           {safeSessions.map(session => (
