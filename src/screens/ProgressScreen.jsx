@@ -350,7 +350,8 @@ export default function ProgressScreen({ userId, onBack }) {
       const fresh = await fetchProgressPhotos(userId);
       setPhotos(fresh);
     } catch (e) {
-      setPhotoError("Photo upload failed. Check Storage bucket is set up.");
+      const msg = e?.message || e?.error_description || String(e);
+      setPhotoError(`Upload failed: ${msg}`);
     } finally {
       setUploading(false);
     }
