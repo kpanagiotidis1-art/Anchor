@@ -130,40 +130,51 @@ function computeTrainingContext(allWorkouts) {
 }
 
 // ── Training momentum header ───────────────────────────────────────────────────
-function TrainingMomentumHeader({ weekSessions, lastSession, daysSinceLastSession, viewedSessions, viewedDate, precomputedCopy }) {
-  const copy = precomputedCopy || getTrainingMomentumCopy(weekSessions, lastSession, daysSinceLastSession ?? 0);
+// Derives entirely from the selected date. No global state.
+function TrainingMomentumHeader({ viewedSessions, viewedDate }) {
+  const today = todayString();
+  const completed = (viewedSessions || []).filter(s => s.status === "completed");
+  const active    = (viewedSessions || []).find(s => s.status === "active");
 
-  // Derive identity strictly from the viewed date's sessions — never from global state
-  const completedViewed = (viewedSessions || []).filter(s => s.status === "completed");
-  const viewedExercises = completedViewed.flatMap(s => s.exercises || []);
-  const viewedIdentity = viewedExercises.length > 0 ? getSessionIdentity(viewedExercises) : null;
-  const viewedTitle = completedViewed.length > 0 ? completedViewed[completedViewed.length - 1].title : null;
+  let headline, sub;
 
-  // Only show a sub-label if the viewed date itself has a completed session.
-  // Never fall back to a session from a different date.
-  const lastLabel = viewedIdentity
-    ? `${viewedTitle || viewedIdentity} · ${getRelativeDayLabel(viewedDate)}`
-    : null;
+  if (active) {
+    const identity = getSessionIdentity(active.exercises || []);
+    headline = active.title || identity || "In Progress";
+    sub = active.startTime ? `Started ${active.startTime}` : null;
+  } else if (completed.length > 0) {
+    const session = completed[completed.length - 1];
+    const identity = getSessionIdentity(session.exercises || []);
+    headline = session.title || identity || "Session";
+    const timeStr = [session.startTime, session.endTime].filter(Boolean).join(" → ");
+    const durStr  = session.duration ? `${session.duration} min` : "";
+    sub = [timeStr, durStr].filter(Boolean).join(" · ") || null;
+  } else {
+    const [ty, tm, td] = today.split("-").map(Number);
+    const [vy, vm, vd] = viewedDate.split("-").map(Number);
+    const diffDays = Math.round(
+      (new Date(vy, vm - 1, vd) - new Date(ty, tm - 1, td)) / 86400000
+    );
+    if (diffDays === 0) {
+      headline = "Training when you're ready.";
+      sub = "No session logged today.";
+    } else if (diffDays < 0) {
+      headline = "Recovery day.";
+      sub = "No session logged.";
+    } else {
+      headline = "No workout planned.";
+      sub = null;
+    }
+  }
 
   return (
     <div style={{ marginBottom: "var(--space-6)" }}>
-      <h1 style={{
-        fontSize: "var(--text-hero)",
-        fontWeight: 700,
-        color: "var(--text-primary)",
-        lineHeight: 1.15,
-        marginBottom: copy.sub ? "var(--space-1)" : "0",
-      }}>
-        {copy.headline}
+      <h1 style={{ fontSize: "var(--text-hero)", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.15, marginBottom: sub ? "var(--space-1)" : "0" }}>
+        {headline}
       </h1>
-      {copy.sub && (
-        <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", lineHeight: 1.4, marginBottom: lastLabel ? "var(--space-2)" : "0" }}>
-          {copy.sub}
-        </p>
-      )}
-      {lastLabel && (
-        <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", letterSpacing: "0.04em" }}>
-          {lastLabel}
+      {sub && (
+        <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", lineHeight: 1.4 }}>
+          {sub}
         </p>
       )}
     </div>
@@ -1321,12 +1332,8 @@ export default function WorkoutScreen({
 
         {/* ── Training momentum header ── */}
         <TrainingMomentumHeader
-          weekSessions={weekSessions}
-          lastSession={lastSession}
-          daysSinceLastSession={daysSinceLastSession}
           viewedSessions={safeSessions}
           viewedDate={viewedDate}
-          precomputedCopy={momentumCopy}
         />
 
         {/* ── Recent sessions strip ── */}
