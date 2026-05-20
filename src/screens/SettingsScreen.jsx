@@ -328,7 +328,7 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
         <SettingsCard>
           <SettingRow
             label="Financial clarity"
-            subtitle="Clarity around money."
+            subtitle="Track subscriptions and savings goals."
           >
             <button
               onClick={onGoToFinance}

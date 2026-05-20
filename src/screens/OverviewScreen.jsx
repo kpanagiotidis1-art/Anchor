@@ -345,7 +345,7 @@ function TaskHeroCard({
       {isComplete && !isAligned && (
         <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "var(--space-3)" }}>
           <p style={{ fontSize: "var(--text-body)", color: "var(--accent-text)", fontWeight: 500 }}>
-            All tasks complete. Stay consistent.
+            {config.allDoneSub}
           </p>
         </div>
       )}
@@ -449,6 +449,7 @@ export default function OverviewScreen({
   onGoToTasks, onGoToWorkout, onOpenSettings, onOpenReview,
   nutritionSummary, nutritionGoals, onGoToNutrition,
   onGoToProgress, weightLogs, daysSinceActive,
+  focusMode: focusModeFromProp,
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -458,7 +459,7 @@ export default function OverviewScreen({
   const streakPulseTimer = useRef(null);
 
   const today = todayString();
-  const focusMode = getFocusMode();
+  const focusMode = focusModeFromProp ?? getFocusMode();
   const config = getConfig(focusMode);
 
   const allTasks = Object.values(tasks).flat();

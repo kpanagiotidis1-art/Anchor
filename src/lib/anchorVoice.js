@@ -179,7 +179,7 @@ export function getContextLine(dayState, focusMode, weekStats, alignedState) {
     if (alignedDay) return null;
     if (allTasksDone && !workoutDone) return "Tasks done. Good day.";
     if (workoutDone && !allTasksDone) return "Workout logged. That counts.";
-    if (nothing) return "Tomorrow is a clean slate.";
+    if (nothing) return null;
     const remaining = totalCount - completedCount;
     if (remaining > 0) return `${remaining} left. Wind down when you're ready.`;
     return null;

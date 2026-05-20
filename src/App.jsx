@@ -828,6 +828,7 @@ export default function App() {
           onGoToProgress={() => setActiveScreen("progress")}
           weightLogs={weightLogs}
           daysSinceActive={daysSinceActive}
+          focusMode={focusMode}
         />
       )}
 
@@ -918,12 +919,6 @@ export default function App() {
               <path d="M9 12l2 2 4-4"/>
             </svg>
           )},
-          { key: "overview", label: "Overview", icon: (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          )},
           { key: "nutrition", label: "Nutrition", icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"/>
@@ -931,14 +926,20 @@ export default function App() {
               <path d="M7 3v5a5 5 0 0 0 10 0V3"/>
             </svg>
           )},
-          { key: "workout", label: "Workout", icon: (
+          { key: "overview", label: "Overview", icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 5v14M18 5v14M3 9h3M18 9h3M3 15h3M18 15h3M6 9h12M6 15h12"/>
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="3"/>
             </svg>
           )},
           { key: "progress", label: "Progress", icon: (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          )},
+          { key: "workout", label: "Workout", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 5v14M18 5v14M3 9h3M18 9h3M3 15h3M18 15h3M6 9h12M6 15h12"/>
             </svg>
           )},
         ].map(tab => {
