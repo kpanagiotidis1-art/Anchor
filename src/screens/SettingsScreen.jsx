@@ -274,7 +274,7 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
           marginBottom: "24px",
         }}>
           <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "12px", lineHeight: 1.5 }}>
-            Anchor shapes what it surfaces based on your focus. You can change this any time.
+            This shapes what Anchor highlights first. You can change it any time.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {FOCUS_OPTIONS.map(opt => {

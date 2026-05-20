@@ -757,3 +757,47 @@ export const AUTH_COPY = {
   login: "Welcome back.",
   signup: "Build something lasting.",
 };
+
+// Returns a single contextual suggestion for the Overview "Next Anchor" row.
+// Only surfaces when there is a clear, specific first action for the user.
+// Returns { text, sub?, action, actionLabel } | null
+// action: "tasks" | "workout" | "nutrition" | null
+export function getNextAnchorSuggestion({ focusMode, allTasksCount, completedToday, workoutDone, nutritionCalories }) {
+  // First-time / empty state — no tasks defined at all
+  if (allTasksCount === 0) {
+    if (focusMode === "fitness") {
+      return {
+        text: "Start by logging a session or adding a daily task.",
+        action: "workout",
+        actionLabel: "Open workout →",
+      };
+    }
+    return {
+      text: "Add one anchor to give your day shape.",
+      sub: "Start with a single morning routine.",
+      action: "tasks",
+      actionLabel: "Add task →",
+    };
+  }
+
+  // Day not yet started (before 7pm) — nothing logged at all
+  const hour = new Date().getHours();
+  if (hour < 19 && completedToday === 0 && !workoutDone && !nutritionCalories) {
+    if (focusMode === "fitness") {
+      return {
+        text: "Log your session when you train.",
+        action: "workout",
+        actionLabel: "Open workout →",
+      };
+    }
+    if (focusMode === "discipline") {
+      return {
+        text: "Your morning anchor is waiting.",
+        action: "tasks",
+        actionLabel: "View tasks →",
+      };
+    }
+  }
+
+  return null;
+}

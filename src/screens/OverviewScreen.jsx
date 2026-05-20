@@ -15,6 +15,7 @@ import {
   getGreeting,
   getCrossSystemObservation,
   getProgressRowCopy,
+  getNextAnchorSuggestion,
 } from "../lib/anchorVoice";
 
 export { getFocusMode };
@@ -481,6 +482,7 @@ export default function OverviewScreen({
   const crossSystem   = getCrossSystemObservation({ weekStats, nutritionSummary, nutritionGoals, currentStreak, workouts });
   const nutritionIntention = getNutritionProfile()?.intention;
   const progressCopy  = getProgressRowCopy({ weightLogs: weightLogs || [], workouts, weekStats, nutritionSummary, nutritionGoals, currentStreak, longestStreak, nutritionIntention });
+  const nextAnchor    = getNextAnchorSuggestion({ focusMode, allTasksCount: totalCount, completedToday: completedCount, workoutDone, nutritionCalories: nutritionSummary?.calories || 0 });
 
   // ── Banner entrance ──
   useEffect(() => {
@@ -622,6 +624,29 @@ export default function OverviewScreen({
             </svg>
           </button>
         </div>
+
+        {/* ── Next Anchor — single suggested action, only when genuinely useful ── */}
+        {nextAnchor && !bannerVisible && (
+          <div style={{ marginBottom: "var(--space-5)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)" }}>
+            <div>
+              <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                {nextAnchor.text}
+              </p>
+              {nextAnchor.sub && (
+                <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginTop: "2px" }}>
+                  {nextAnchor.sub}
+                </p>
+              )}
+            </div>
+            {nextAnchor.action && (
+              <button
+                onClick={nextAnchor.action === "workout" ? onGoToWorkout : nextAnchor.action === "nutrition" ? onGoToNutrition : onGoToTasks}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "var(--text-caption)", color: "var(--text-muted)", whiteSpace: "nowrap", fontFamily: "inherit", textDecoration: "underline", textDecorationColor: "var(--border)", flexShrink: 0 }}>
+                {nextAnchor.actionLabel}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ── Aligned Day Banner ── */}
         <AlignedDayBanner alignedState={alignedState} visible={bannerVisible} />

@@ -37,9 +37,9 @@ export function setFocusMode(mode) {
 // ── Focus option metadata — used by Settings and Onboarding ──────────────────
 
 export const FOCUS_OPTIONS = [
-  { key: "discipline", label: "Build discipline",  sub: "Daily routines, structure, and consistency" },
-  { key: "fitness",    label: "Improve fitness",   sub: "Workouts, nutrition, and progress" },
-  { key: "balanced",   label: "Balance everything", sub: "Tasks, fitness, and daily momentum" },
+  { key: "discipline", label: "Build discipline",  sub: "Structure, routines, and daily consistency" },
+  { key: "fitness",    label: "Improve fitness",   sub: "Training, nutrition, and physical progress" },
+  { key: "balanced",   label: "Keep life steady",  sub: "A calm overview of everything at once" },
 ];
 
 // ── Main config ───────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ const FOCUS_CONFIG = {
     emptyTaskSub: "Structure is the foundation of everything.",
     emptyTaskCTA: "Add your first routine →",
     emptyTaskCTATarget: "tasks",
-    allDoneSub: "Discipline compounds. Keep the streak going.",
+    allDoneSub: "Discipline is visible.",
 
     // Overview secondary row
     // primaryStatEmphasis: true → left stat 1.55rem/700, right stat 1.1rem/600
@@ -97,7 +97,7 @@ const FOCUS_CONFIG = {
     emptyTaskSub: "Add tasks to build your day around your sessions.",
     emptyTaskCTA: "Start a workout →",
     emptyTaskCTATarget: "workout",
-    allDoneSub: "Fuelled and focused. Nice work.",
+    allDoneSub: "Training and fuel. Momentum holds.",
 
     secondaryLeft: "workout",
     primaryStatEmphasis: true,
@@ -124,11 +124,11 @@ const FOCUS_CONFIG = {
     focusLabel: null,
 
     heroMode: "tasks",
-    emptyTaskHeadline: "No tasks today",
-    emptyTaskSub: "Add tasks to get started.",
+    emptyTaskHeadline: "Your day is open.",
+    emptyTaskSub: "Add one anchor to give it shape.",
     emptyTaskCTA: "Add your first task →",
     emptyTaskCTATarget: "tasks",
-    allDoneSub: "Stay consistent. That's the whole game.",
+    allDoneSub: "Momentum holds.",
 
     secondaryLeft: "streak",
     primaryStatEmphasis: false,   // equal visual weight

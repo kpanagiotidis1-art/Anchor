@@ -1330,11 +1330,31 @@ export default function WorkoutScreen({
 
       <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box" }}>
 
+        {/* ── Screen wordmark ── */}
+        <p style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "var(--space-4)" }}>
+          Workout
+        </p>
+
         {/* ── Training momentum header ── */}
         <TrainingMomentumHeader
           viewedSessions={safeSessions}
           viewedDate={viewedDate}
         />
+
+        {/* ── Training context note — memory of recent rhythm, today only, no session yet ── */}
+        {isToday && safeSessions.length === 0 && !hasActiveSession && recentDates.length > 0 && (() => {
+          const last = recentDates[0];
+          const identity = getSessionIdentity(last.sessions[0]?.exercises || []);
+          const title = last.sessions[0]?.title;
+          const label = getRelativeDayLabel(last.dateStr);
+          const parts = [`${title || identity || "Session"} · ${label}`];
+          if (weekSessions > 0) parts.push(`${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week`);
+          return (
+            <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginBottom: "var(--space-5)", lineHeight: 1.5 }}>
+              {parts.join(" · ")}
+            </p>
+          );
+        })()}
 
         {/* ── Recent sessions strip ── */}
         {!hasActiveSession && recentDates.length > 0 && (

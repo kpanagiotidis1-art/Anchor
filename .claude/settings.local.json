@@ -5,7 +5,10 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
       "Bash(npx vite *)",
-      "Bash(mkdir -p \"c:\\\\Users\\\\k_pan\\\\anchor-app\\\\supabase\\\\migrations\" 2>&1; echo \"done\")"
+      "Bash(mkdir -p \"c:\\\\Users\\\\k_pan\\\\anchor-app\\\\supabase\\\\migrations\" 2>&1; echo \"done\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\k_pan\\\\anchor-app\\\\src\" -Recurse -Name)",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/vite build *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\k_pan\\anchor-app\\supabase"

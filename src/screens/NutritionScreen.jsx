@@ -787,10 +787,15 @@ export default function NutritionScreen({
       <div style={{ width: "100%", maxWidth: "480px", padding: "0 var(--space-5)", boxSizing: "border-box" }}>
 
         {/* Header wordmark */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-5)" }}>
-          <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
-            Nutrition
-          </span>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--space-5)" }}>
+          <div>
+            <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase", display: "block" }}>
+              Nutrition
+            </span>
+            <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "4px", letterSpacing: "0.04em" }}>
+              Fuel for the day.
+            </p>
+          </div>
         </div>
 
         <GoalContextStrip profile={profile} />

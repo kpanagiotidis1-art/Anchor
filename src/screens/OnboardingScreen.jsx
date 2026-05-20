@@ -24,18 +24,18 @@ function saveFocusMode(mode) {
 const SLIDES = [
   {
     icon: "⚓",
-    headline: "Build consistency.",
-    body: "Small daily actions compound into the person you want to become.",
+    headline: "Anchor keeps your day in one place.",
+    body: "Tasks, training, nutrition, and progress — kept together, quietly.",
   },
   {
     icon: "◎",
-    headline: "Your workouts, meals, and routines — in sync.",
-    body: "Everything in one place. Nothing falls through the cracks.",
+    headline: "Morning. Afternoon. Night.",
+    body: "Your day is divided into three anchors. Not a strict schedule — just a way to give each part a shape.",
   },
   {
     icon: "→",
-    headline: "Stay anchored.",
-    body: "Not perfect. Just consistent. That's the whole game.",
+    headline: "Not perfect. Just present.",
+    body: "Every time you return, the record grows. Consistency builds in the background.",
   },
 ];
 
@@ -43,17 +43,17 @@ const FOCUS_OPTIONS = [
   {
     key: "discipline",
     label: "Build discipline",
-    sub: "Daily routines, structure, and consistency",
+    sub: "Structure, routines, and daily consistency",
   },
   {
     key: "fitness",
     label: "Improve fitness",
-    sub: "Workouts, nutrition, and progress",
+    sub: "Training, nutrition, and physical progress",
   },
   {
     key: "balanced",
-    label: "Balance everything",
-    sub: "Tasks, fitness, and daily momentum",
+    label: "Keep life steady",
+    sub: "A calm overview of everything at once",
   },
 ];
 
@@ -194,7 +194,7 @@ export default function OnboardingScreen({ onComplete }) {
             What are you focusing on right now?
           </h1>
           <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
-            This shapes what Anchor highlights for you.
+            Anchor will quietly surface what matters most for your focus. You can change this any time.
           </p>
         </div>
 

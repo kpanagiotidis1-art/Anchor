@@ -407,20 +407,25 @@ export default function ProgressScreen({ userId, onBack }) {
       <div style={{ width: "100%", maxWidth: "480px" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
-          <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "var(--text-caption)", cursor: "pointer", padding: 0 }}>
-            ← Back
-          </button>
-          <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
-            Progress
-          </span>
-          <button onClick={() => setLogSheet(true)} style={{
-            background: "var(--text-primary)", color: "var(--bg-deep)", border: "none",
-            borderRadius: "var(--radius-xs)", padding: "var(--space-2) var(--space-3)",
-            fontSize: "var(--text-caption)", fontWeight: 600, cursor: "pointer",
-          }}>
-            + Log
-          </button>
+        <div style={{ marginBottom: "var(--space-6)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "var(--text-caption)", cursor: "pointer", padding: 0 }}>
+              ← Back
+            </button>
+            <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
+              Progress
+            </span>
+            <button onClick={() => setLogSheet(true)} style={{
+              background: "var(--text-primary)", color: "var(--bg-deep)", border: "none",
+              borderRadius: "var(--radius-xs)", padding: "var(--space-2) var(--space-3)",
+              fontSize: "var(--text-caption)", fontWeight: 600, cursor: "pointer",
+            }}>
+              + Log
+            </button>
+          </div>
+          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", textAlign: "center", marginTop: "var(--space-2)", letterSpacing: "0.04em" }}>
+            Evidence over time.
+          </p>
         </div>
 
         {journeyFraming && !loading && (

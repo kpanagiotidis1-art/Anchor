@@ -275,6 +275,12 @@ export default function HomeScreen({
 
   const config = getConfig(getFocusMode());
   const footerCopy = isToday ? getTasksFooterCopy(completedCount, totalCount) : null;
+
+  const SECTION_EMPTY = {
+    Morning: "Start with one thing that sets the tone.",
+    Afternoon: "Add something that keeps the day moving.",
+    Night: "End the day with something that helps you reset.",
+  };
   const recoveryCopy = isToday && currentStreak === 0 && daysSinceActive > 1
     ? getRecoveryCopy(daysSinceActive)
     : null;
@@ -326,6 +332,9 @@ export default function HomeScreen({
             textTransform: "uppercase",
           }}>
             Anchor
+          </p>
+          <p style={{ fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "4px", letterSpacing: "0.04em" }}>
+            Structure for the day.
           </p>
         </div>
 
@@ -421,7 +430,7 @@ export default function HomeScreen({
               onTitleTap={() => onSectionTap(section)}
               onEdit={task => setEditingTask(task)}
               viewedDate={viewedDate}
-              emptyLabel={config.sectionEmptyLabel}
+              emptyLabel={SECTION_EMPTY[section] || config.sectionEmptyLabel}
               isPrimary={section === "Morning"}
             />
           ))}
