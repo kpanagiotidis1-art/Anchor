@@ -24,7 +24,7 @@ function EditTaskForm({ task, onSave, onCancel, viewedDate }) {
 
   function handleSave() {
     if (name.trim() === "") { setError("Task name can't be empty."); return; }
-    if (frequency === "weekly" && selectedDays.length === 0) { setError("Please select at least one day."); return; }
+    if (frequency === "weekly" && selectedDays.length === 0) { setError("Select at least one day."); return; }
     const updates = {
       name: name.trim(),
       frequency,
@@ -127,8 +127,8 @@ export default function AddTaskScreen({ section, tasks, visibleTasks, onSave, on
   }
 
   function handleSave() {
-    if (taskName.trim() === "") { setError("Task name can't be empty."); return; }
-    if (frequency === "weekly" && selectedDays.length === 0) { setError("Please select at least one day."); return; }
+    if (taskName.trim() === "") { setError("Add a task name."); return; }
+    if (frequency === "weekly" && selectedDays.length === 0) { setError("Select at least one day."); return; }
     onSave(section, taskName.trim(), frequency, selectedDays, viewedDate);
     setTaskName(""); setFrequency("daily"); setSelectedDays([]); setError("");
   }

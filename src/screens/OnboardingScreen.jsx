@@ -10,6 +10,7 @@ export function isOnboardingComplete() {
 
 export function markOnboardingComplete() {
   localStorage.setItem(ONBOARDING_KEY, "true");
+  localStorage.setItem("anchor-onboarding-completed-at", new Date().toISOString());
 }
 
 export function getFocusMode() {

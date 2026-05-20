@@ -712,10 +712,12 @@ export default function App() {
   if (authLoading) {
     return (
       <div style={{
-        width: "100%", minHeight: "100vh", background: "#f5f5f3",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        width: "100%", minHeight: "100vh", background: "var(--bg)",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: "8px",
       }}>
-        <p style={{ fontSize: "0.9rem", color: "#aaa" }}>Loading…</p>
+        <p style={{ fontSize: "var(--text-micro, 0.7rem)", fontWeight: 700, color: "var(--text-faint, #999)", letterSpacing: "0.22em", textTransform: "uppercase" }}>Anchor</p>
+        <p style={{ fontSize: "var(--text-caption, 0.8rem)", color: "var(--text-muted, #aaa)" }}>Opening Anchor…</p>
       </div>
     );
   }
@@ -730,10 +732,12 @@ export default function App() {
   if (tasksLoading) {
     return (
       <div style={{
-        width: "100%", minHeight: "100vh", background: "#f5f5f3",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        width: "100%", minHeight: "100vh", background: "var(--bg)",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        gap: "8px",
       }}>
-        <p style={{ fontSize: "0.9rem", color: "#aaa" }}>Loading your data…</p>
+        <p style={{ fontSize: "var(--text-micro, 0.7rem)", fontWeight: 700, color: "var(--text-faint, #999)", letterSpacing: "0.22em", textTransform: "uppercase" }}>Anchor</p>
+        <p style={{ fontSize: "var(--text-caption, 0.8rem)", color: "var(--text-muted, #aaa)" }}>Finding your rhythm…</p>
       </div>
     );
   }
@@ -766,13 +770,8 @@ export default function App() {
     );
   }
 
-  if (screen === "progress") {
-    return (
-      <ProgressScreen
-        userId={user?.id}
-        onBack={() => setScreen("home")}
-      />
-    );
+  if (screen === "finance") {
+    return <FinancialClarityScreen onBack={() => setScreen("settings")} />;
   }
 
   if (screen === "settings") {
@@ -788,6 +787,7 @@ export default function App() {
           setFocusMode(mode);       // persist to localStorage via focusConfig
           setFocusModeState(mode);  // trigger re-render
         }}
+        onGoToFinance={() => setScreen("finance")}
       />
     );
   }
@@ -798,7 +798,7 @@ export default function App() {
         <HomeScreen
           tasks={visibleTasks}
           onToggle={toggleTask}
-          onSectionTap={goToAddTask}
+          onAddTask={addTask}
           onResetDay={resetDay}
           viewedDate={viewedDate}
           onNavigateDay={navigateDay}
@@ -825,8 +825,9 @@ export default function App() {
           nutritionSummary={todayNutritionTotals}
           nutritionGoals={settings.nutritionGoals}
           onGoToNutrition={() => setActiveScreen("nutrition")}
-          onGoToProgress={() => setScreen("progress")}
+          onGoToProgress={() => setActiveScreen("progress")}
           weightLogs={weightLogs}
+          daysSinceActive={daysSinceActive}
         />
       )}
 
@@ -858,8 +859,11 @@ export default function App() {
         />
       )}
 
-      {activeScreen === "finance" && (
-        <FinancialClarityScreen />
+      {activeScreen === "progress" && (
+        <ProgressScreen
+          userId={user?.id}
+          onBack={() => setActiveScreen("overview")}
+        />
       )}
 
       {activeScreen === "workout" && (
@@ -879,7 +883,7 @@ export default function App() {
           onUpdateTitle={updateWorkoutTitle}
           exerciseHistory={exerciseHistory}
           summarySession={summarySession}
-          onDismissSummary={() => setSummarySession(null)}
+          onDismissSummary={() => { setSummarySession(null); setActiveScreen("overview"); }}
           anchorTemplates={ANCHOR_TEMPLATES}
           userTemplates={userTemplates}
           onCreateTemplate={createTemplate}
@@ -908,11 +912,35 @@ export default function App() {
         WebkitBackdropFilter: "blur(12px)",
       }}>
         {[
-          { key: "today", label: "Tasks" },
-          { key: "finance", label: "Finance" },
-          { key: "overview", label: "Overview" },
-          { key: "nutrition", label: "Nutrition" },
-          { key: "workout", label: "Workout" },
+          { key: "today", label: "Tasks", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          )},
+          { key: "overview", label: "Overview", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          )},
+          { key: "nutrition", label: "Nutrition", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M12 3v18"/>
+              <path d="M7 3v5a5 5 0 0 0 10 0V3"/>
+            </svg>
+          )},
+          { key: "workout", label: "Workout", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 5v14M18 5v14M3 9h3M18 9h3M3 15h3M18 15h3M6 9h12M6 15h12"/>
+            </svg>
+          )},
+          { key: "progress", label: "Progress", icon: (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          )},
         ].map(tab => {
           const isActive = activeScreen === tab.key;
           return (
@@ -926,18 +954,21 @@ export default function App() {
                 borderTop: isActive
                   ? "2px solid var(--text-primary)"
                   : "2px solid transparent",
-                fontSize: isActive ? "0.88rem" : "0.82rem",
-                fontWeight: isActive ? 700 : 400,
                 color: isActive ? "var(--text-primary)" : "var(--text-muted)",
                 cursor: "pointer",
-                padding: "10px 8px 12px",
+                padding: "8px 4px 10px",
                 transition: "color 0.2s ease, border-color 0.2s ease",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
+                gap: "3px",
               }}
             >
-              {tab.label}
+              {tab.icon}
+              <span style={{ fontSize: "0.65rem", fontWeight: isActive ? 600 : 400, letterSpacing: "0.02em" }}>
+                {tab.label}
+              </span>
             </button>
           );
         })}

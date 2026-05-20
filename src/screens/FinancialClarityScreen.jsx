@@ -209,7 +209,7 @@ function GoalSheet({ existing, onSave, onDelete, onClose }) {
 }
 
 // ── Main FinancialClarityScreen ───────────────────────────────────────────────
-export default function FinancialClarityScreen() {
+export default function FinancialClarityScreen({ onBack }) {
   const [data, setData] = useState(() => getFinanceData());
 
   const [incomeSheet,  setIncomeSheet]  = useState(false);
@@ -263,9 +263,15 @@ export default function FinancialClarityScreen() {
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-6)" }}>
+          {onBack ? (
+            <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "var(--text-caption)", cursor: "pointer", padding: 0 }}>
+              ← Back
+            </button>
+          ) : <span />}
           <span style={{ fontSize: "var(--text-micro)", fontWeight: 700, color: "var(--text-faint)", letterSpacing: "0.22em", textTransform: "uppercase" }}>
             Finances
           </span>
+          <span style={{ width: "48px" }} />
         </div>
 
         {/* ── Monthly clarity card ── */}

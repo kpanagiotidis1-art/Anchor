@@ -1,6 +1,26 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
+function getAuthErrorCopy(message = "") {
+  const lower = message.toLowerCase();
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
+    return "That combination doesn't match. Try again.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Check your email first — there's a confirmation link waiting.";
+  }
+  if (lower.includes("user already registered")) {
+    return "An account already exists for this email.";
+  }
+  if (lower.includes("password")) {
+    return "Check your password and try again.";
+  }
+  if (lower.includes("network") || lower.includes("fetch") || lower.includes("failed to fetch")) {
+    return "Connection dropped for a moment. Try again.";
+  }
+  return "Couldn't complete that. Try again in a moment.";
+}
+
 export default function AuthScreen() {
   const [mode, setMode] = useState("login"); // "login" | "signup"
   const [email, setEmail] = useState("");
@@ -11,7 +31,7 @@ export default function AuthScreen() {
 
   async function handleSubmit() {
     if (!email.trim() || !password.trim()) {
-      setError("Please enter your email and password.");
+      setError("Enter your email and password.");
       return;
     }
     setLoading(true);
@@ -30,7 +50,7 @@ export default function AuthScreen() {
         // Auth state change in App.jsx will handle the redirect
       }
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(getAuthErrorCopy(err.message));
     } finally {
       setLoading(false);
     }
@@ -152,7 +172,7 @@ export default function AuthScreen() {
             transition: "background 0.2s",
           }}
         >
-          {loading ? "Please wait…" : mode === "login" ? "Log In" : "Create Account"}
+          {loading ? "One moment…" : mode === "login" ? "Log In" : "Create Account"}
         </button>
 
         {/* Toggle mode */}

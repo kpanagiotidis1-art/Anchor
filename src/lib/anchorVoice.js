@@ -116,14 +116,41 @@ export function getAlignedDayState(dayState) {
   return null;
 }
 
-// ── Greetings (time-aware) ────────────────────────────────────────────────────
-export function getGreeting() {
+// ── Greetings (time + day-state aware) ───────────────────────────────────────
+export function getGreeting(dayState) {
   const h = new Date().getHours();
   if (h < 5)  return "Still up.";
   if (h < 12) return "Good morning.";
   if (h < 17) return "Good afternoon.";
   if (h < 21) return "Good evening.";
+
+  // Late-night (21:00+): adjust based on what was actually done
+  if (dayState) {
+    const { completedCount = 0, totalCount = 0, workoutDone = false, caloriesLogged = false } = dayState;
+    const isEmptyDay = completedCount === 0 && !workoutDone && !caloriesLogged;
+    const isPartialDay = !isEmptyDay && !(totalCount > 0 && completedCount >= totalCount && workoutDone);
+    if (isEmptyDay) return "Tomorrow starts fresh.";
+    if (isPartialDay) return "Let the day settle.";
+  }
   return "Wind down.";
+}
+
+// ── First-day line after onboarding ──────────────────────────────────────────
+// Returns a warm first-day line only when onboarding was completed today
+// and the user has no meaningful activity yet.
+export function getFirstDayLine(dayState) {
+  try {
+    const completedAt = localStorage.getItem("anchor-onboarding-completed-at");
+    if (!completedAt) return null;
+    const today = new Date().toISOString().slice(0, 10);
+    const completedDate = completedAt.slice(0, 10);
+    if (completedDate !== today) return null;
+  } catch { return null; }
+
+  const { completedCount = 0, workoutDone = false, caloriesLogged = false } = dayState || {};
+  if (completedCount > 0 || workoutDone || caloriesLogged) return null;
+
+  return { line: "Your record starts today.", sub: "Start with one small anchor." };
 }
 
 // ── Context line under greeting ───────────────────────────────────────────────
@@ -292,6 +319,21 @@ export function getRecoveryCopy(daysSinceActive) {
   if (daysSinceActive <= 5) return "A quiet stretch. One session resets the rhythm.";
   if (daysSinceActive <= 14) return "Welcome back. Start where you are.";
   return "No guilt — just consistency from here.";
+}
+
+// ── Return-after-absence state for Overview ───────────────────────────────────
+// Returns a warm, guilt-free return line when user comes back after 3+ days.
+// Only shown if user hasn't done anything today yet.
+export function getReturnState(daysSinceActive, dayState) {
+  if (!daysSinceActive || daysSinceActive < 3) return null;
+  // Once any activity today, hide it
+  const { completedCount = 0, workoutDone = false, caloriesLogged = false } = dayState || {};
+  if (completedCount > 0 || workoutDone || caloriesLogged) return null;
+  // Avoid showing for brand new users with no prior history
+  return {
+    line: "Back today.",
+    sub: "The record continues.",
+  };
 }
 
 // ── Workout summary identity lines ────────────────────────────────────────────
@@ -565,7 +607,7 @@ export function getExerciseProgressionHint(exerciseName, exerciseHistory, curren
 
   // If no current sets yet, just show last
   if (!currentSets || currentSets.length === 0) {
-    return `Last: ${setStr}`;
+    return `Last session — ${setStr}`;
   }
 
   // Compare current best to last best
@@ -575,14 +617,14 @@ export function getExerciseProgressionHint(exerciseName, exerciseHistory, curren
     return score > bestScore ? set : best;
   }, null);
 
-  if (!currentBest) return `Last: ${setStr}`;
+  if (!currentBest) return `Last session — ${setStr}`;
 
   const lastScore = (lastBest.weight || 0) * (lastBest.reps || 0);
   const curScore  = (currentBest.weight || 0) * (currentBest.reps || 0);
 
   if (curScore > lastScore) return "Up from last session.";
-  if (curScore === lastScore && lastScore > 0) return `Matched · ${setStr}`;
-  return `Last · ${setStr}`;
+  if (curScore === lastScore && lastScore > 0) return "Matched your last session.";
+  return `Last session — ${setStr}`;
 }
 
 // ── Recent sessions label ─────────────────────────────────────────────────────

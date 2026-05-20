@@ -16,6 +16,8 @@ import {
   getCrossSystemObservation,
   getProgressRowCopy,
   getNextAnchorSuggestion,
+  getFirstDayLine,
+  getReturnState,
 } from "../lib/anchorVoice";
 
 export { getFocusMode };
@@ -446,7 +448,7 @@ export default function OverviewScreen({
   weeklyDots, weekStats, viewedDate,
   onGoToTasks, onGoToWorkout, onOpenSettings, onOpenReview,
   nutritionSummary, nutritionGoals, onGoToNutrition,
-  onGoToProgress, weightLogs,
+  onGoToProgress, weightLogs, daysSinceActive,
 }) {
   const [showRemaining, setShowRemaining] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -483,6 +485,8 @@ export default function OverviewScreen({
   const nutritionIntention = getNutritionProfile()?.intention;
   const progressCopy  = getProgressRowCopy({ weightLogs: weightLogs || [], workouts, weekStats, nutritionSummary, nutritionGoals, currentStreak, longestStreak, nutritionIntention });
   const nextAnchor    = getNextAnchorSuggestion({ focusMode, allTasksCount: totalCount, completedToday: completedCount, workoutDone, nutritionCalories: nutritionSummary?.calories || 0 });
+  const firstDayLine  = getFirstDayLine(dayState);
+  const returnState   = getReturnState(daysSinceActive, dayState);
 
   // ── Banner entrance ──
   useEffect(() => {
@@ -604,7 +608,7 @@ export default function OverviewScreen({
             lineHeight: 1.1,
             marginBottom: contextLine ? "var(--space-2)" : "var(--space-1)",
           }}>
-            {getGreeting()}
+            {getGreeting(dayState)}
           </h1>
 
           {contextLine && (
@@ -625,8 +629,32 @@ export default function OverviewScreen({
           </button>
         </div>
 
+        {/* ── Return after absence — shown once until any activity today ── */}
+        {returnState && !bannerVisible && !firstDayLine && (
+          <div style={{ marginBottom: "var(--space-5)" }}>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+              {returnState.line}
+            </p>
+            <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginTop: "2px" }}>
+              {returnState.sub}
+            </p>
+          </div>
+        )}
+
+        {/* ── First day line — one-time warm greeting for brand-new users ── */}
+        {firstDayLine && !bannerVisible && (
+          <div style={{ marginBottom: "var(--space-5)" }}>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+              {firstDayLine.line}
+            </p>
+            <p style={{ fontSize: "var(--text-caption)", color: "var(--text-faint)", marginTop: "2px" }}>
+              {firstDayLine.sub}
+            </p>
+          </div>
+        )}
+
         {/* ── Next Anchor — single suggested action, only when genuinely useful ── */}
-        {nextAnchor && !bannerVisible && (
+        {nextAnchor && !bannerVisible && !firstDayLine && (
           <div style={{ marginBottom: "var(--space-5)", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)" }}>
             <div>
               <p style={{ fontSize: "var(--text-body)", color: "var(--text-secondary)", lineHeight: 1.4 }}>

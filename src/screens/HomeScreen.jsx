@@ -37,9 +37,9 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   }
 
   function handleSave() {
-    if (!name.trim()) { setError("Task name can't be empty."); return; }
+    if (!name.trim()) { setError("Add a task name."); return; }
     if (frequency === "weekly" && selectedDays.length === 0) {
-      setError("Please select at least one day.");
+      setError("Select at least one day.");
       return;
     }
     onSave(task.section, task.id, {
@@ -185,6 +185,112 @@ function EditTaskSheet({ task, viewedDate, onSave, onDelete, onClose }) {
   );
 }
 
+// ── Add Task Sheet ─────────────────────────────────────────────────────────────
+function AddTaskSheet({ section, viewedDate, onSave, onClose }) {
+  const [name, setName] = useState("");
+  const [frequency, setFrequency] = useState("daily");
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [error, setError] = useState("");
+
+  function toggleDay(dow) {
+    setSelectedDays(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow]);
+  }
+
+  function handleSave() {
+    if (!name.trim()) { setError("Add a task name."); return; }
+    if (frequency === "weekly" && selectedDays.length === 0) { setError("Select at least one day."); return; }
+    onSave(section, name.trim(), frequency, selectedDays, viewedDate);
+    onClose();
+  }
+
+  const inputStyle = {
+    width: "100%",
+    padding: "var(--space-3) var(--space-4)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "var(--text-ui)",
+    outline: "none",
+    background: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+      <div onClick={onClose} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.35)" }} />
+      <div style={{ position: "relative", background: "var(--bg)", borderRadius: "var(--radius-xl) var(--radius-xl) 0 0", padding: "var(--space-6) var(--space-5) var(--space-10)", zIndex: 301, maxHeight: "85vh", overflowY: "auto" }}>
+        <div style={{ width: "36px", height: "4px", background: "var(--border)", borderRadius: "var(--radius-pill)", margin: "0 auto var(--space-5)" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-5)" }}>
+          <p style={{ fontSize: "var(--text-sub)", fontWeight: 700, color: "var(--text-primary)" }}>Add to {section}</p>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", padding: "4px", lineHeight: 1 }}>×</button>
+        </div>
+
+        <input
+          autoFocus
+          type="text"
+          placeholder="Task name"
+          value={name}
+          onChange={e => { setName(e.target.value); setError(""); }}
+          onKeyDown={e => { if (e.key === "Enter") handleSave(); }}
+          style={{ ...inputStyle, marginBottom: "var(--space-4)" }}
+        />
+
+        <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Frequency</p>
+        <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-4)" }}>
+          {["daily", "weekly", "one-time"].map(opt => (
+            <button key={opt} onClick={() => { setFrequency(opt); setError(""); }} style={{
+              padding: "6px 14px", borderRadius: "var(--radius-pill)", border: "1px solid",
+              borderColor: frequency === opt ? "var(--text-primary)" : "var(--border)",
+              background: frequency === opt ? "var(--text-primary)" : "none",
+              color: frequency === opt ? "var(--bg)" : "var(--text-secondary)",
+              fontSize: "var(--text-caption)", cursor: "pointer", fontFamily: "inherit",
+            }}>
+              {opt.charAt(0).toUpperCase() + opt.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {frequency === "weekly" && (
+          <div style={{ marginBottom: "var(--space-4)" }}>
+            <p style={{ fontSize: "var(--text-caption)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-2)" }}>Repeat on</p>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              {DAY_FULL_LABELS.map((label, dow) => (
+                <button key={dow} onClick={() => toggleDay(dow)} style={{
+                  padding: "5px 10px", borderRadius: "var(--radius-pill)", border: "1px solid",
+                  borderColor: selectedDays.includes(dow) ? "var(--text-primary)" : "var(--border)",
+                  background: selectedDays.includes(dow) ? "var(--text-primary)" : "none",
+                  color: selectedDays.includes(dow) ? "var(--bg)" : "var(--text-secondary)",
+                  fontSize: "var(--text-caption)", cursor: "pointer", fontFamily: "inherit",
+                }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {frequency === "one-time" && (
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-muted)", marginBottom: "var(--space-4)" }}>
+            Appears on{" "}
+            <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formatDate(viewedDate)}</span>
+          </p>
+        )}
+
+        {error && <p style={{ color: "#e05252", fontSize: "var(--text-body)", marginBottom: "var(--space-3)" }}>{error}</p>}
+
+        <button onClick={handleSave} style={{
+          width: "100%", padding: "14px", background: "var(--text-primary)", color: "var(--bg)",
+          border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-ui)", fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Stats modal ────────────────────────────────────────────────────────────────
 function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClose, onOpenReview }) {
   return (
@@ -256,7 +362,7 @@ function StatsModal({ currentStreak, longestStreak, weeklyDots, weekStats, onClo
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 export default function HomeScreen({
-  tasks, onToggle, onSectionTap, onResetDay,
+  tasks, onToggle, onAddTask, onResetDay,
   viewedDate, onNavigateDay,
   onEditTask,
   onDeleteTask,
@@ -265,6 +371,7 @@ export default function HomeScreen({
 }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [addingSection, setAddingSection] = useState(null);
 
   const isToday = viewedDate === todayString();
   const allTasks = Object.values(tasks).flat();
@@ -317,6 +424,15 @@ export default function HomeScreen({
             setEditingTask(null);
           }}
           onClose={() => setEditingTask(null)}
+        />
+      )}
+
+      {addingSection && (
+        <AddTaskSheet
+          section={addingSection}
+          viewedDate={viewedDate}
+          onSave={onAddTask}
+          onClose={() => setAddingSection(null)}
         />
       )}
 
@@ -427,7 +543,7 @@ export default function HomeScreen({
               title={section}
               tasks={tasks[section]}
               onToggle={(id) => onToggle(section, id)}
-              onTitleTap={() => onSectionTap(section)}
+              onTitleTap={() => setAddingSection(section)}
               onEdit={task => setEditingTask(task)}
               viewedDate={viewedDate}
               emptyLabel={SECTION_EMPTY[section] || config.sectionEmptyLabel}

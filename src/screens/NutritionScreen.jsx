@@ -104,8 +104,8 @@ function MealFormSheet({ onAdd, onClose, prefill, initialCategory }) {
   const [error, setError] = useState("");
 
   function handleSave() {
-    if (!name.trim()) { setError("Please enter a meal name."); return; }
-    if (!calories || isNaN(Number(calories)) || Number(calories) < 0) { setError("Please enter valid calories."); return; }
+    if (!name.trim()) { setError("Add a meal name."); return; }
+    if (!calories || isNaN(Number(calories)) || Number(calories) < 0) { setError("Enter valid calories."); return; }
     onAdd({
       id: `meal-${Date.now()}`,
       category,
@@ -134,13 +134,23 @@ function MealFormSheet({ onAdd, onClose, prefill, initialCategory }) {
         <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "1.4rem", color: "var(--text-muted)", cursor: "pointer", lineHeight: 1 }}>×</button>
       </div>
 
-      {prefill?.source === "ai" && (
-        <div style={{ background: "var(--bg-subtle)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
-          <p style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: 600, marginBottom: "2px" }}>✨ Estimated macros — review before saving</p>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Confidence: {prefill.aiConfidence || "medium"} · Adjust values if needed</p>
-          {prefill.aiNotes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", fontStyle: "italic" }}>{prefill.aiNotes}</p>}
-        </div>
-      )}
+      {prefill?.source === "ai" && (() => {
+        const conf = prefill.aiConfidence || "medium";
+        const confCopy = conf === "high"
+          ? "Estimate looks steady."
+          : conf === "low"
+          ? "Not sure about this one — review before saving."
+          : "Check the numbers before saving.";
+        const confColor = conf === "low" ? "#e05252" : conf === "high" ? "var(--text-muted)" : "var(--text-muted)";
+        return (
+          <div style={{ background: "var(--bg-subtle)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
+            <p style={{ fontSize: "0.82rem", color: confColor, fontWeight: conf === "low" ? 600 : 500, marginBottom: "2px" }}>
+              ✨ {confCopy}
+            </p>
+            {prefill.aiNotes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", fontStyle: "italic" }}>{prefill.aiNotes}</p>}
+          </div>
+        );
+      })()}
 
       <div style={{ marginBottom: "16px" }}>
         {fieldLabel("Category")}
@@ -207,7 +217,7 @@ function AddMealFlow({ onAdd, onClose }) {
   function handleFileSelected(file) {
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) { setScanError("Please select a JPEG, PNG, or WebP image."); return; }
+    if (!allowed.includes(file.type)) { setScanError("Select a JPEG, PNG, or WebP image."); return; }
     // Store file and show optional context step
     setPendingFile(file);
     setUserContext("");
@@ -399,8 +409,8 @@ function MealDetailsSheet({ meal, onClose, onDelete, onUpdate }) {
   const [error, setError] = useState("");
 
   function handleSave() {
-    if (!name.trim()) { setError("Please enter a meal name."); return; }
-    if (!calories || isNaN(Number(calories))) { setError("Please enter valid calories."); return; }
+    if (!name.trim()) { setError("Add a meal name."); return; }
+    if (!calories || isNaN(Number(calories))) { setError("Enter valid calories."); return; }
     onUpdate({
       ...meal,                          // preserve id, source, aiConfidence, aiNotes, originalAiName, createdAt
       name: name.trim(),
@@ -432,7 +442,9 @@ function MealDetailsSheet({ meal, onClose, onDelete, onUpdate }) {
           {meal.source === "ai" && (
             <div style={{ background: "var(--bg-subtle)", borderRadius: "8px", padding: "10px 14px", marginBottom: "16px" }}>
               <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                ✨ AI scan · Confidence: {meal.aiConfidence || "medium"}
+                ✨ AI estimate
+                {meal.aiConfidence === "low" && " · Numbers were uncertain — check if accurate"}
+                {meal.aiConfidence === "high" && " · Estimate was confident"}
               </p>
               {/* Show original AI name only if user has edited it */}
               {meal.originalAiName && meal.originalAiName !== meal.name && (

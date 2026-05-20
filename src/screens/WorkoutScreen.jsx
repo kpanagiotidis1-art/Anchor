@@ -131,7 +131,7 @@ function computeTrainingContext(allWorkouts) {
 
 // ── Training momentum header ───────────────────────────────────────────────────
 // Derives entirely from the selected date. No global state.
-function TrainingMomentumHeader({ viewedSessions, viewedDate }) {
+function TrainingMomentumHeader({ viewedSessions, viewedDate, trainingCtx }) {
   const today = todayString();
   const completed = (viewedSessions || []).filter(s => s.status === "completed");
   const active    = (viewedSessions || []).find(s => s.status === "active");
@@ -155,9 +155,28 @@ function TrainingMomentumHeader({ viewedSessions, viewedDate }) {
     const diffDays = Math.round(
       (new Date(vy, vm - 1, vd) - new Date(ty, tm - 1, td)) / 86400000
     );
-    if (diffDays === 0) {
+
+    if (diffDays === 0 && trainingCtx) {
+      const { lastSession, daysSinceLastSession, weekSessions } = trainingCtx;
+      if (lastSession && daysSinceLastSession != null) {
+        const lastIdentity = lastSession.title || getSessionIdentity(lastSession.exercises || []) || "Session";
+        if (daysSinceLastSession === 1) {
+          headline = "Training when you're ready.";
+          sub = `${lastIdentity} yesterday.`;
+        } else if (daysSinceLastSession <= 3) {
+          headline = "Training when you're ready.";
+          sub = `${lastIdentity} ${daysSinceLastSession}d ago.`;
+        } else {
+          headline = "Training when you're ready.";
+          sub = weekSessions > 0 ? `${weekSessions} session${weekSessions !== 1 ? "s" : ""} this week.` : null;
+        }
+      } else {
+        headline = "Training when you're ready.";
+        sub = null;
+      }
+    } else if (diffDays === 0) {
       headline = "Training when you're ready.";
-      sub = "No session logged today.";
+      sub = null;
     } else if (diffDays < 0) {
       headline = "Recovery day.";
       sub = "No session logged.";
@@ -502,7 +521,7 @@ function ExerciseHistoryModal({ name, history, mode, onClose }) {
 
         {sessions.length === 0 ? (
           <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)", textAlign: "center", padding: "var(--space-5) 0" }}>
-            No history yet. Complete a session to see data here.
+            Your exercise record builds as you train.
           </p>
         ) : (
           <>
@@ -636,7 +655,7 @@ function WorkoutSummary({ session, onDismiss, allWorkouts, gapBeforeSession }) {
         {/* Exercise list */}
         <div style={{ background: "var(--bg-surface)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", boxShadow: "var(--shadow-sm)", marginBottom: "var(--space-4)" }}>
           {exercises.length === 0 ? (
-            <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)" }}>No exercises logged.</p>
+            <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)" }}>No exercises.</p>
           ) : (
             exercises.map((ex, i) => {
               const mode = ex.tracking_mode || "reps";
@@ -661,7 +680,7 @@ function WorkoutSummary({ session, onDismiss, allWorkouts, gapBeforeSession }) {
         )}
 
         <button onClick={onDismiss} style={{ width: "100%", padding: "14px", background: "var(--text-primary)", color: "var(--bg)", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-ui)", fontWeight: 600, cursor: "pointer" }}>
-          Back to Workout
+          Done
         </button>
 
         <p style={{ textAlign: "center", fontSize: "var(--text-micro)", color: "var(--text-faint)", marginTop: "var(--space-4)" }}>
@@ -831,7 +850,7 @@ function TemplateManager({ userTemplates, onCreateTemplate, onUpdateTemplate, on
         <button onClick={onBack} style={{ background: "none", border: "none", fontSize: "var(--text-body)", color: "var(--text-secondary)", cursor: "pointer", padding: 0, textAlign: "left", marginBottom: "var(--space-6)" }}>← Back</button>
         <h2 style={{ fontSize: "var(--text-hero)", fontWeight: 700, color: "var(--text-primary)", marginBottom: "var(--space-7)" }}>My Templates</h2>
         {userTemplates.length === 0 ? (
-          <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)", marginBottom: "var(--space-6)" }}>No templates yet.</p>
+          <p style={{ fontSize: "var(--text-body)", color: "var(--text-faint)", marginBottom: "var(--space-6)" }}>No templates saved yet.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", marginBottom: "var(--space-6)" }}>
             {userTemplates.map(template => (
@@ -1339,6 +1358,7 @@ export default function WorkoutScreen({
         <TrainingMomentumHeader
           viewedSessions={safeSessions}
           viewedDate={viewedDate}
+          trainingCtx={{ weekSessions, lastSession, daysSinceLastSession }}
         />
 
         {/* ── Training context note — memory of recent rhythm, today only, no session yet ── */}

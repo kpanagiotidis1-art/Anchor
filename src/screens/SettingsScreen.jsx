@@ -96,7 +96,7 @@ function SettingsCard({ children }) {
   );
 }
 
-export default function SettingsScreen({ settings, onUpdateSetting, userEmail, onLogout, onBack, focusMode, onFocusChange }) {
+export default function SettingsScreen({ settings, onUpdateSetting, userEmail, onLogout, onBack, focusMode, onFocusChange, onGoToFinance }) {
   return (
     <div style={{
       width: "100%",
@@ -156,6 +156,65 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
             </button>
           </SettingRow>
         </SettingsCard>
+
+        {/* ── Your focus — near the top so it's visible and changeable ── */}
+        <SectionHeader label="Your Focus" />
+        <div style={{
+          background: "var(--bg-card)",
+          borderRadius: "12px",
+          padding: "16px",
+          boxShadow: "var(--shadow)",
+          marginBottom: "24px",
+        }}>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "12px", lineHeight: 1.5 }}>
+            Anchor will quietly prioritise this across your day.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {FOCUS_OPTIONS.map(opt => {
+              const isSelected = (focusMode || "balanced") === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => {
+                    setFocusMode(opt.key);
+                    if (onFocusChange) onFocusChange(opt.key);
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    background: isSelected ? "var(--bg-subtle)" : "none",
+                    border: `1px solid ${isSelected ? "var(--text-primary)" : "var(--border)"}`,
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s ease, background 0.2s ease",
+                    fontFamily: "inherit",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <p style={{ fontSize: "0.88rem", fontWeight: isSelected ? 600 : 500, color: "var(--text-primary)", marginBottom: "2px" }}>
+                      {opt.label}
+                    </p>
+                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{opt.sub}</p>
+                  </div>
+                  <div style={{
+                    width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
+                    border: `2px solid ${isSelected ? "var(--text-primary)" : "var(--border)"}`,
+                    background: isSelected ? "var(--text-primary)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.2s ease",
+                  }}>
+                    {isSelected && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--bg-card)" }} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Appearance ── */}
         <SectionHeader label="Appearance" />
@@ -264,72 +323,29 @@ export default function SettingsScreen({ settings, onUpdateSetting, userEmail, o
           ))}
         </SettingsCard>
 
-        {/* ── Your focus ── */}
-        <SectionHeader label="Your Focus" />
-        <div style={{
-          background: "var(--bg-card)",
-          borderRadius: "12px",
-          padding: "16px",
-          boxShadow: "var(--shadow)",
-          marginBottom: "24px",
-        }}>
-          <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "12px", lineHeight: 1.5 }}>
-            This shapes what Anchor highlights first. You can change it any time.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {FOCUS_OPTIONS.map(opt => {
-              const isSelected = (focusMode || "balanced") === opt.key;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => {
-                    setFocusMode(opt.key);
-                    if (onFocusChange) onFocusChange(opt.key);
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    background: isSelected ? "var(--bg-subtle)" : "none",
-                    border: `1px solid ${isSelected ? "var(--text-primary)" : "var(--border)"}`,
-                    borderRadius: "10px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s ease, background 0.2s ease",
-                    fontFamily: "inherit",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <p style={{
-                      fontSize: "0.88rem", fontWeight: isSelected ? 600 : 500,
-                      color: "var(--text-primary)", marginBottom: "2px",
-                    }}>
-                      {opt.label}
-                    </p>
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                      {opt.sub}
-                    </p>
-                  </div>
-                  {/* Selection indicator */}
-                  <div style={{
-                    width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
-                    border: `2px solid ${isSelected ? "var(--text-primary)" : "var(--border)"}`,
-                    background: isSelected ? "var(--text-primary)" : "transparent",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.2s ease",
-                  }}>
-                    {isSelected && (
-                      <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--bg-card)" }} />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        {/* ── Finance ── */}
+        <SectionHeader label="Finance" />
+        <SettingsCard>
+          <SettingRow
+            label="Financial clarity"
+            subtitle="Clarity around money."
+          >
+            <button
+              onClick={onGoToFinance}
+              style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                padding: "6px 14px",
+                fontSize: "0.82rem",
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+              }}
+            >
+              Open →
+            </button>
+          </SettingRow>
+        </SettingsCard>
 
         {/* Version */}
         <p style={{
